@@ -2,13 +2,13 @@ package rsp.app.posts;
 
 import rsp.app.posts.components.*;
 import rsp.app.posts.services.*;
+import rsp.application.ApplicationConfig;
+import rsp.application.ApplicationContext;
 import rsp.compositions.agent.*;
 import rsp.compositions.agentui.DelegationApprovalBlock;
 import rsp.compositions.agentui.PromptBlock;
 import rsp.compositions.agentui.PromptService;
 import rsp.compositions.application.App;
-import rsp.compositions.application.Config;
-import rsp.compositions.application.Services;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.auth.LoginBlock;
 import rsp.http.auth.SimpleAuthProvider;
@@ -65,7 +65,7 @@ public class CrudApp {
      *                           {@code main} method does not exit; tests pass {@code false}.
      */
     public WebServer run(final boolean blockCurrentThread) {
-        final Config config = new Config()
+        final ApplicationConfig config = new ApplicationConfig()
                 .with(System.getProperties());
 
         // URL to block mapping. Literal segments ("/posts/new") must precede parameter
@@ -88,11 +88,8 @@ public class CrudApp {
         final CommentService commentService = new CommentService(postService::exists);
         postService.onDelete(commentService::deleteByPostId);
         final PromptService promptService = new PromptService();
-        promptService.startTicking();
         final CommentRateStreamService commentRateStreamService = new CommentRateStreamService();
-        commentRateStreamService.start();
         final LogStreamService logStreamService = new LogStreamService();
-        logStreamService.start();
         final var dashboardDefinition = DemoDashboards.definition();
         final var dashboardRuntime = DemoDashboards.runtime(
                 DemoTelemetry.registry(commentRateStreamService, logStreamService));
@@ -159,11 +156,16 @@ public class CrudApp {
 
         // App-wide services available to any block. The auth provider is stored here so
         // AuthComponent can find it on every request.
-        final Services services = new Services()
-                .service(AuthComponent.AuthProvider.class, authProvider);
+        final ApplicationContext applicationContext = ApplicationContext.builder()
+                .config(config)
+                .service(AuthComponent.AuthProvider.class, authProvider)
+                .service(PromptService.class, promptService)
+                .service(CommentRateStreamService.class, commentRateStreamService)
+                .service(LogStreamService.class, logStreamService)
+                .build();
 
         // Compositions are tried in order; the login route is checked before the posts routes.
-        final App app = new App(config, List.of(authComposition, postsComposition), services);
+        final App app = new App(applicationContext, List.of(authComposition, postsComposition));
 
         final WebServer server = WebServer.pages(8085,
                                                  authProvider.pages(app),

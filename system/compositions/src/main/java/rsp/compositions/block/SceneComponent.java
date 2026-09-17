@@ -2,8 +2,6 @@ package rsp.compositions.block;
 
 import rsp.component.*;
 import rsp.component.definitions.Component;
-import rsp.compositions.application.ServicesLifecycleHandler;
-import rsp.compositions.application.Services;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.LayerLayout;
@@ -125,24 +123,11 @@ public class SceneComponent extends Component<Scene, Object> {
             return;
         }
         activeContextScope = null;
-        stopServicesLifecycleHandlers(scene);
     }
 
     @Override
     public boolean isReusable() {
         return true;
-    }
-
-    private void stopServicesLifecycleHandlers(Scene scene) {
-        Composition composition = scene.composition();
-        if (composition == null) return;
-        Services services = composition.services();
-        if (services == null) return;
-        for (Object service : services.asMap().values()) {
-            if (service instanceof ServicesLifecycleHandler handler) {
-                handler.onStop();
-            }
-        }
     }
 
     @Override

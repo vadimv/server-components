@@ -1,11 +1,14 @@
 package rsp.compositions.application;
 
+import rsp.application.ApplicationContext;
+import rsp.application.ApplicationLifecycle;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.auth.AuthComponent;
 import rsp.component.definitions.Component;
 import rsp.url.RelativeUrl;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -14,23 +17,13 @@ import java.util.function.Function;
  * Registers services and compositions, creates AppComponent for each request.
  * Routes and UI registries are defined within each Composition.
  */
-public class App implements Function<RelativeUrl, Component<?, ?>> {
-    private final Config config;
+public final class App implements Function<RelativeUrl, Component<?, ?>>, ApplicationLifecycle {
+    private final ApplicationContext applicationContext;
     private final List<Composition> compositions;
-    private final Map<Class<?>, Object> services;
 
-    public App(Config config,
-               List<Composition> compositions,
-               Services services) {
-        this(config, compositions, services.asMap());
-    }
-
-    public App(Config config,
-               List<Composition> compositions,
-               Map<Class<?>, Object> services) {
-        this.config = Objects.requireNonNull(config);
-        this.compositions = Objects.requireNonNull(compositions);
-        this.services = Objects.requireNonNull(services);
+    public App(ApplicationContext applicationContext, List<Composition> compositions) {
+        this.applicationContext = Objects.requireNonNull(applicationContext, "applicationContext");
+        this.compositions = List.copyOf(Objects.requireNonNull(compositions, "compositions"));
     }
 
     @Override
@@ -39,6 +32,20 @@ public class App implements Function<RelativeUrl, Component<?, ?>> {
     }
 
     public Component<?, ?> apply(RelativeUrl initialUrl, AuthComponent.AuthResult identity) {
-        return new AppComponent(config, compositions, services, initialUrl, identity);
+        return new AppComponent(applicationContext, compositions, initialUrl, identity);
+    }
+
+    public ApplicationContext applicationContext() {
+        return applicationContext;
+    }
+
+    @Override
+    public void start() {
+        applicationContext.start();
+    }
+
+    @Override
+    public void stop() {
+        applicationContext.stop();
     }
 }

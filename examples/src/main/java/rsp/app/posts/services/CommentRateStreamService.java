@@ -1,5 +1,7 @@
 package rsp.app.posts.services;
 
+import rsp.application.ApplicationLifecycle;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -12,7 +14,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class CommentRateStreamService {
+public class CommentRateStreamService implements ApplicationLifecycle {
 
     public static final int DEFAULT_WINDOW_SIZE = 30;
 
@@ -56,6 +58,7 @@ public class CommentRateStreamService {
         this.clock = Objects.requireNonNull(clock);
     }
 
+    @Override
     public void start() {
         List<Sample> initialSnapshot = null;
         synchronized (lock) {
@@ -77,6 +80,7 @@ public class CommentRateStreamService {
         }
     }
 
+    @Override
     public void stop() {
         synchronized (lock) {
             if (scheduler != null) {

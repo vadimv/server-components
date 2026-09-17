@@ -117,7 +117,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
     public PageApplication pages(App app) {
         Objects.requireNonNull(app, "app");
-        return request -> selectPage(app, request);
+        return PageApplication.withLifecycle(app, request -> selectPage(app, request));
     }
 
     private PageResult selectPage(App app, HttpRequest request) {

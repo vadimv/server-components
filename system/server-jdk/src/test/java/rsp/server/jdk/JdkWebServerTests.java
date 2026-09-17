@@ -1,6 +1,7 @@
 package rsp.server.jdk;
 
 import org.junit.jupiter.api.Test;
+import rsp.http.HttpApplication;
 import rsp.http.HttpResponse;
 import rsp.websocket.WebSocketEndpoint;
 import rsp.websocket.WebSocketListener;
@@ -10,6 +11,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +44,40 @@ class JdkWebServerTests {
         } finally {
             server.stop();
         }
+    }
+
+    @Test
+    void brackets_request_handling_with_application_lifecycle() throws Exception {
+        List<String> calls = new ArrayList<>();
+        HttpApplication application = new HttpApplication() {
+            @Override
+            public CompletionStage<HttpResponse> handle(rsp.http.HttpRequest request) {
+                calls.add("handle");
+                return CompletableFuture.completedFuture(HttpResponse.ok().build());
+            }
+
+            @Override
+            public void start() {
+                calls.add("start");
+            }
+
+            @Override
+            public void stop() {
+                calls.add("stop");
+            }
+        };
+        JdkWebServer server = started(new JdkWebServer(0, application));
+        try {
+            client.send(java.net.http.HttpRequest.newBuilder(uri(server, "/one")).GET().build(),
+                    java.net.http.HttpResponse.BodyHandlers.discarding());
+            client.send(java.net.http.HttpRequest.newBuilder(uri(server, "/two")).GET().build(),
+                    java.net.http.HttpResponse.BodyHandlers.discarding());
+
+            assertEquals(List.of("start", "handle", "handle"), calls);
+        } finally {
+            server.stop();
+        }
+        assertEquals(List.of("start", "handle", "handle", "stop"), calls);
     }
 
     @Test

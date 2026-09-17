@@ -2,8 +2,7 @@ package rsp.http.auth;
 
 import org.junit.jupiter.api.Test;
 import rsp.compositions.application.App;
-import rsp.compositions.application.Config;
-import rsp.compositions.application.Services;
+import rsp.application.ApplicationContext;
 import rsp.http.HttpHeader;
 import rsp.http.HttpHeaders;
 import rsp.http.HttpMethod;
@@ -23,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class AuthPageAdaptersTests {
-    private final App app = new App(new Config(), List.of(), new Services());
+    private final App app = new App(ApplicationContext.builder().build(), List.of());
 
     @Test
     void basic_auth_returns_a_challenge_before_rendering_and_renders_authenticated_requests() {
@@ -49,6 +48,18 @@ class AuthPageAdaptersTests {
         assertEquals("/auth/login?redirect=/private", redirect.location().toString());
         assertInstanceOf(PageResult.Render.class,
                 provider.pages(app).handle(request("/auth/login")));
+    }
+
+    @Test
+    void authentication_adapter_preserves_application_lifecycle() {
+        ApplicationContext context = ApplicationContext.builder().build();
+        App managedApp = new App(context, List.of());
+        var pages = new SimpleAuthProvider().pages(managedApp);
+
+        pages.start();
+        assertEquals(ApplicationContext.State.RUNNING, context.state());
+        pages.stop();
+        assertEquals(ApplicationContext.State.STOPPED, context.state());
     }
 
     private static HttpRequest request(String target, HttpHeader... headers) {

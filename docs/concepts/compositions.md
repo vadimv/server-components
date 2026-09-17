@@ -44,13 +44,23 @@ This gives one state owner per UI fragment:
 ## Application Entry Point
 
 An `App` maps an initial `RelativeUrl` and authentication result to a UI
-component. It owns a `Config`, the available `Composition`s, and app-wide
-`Services`. The HTTP adapter remains outside this module.
+component. It receives the UI-independent `ApplicationContext` and the
+available `Composition`s. The HTTP adapter remains outside this module.
 
 ```java
-App app = new App(new Config(), List.of(postsComposition), services);
-WebServer.pages(8080, Pages.live(request -> app.apply(request.relativeUrl()))).start();
+ApplicationContext context = ApplicationContext.builder()
+        .config(new ApplicationConfig().with(System.getProperties()))
+        .service(AuthComponent.AuthProvider.class, authProvider)
+        .build();
+App app = new App(context, List.of(postsComposition));
+WebServer.pages(8080, PageApplication.withLifecycle(app,
+        request -> Pages.live(app.apply(request.relativeUrl())))).start();
 ```
+
+The host starts the context once before accepting requests and stops it after
+live page sessions close. Rendering or unmounting an `AppComponent` only
+projects configuration and services into component context; it never changes
+application lifecycle. See [Application context and lifecycle](application-context.md).
 
 A `Composition` combines an immutable `RouteTable<BlockTarget>`, a `Layout`,
 and one or more `Group`s. Compositions are considered in order; the first route
@@ -325,15 +335,21 @@ state only when it must affect the rendered cache, and keep it current with
 case where a block must supply context to descendants; it is not a
 block-to-view state channel.
 
-## Services And Authorization
+## Application Services And Authorization
 
 Pass domain services to block constructors. Register shared framework
-integration points in `Services` when they must be discovered through context.
+integration points in `ApplicationContext` when they must be discovered through
+component context.
 
 ```java
-Services services = new Services()
-        .service(AuthComponent.AuthProvider.class, authProvider);
+ApplicationContext context = ApplicationContext.builder()
+        .service(AuthComponent.AuthProvider.class, authProvider)
+        .build();
 ```
+
+Application-scoped services implementing `ApplicationLifecycle` start once for
+the process, not once per page or scene. Use block/component lifecycle for
+resources that truly belong to one mounted UI fragment.
 
 Before mounting a descriptor, `DirectBlockHost` calls
 `BlockRuntime.isAuthorized(Lookup)`. The default implementation delegates to the

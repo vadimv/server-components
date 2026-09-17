@@ -1,13 +1,12 @@
 package rsp.app.posts;
 
 import rsp.app.posts.components.*;
+import rsp.application.ApplicationContext;
 import rsp.compositions.shell.ExplorerBlock;
 import rsp.compositions.shell.HeaderBlock;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.PostService;
 import rsp.compositions.application.App;
-import rsp.compositions.application.Config;
-import rsp.compositions.application.Services;
 import rsp.compositions.auth.*;
 import rsp.http.auth.BasicAuthProvider;
 import rsp.http.auth.OAuthPKCEProvider;
@@ -69,10 +68,7 @@ class AuthTestApps {
                 .bind(LoginBlock.class, () -> new LoginBlock(authProvider));
         final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
 
-        final Services services = new Services()
-                .service(AuthComponent.AuthProvider.class, authProvider);
-
-        final App app = new App(new Config(), List.of(authComposition, postsComposition()), services);
+        final App app = new App(context(authProvider), List.of(authComposition, postsComposition()));
         final WebServer server = WebServer.pages(port, authProvider.pages(app),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
@@ -83,10 +79,7 @@ class AuthTestApps {
         final BasicAuthProvider authProvider = new BasicAuthProvider()
                 .user("admin", "pass123", "admin");
 
-        final Services services = new Services()
-                .service(AuthComponent.AuthProvider.class, authProvider);
-
-        final App app = new App(new Config(), List.of(postsComposition()), services);
+        final App app = new App(context(authProvider), List.of(postsComposition()));
         final WebServer server = WebServer.pages(port, authProvider.pages(app),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
@@ -109,13 +102,17 @@ class AuthTestApps {
         );
         final var authProvider = new OAuthPKCEProvider(oauthConfig);
 
-        final Services services = new Services()
-                .service(AuthComponent.AuthProvider.class, authProvider);
-
-        final App app = new App(new Config(), List.of(authProvider.authComposition(), postsComposition()), services);
+        final App app = new App(context(authProvider),
+                List.of(authProvider.authComposition(), postsComposition()));
         final WebServer server = WebServer.pages(port, authProvider.pages(app),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
+    }
+
+    private static ApplicationContext context(AuthComponent.AuthProvider authProvider) {
+        return ApplicationContext.builder()
+                .service(AuthComponent.AuthProvider.class, authProvider)
+                .build();
     }
 }

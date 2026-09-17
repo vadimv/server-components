@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>application-api</module>
         <module>json</module>
         <module>url</module>
         <module>http-api</module>

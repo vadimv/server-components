@@ -416,6 +416,10 @@ class CommentsSmokeIT {
         assertTrue(selector.locator("option").first().isDisabled());
         selector.selectOption("1");
         assertEquals("1", selector.inputValue());
+        // The selection event is handled on the server. Wait for the dirty-state patch
+        // before exercising Cancel, otherwise the old clean-state click handler can win
+        // this race on a busy full-suite run.
+        assertThat(page.locator("dialog.confirmation-dialog")).hasCount(1);
 
         cancelForm(page);
         acceptDiscardDialog(page);

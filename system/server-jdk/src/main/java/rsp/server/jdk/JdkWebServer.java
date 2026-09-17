@@ -103,8 +103,12 @@ public final class JdkWebServer {
             if (running) {
                 throw new IllegalStateException("JdkWebServer is already running");
             }
+            ServerSocket socket = null;
+            boolean applicationStarted = false;
             try {
-                ServerSocket socket = new ServerSocket();
+                application.start();
+                applicationStarted = true;
+                socket = new ServerSocket();
                 socket.setReuseAddress(true);
                 socket.bind(new InetSocketAddress(configuredPort));
                 serverSocket = socket;
@@ -113,7 +117,14 @@ public final class JdkWebServer {
                 running = true;
                 acceptorThread = Thread.startVirtualThread(this::acceptLoop);
             } catch (IOException failure) {
-                throw new RuntimeException(failure);
+                closeQuietly(socket);
+                RuntimeException result = new RuntimeException(failure);
+                stopAfterFailedStart(applicationStarted, result);
+                throw result;
+            } catch (RuntimeException | Error failure) {
+                closeQuietly(socket);
+                stopAfterFailedStart(applicationStarted, failure);
+                throw failure;
             }
         }
         logger.log(INFO, () -> "Server started, listening on port: " + boundPort);
@@ -164,6 +175,7 @@ public final class JdkWebServer {
         webSocketsToClose.stream().filter(connection -> !connection.closed().isDone())
                 .forEach(WebSocketConnection::forceClose);
         awaitExecutor(executorToClose);
+        application.stop();
     }
 
     /** Returns the configured port before start and the bound port afterwards. */
@@ -386,6 +398,17 @@ public final class JdkWebServer {
             } catch (IOException ignored) {
                 // Best effort during accept-loop failures.
             }
+        }
+    }
+
+    private void stopAfterFailedStart(boolean applicationStarted, Throwable failure) {
+        if (!applicationStarted) {
+            return;
+        }
+        try {
+            application.stop();
+        } catch (RuntimeException | Error cleanupFailure) {
+            failure.addSuppressed(cleanupFailure);
         }
     }
 

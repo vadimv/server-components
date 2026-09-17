@@ -16,6 +16,7 @@ are short signposts for people browsing the source tree.
 
 ## Concepts
 
+- [Application context and lifecycle](concepts/application-context.md)
 - [Authorization](concepts/authorization.md)
 - [Schema-driven UI](concepts/schema.md)
 - [AI agent integration](concepts/agent-integration.md)

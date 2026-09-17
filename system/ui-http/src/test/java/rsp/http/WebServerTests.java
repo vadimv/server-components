@@ -2,6 +2,7 @@ package rsp.http;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import rsp.application.ApplicationLifecycle;
 import rsp.component.definitions.Component;
 import rsp.component.definitions.StatelessComponent;
 import rsp.component.definitions.StatelessComponent.Unit;
@@ -26,6 +27,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.net.http.HttpRequest.BodyPublishers;
 import static java.net.http.HttpResponse.BodyHandlers;
@@ -63,6 +65,41 @@ class WebServerTests {
         } finally {
             server.stop();
         }
+    }
+
+    @Test
+    void starts_page_lifecycle_once_and_stops_it_after_all_pages_close() throws Exception {
+        AtomicInteger starts = new AtomicInteger();
+        AtomicInteger stops = new AtomicInteger();
+        AtomicInteger requests = new AtomicInteger();
+        ApplicationLifecycle lifecycle = new ApplicationLifecycle() {
+            @Override
+            public void start() {
+                starts.incrementAndGet();
+            }
+
+            @Override
+            public void stop() {
+                stops.incrementAndGet();
+            }
+        };
+        PageApplication pages = PageApplication.withLifecycle(lifecycle, _ -> {
+            requests.incrementAndGet();
+            return Pages.staticHtml(page("lifecycle"));
+        });
+        WebServer server = started(WebServer.pages(0, pages));
+        try {
+            assertThrows(IllegalStateException.class, server::start);
+            client.send(get(server, "/one"), BodyHandlers.discarding());
+            client.send(get(server, "/two"), BodyHandlers.discarding());
+
+            assertEquals(1, starts.get());
+            assertEquals(0, stops.get());
+            assertEquals(2, requests.get());
+        } finally {
+            server.stop();
+        }
+        assertEquals(1, stops.get());
     }
 
     @Test

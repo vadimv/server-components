@@ -1,6 +1,7 @@
 package rsp.http;
 
 import rsp.component.definitions.Component;
+import rsp.application.ApplicationLifecycle;
 import rsp.metrics.MetricNames;
 import rsp.metrics.MetricObject;
 import rsp.metrics.MetricObjectTypes;
@@ -20,7 +21,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** UI page/session adapter backed by the UI-independent JDK HTTP/WebSocket transport. */
-public class WebServer {
+public class WebServer implements ApplicationLifecycle {
     public static final int DEFAULT_CONNECTION_LIMIT = JdkWebServer.DEFAULT_CONNECTION_LIMIT;
     public static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 10_000;
     static final int WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS = JdkWebServer.WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS;
@@ -154,15 +155,28 @@ public class WebServer {
                 DefaultEventLoop::new, LocalSessionResumeConfig.defaults(), metrics);
     }
 
-    public void start() {
+    public synchronized void start() {
         if (sslConfiguration.isPresent()) {
             throw new UnsupportedOperationException("TLS is not implemented in server-jdk yet");
         }
-        localSessionRegistry.start();
+        if (transport.isRunning()) {
+            throw new IllegalStateException("WebServer is already running");
+        }
+        boolean applicationStarted = false;
         try {
+            pageApplication.start();
+            applicationStarted = true;
+            localSessionRegistry.start();
             transport.start();
-        } catch (RuntimeException failure) {
+        } catch (RuntimeException | Error failure) {
             localSessionRegistry.closeAll();
+            if (applicationStarted) {
+                try {
+                    pageApplication.stop();
+                } catch (RuntimeException | Error cleanupFailure) {
+                    failure.addSuppressed(cleanupFailure);
+                }
+            }
             throw failure;
         }
     }
@@ -171,10 +185,17 @@ public class WebServer {
         transport.join();
     }
 
-    public void stop() {
+    public synchronized void stop() {
         pagesStorage.clear();
-        transport.stop();
-        localSessionRegistry.closeAll();
+        try {
+            transport.stop();
+        } finally {
+            try {
+                localSessionRegistry.closeAll();
+            } finally {
+                pageApplication.stop();
+            }
+        }
     }
 
     public int port() {

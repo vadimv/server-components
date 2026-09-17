@@ -95,6 +95,13 @@ mvn exec:java -pl examples -Dexec.mainClass=rsp.app.rest.RestHello
 Then try `GET /api/hello/Alice` or post an `application/json` body to
 `POST /api/echo` on port 8080.
 
+Use `application-api` when the application has shared configuration or
+process-scoped services. Build an `ApplicationContext`, register services that
+implement `ApplicationLifecycle`, and attach it with
+`HttpApplication.withLifecycle(...)`. Compositions-based UI applications pass
+the same context to `App`; authentication page adapters preserve its lifecycle
+automatically. See [application context and lifecycle](concepts/application-context.md).
+
 Optional features are separate artifacts: `ai-agent`, `agent-ui`, `telemetry`, `dashboard`,
 and `ui-shell`. See the [module map](reference/module-map.md) before adding them.
 

@@ -1,5 +1,7 @@
 package rsp.compositions.application;
 
+import rsp.application.ApplicationConfig;
+import rsp.application.ApplicationContext;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.block.ContextKeys;
@@ -16,21 +18,18 @@ import java.util.function.BiFunction;
 
 public class AppComponent extends Component<AppComponent.AppComponentState, Object> {
 
-    private final Config config;
+    private final ApplicationContext applicationContext;
     private final List<Composition> compositions;
-    private final Map<Class<?>, Object> services;
     private final RelativeUrl initialUrl;
     private final AuthComponent.AuthResult identity;
 
-    public AppComponent(Config config,
+    public AppComponent(ApplicationContext applicationContext,
                         List<Composition> compositions,
-                        Map<Class<?>, Object> services,
                         RelativeUrl initialUrl,
                         AuthComponent.AuthResult identity) {
         super();
-        this.config = Objects.requireNonNull(config);
-        this.compositions = Objects.requireNonNull(compositions);
-        this.services = Objects.requireNonNull(services);
+        this.applicationContext = Objects.requireNonNull(applicationContext);
+        this.compositions = List.copyOf(Objects.requireNonNull(compositions));
         this.initialUrl = Objects.requireNonNull(initialUrl);
         this.identity = Objects.requireNonNull(identity);
     }
@@ -48,17 +47,19 @@ public class AppComponent extends Component<AppComponent.AppComponentState, Obje
     @Override
     public BiFunction<ComponentContext, AppComponentState, ComponentContext> subComponentsContext() {
         return (context, state) -> {
-            // Inject all config properties into context as StringKey<String> entries
-            ComponentContext enrichedContext = config.applyTo(context);
+            ComponentContext enrichedContext = context;
+            for (Map.Entry<String, String> property : applicationContext.config().asMap().entrySet()) {
+                enrichedContext = enrichedContext.with(
+                        new ContextKey.StringKey<>(property.getKey(), String.class), property.getValue());
+            }
 
-            // Add app-level objects using ClassKey (ServiceLoader style)
             enrichedContext = enrichedContext
-                .with(Config.class, config)
+                .with(ApplicationConfig.class, applicationContext.config())
+                .with(ApplicationContext.class, applicationContext)
                 .with(ContextKeys.AUTH_RESULT, identity)
                 .with(ContextKeys.APP_COMPOSITIONS, compositions);
 
-            // Add all services to context using their actual classes as keys for each service instance
-            enrichedContext = enrichedContext.with(services);
+            enrichedContext = enrichedContext.with(applicationContext.services());
 
             return enrichedContext;
         };
@@ -67,26 +68,6 @@ public class AppComponent extends Component<AppComponent.AppComponentState, Obje
     @Override
     public ComponentView<AppComponentState, Object> componentView() {
         return _ -> _ -> new UrlSyncComponent(initialUrl);
-    }
-
-    @Override
-    public void onMounted(ComponentCompositeKey componentId, AppComponentState state,
-                          StateUpdater<AppComponentState> stateUpdate) {
-        Lookup lookup = new ServiceMapLookup(services);
-        for (Object service : services.values()) {
-            if (service instanceof ServicesLifecycleHandler handler) {
-                handler.onStart(lookup);
-            }
-        }
-    }
-
-    @Override
-    public void onUnmounted(ComponentCompositeKey componentId, AppComponentState state) {
-        for (Object service : services.values()) {
-            if (service instanceof ServicesLifecycleHandler handler) {
-                handler.onStop();
-            }
-        }
     }
 
     public record AppComponentState() {

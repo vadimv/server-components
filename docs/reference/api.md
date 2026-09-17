@@ -11,6 +11,7 @@ Each built module writes browsable Javadocs to its `target/apidocs/` directory
 and attaches a `*-javadoc.jar`. For example:
 
 - `system/ui-core/target/apidocs/index.html`
+- `system/application-api/target/apidocs/index.html`
 - `system/http-api/target/apidocs/index.html`
 - `system/http-routing/target/apidocs/index.html`
 - `system/http-json/target/apidocs/index.html`

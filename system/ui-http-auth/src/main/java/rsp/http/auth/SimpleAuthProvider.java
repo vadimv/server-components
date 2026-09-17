@@ -57,14 +57,14 @@ public class SimpleAuthProvider implements AuthComponent.AuthProvider, LoginBloc
 
     public PageApplication pages(App app) {
         Objects.requireNonNull(app, "app");
-        return request -> {
+        return PageApplication.withLifecycle(app, request -> {
             AuthComponent.AuthResult identity = authenticate(request);
             String currentPath = request.path().toString();
             if (identity.authenticated() || currentPath.startsWith("/auth")) {
                 return Pages.live(app.apply(request.relativeUrl(), identity));
             }
             return Pages.redirect("/auth/login?redirect=" + currentPath);
-        };
+        });
     }
 
     @Override

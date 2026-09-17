@@ -1,6 +1,5 @@
 package rsp.compositions.composition;
 
-import rsp.compositions.application.Services;
 import rsp.compositions.block.BlockTarget;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.routing.BlockRoutes;
@@ -25,7 +24,6 @@ public class Composition {
     private final RouteTable<BlockTarget> routes;
     private final Group blocks;
     private final Layout layout;
-    private final Services services;
 
     /**
      * Create a Composition with its route table, layout, and groups.
@@ -36,22 +34,6 @@ public class Composition {
      * @param groups One or more groups holding block and view factories
      */
     public Composition(RouteTable<BlockTarget> routes, Layout layout, Group... groups) {
-        this(routes, layout, null, groups);
-    }
-
-    public Composition(BlockRoutes.Builder routes, Layout layout, Group... groups) {
-        this(Objects.requireNonNull(routes, "routes").build(), layout, groups);
-    }
-
-    /**
-     * Create a Composition with its route table, layout, services, and groups.
-     *
-     * @param routes   The immutable table for this composition's routes
-     * @param layout   The layout strategy for visual arrangement
-     * @param services Composition-level services (nullable)
-     * @param groups   One or more groups holding block and view factories
-     */
-    public Composition(RouteTable<BlockTarget> routes, Layout layout, Services services, Group... groups) {
         Objects.requireNonNull(routes, "routes cannot be null");
         Objects.requireNonNull(layout, "layout cannot be null");
         if (groups == null || groups.length == 0) {
@@ -59,7 +41,6 @@ public class Composition {
         }
         this.routes = routes;
         this.layout = layout;
-        this.services = services;
         if (groups.length == 1) {
             this.blocks = groups[0];
         } else {
@@ -72,8 +53,8 @@ public class Composition {
         validateAndSeal();
     }
 
-    public Composition(BlockRoutes.Builder routes, Layout layout, Services services, Group... groups) {
-        this(Objects.requireNonNull(routes, "routes").build(), layout, services, groups);
+    public Composition(BlockRoutes.Builder routes, Layout layout, Group... groups) {
+        this(Objects.requireNonNull(routes, "routes").build(), layout, groups);
     }
 
     /**
@@ -95,13 +76,6 @@ public class Composition {
      */
     public Layout layout() {
         return layout;
-    }
-
-    /**
-     * Composition-level services (nullable).
-     */
-    public Services services() {
-        return services;
     }
 
     private void validateAndSeal() {

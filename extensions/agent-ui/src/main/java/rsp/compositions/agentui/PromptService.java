@@ -1,5 +1,7 @@
 package rsp.compositions.agentui;
 
+import rsp.application.ApplicationLifecycle;
+
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -8,7 +10,7 @@ import java.util.function.Consumer;
 
 import static rsp.util.SafeDiagnostics.failure;
 
-public class PromptService {
+public class PromptService implements ApplicationLifecycle {
 
     private static final System.Logger logger = System.getLogger(PromptService.class.getName());
 
@@ -161,6 +163,16 @@ public class PromptService {
             scheduler.shutdown();
             scheduler = null;
         }
+    }
+
+    @Override
+    public void start() {
+        startTicking();
+    }
+
+    @Override
+    public void stop() {
+        stopTicking();
     }
 
     private void notifySubscribers(String scopeKey, Message message) {

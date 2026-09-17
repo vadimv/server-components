@@ -1,5 +1,7 @@
 package rsp.app.posts.services;
 
+import rsp.application.ApplicationLifecycle;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -12,7 +14,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class LogStreamService {
+public class LogStreamService implements ApplicationLifecycle {
 
     public static final int DEFAULT_BUFFER_SIZE = 100;
 
@@ -39,6 +41,7 @@ public class LogStreamService {
         this.random = Objects.requireNonNull(random);
     }
 
+    @Override
     public void start() {
         List<LogEntry> initialSnapshot;
         synchronized (lock) {
@@ -59,6 +62,7 @@ public class LogStreamService {
         notifySubscribers(initialSnapshot);
     }
 
+    @Override
     public void stop() {
         synchronized (lock) {
             if (scheduler != null) {

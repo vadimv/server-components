@@ -54,6 +54,13 @@ server.join();
 and connection-limit behavior. Its most explicit constructor also accepts
 WebSocket endpoints, a WebSocket read timeout, and a `JdkServerObserver`.
 
+Both `HttpApplication` and `PageApplication` can carry an
+`ApplicationLifecycle`. The JDK server starts an HTTP application before it
+accepts requests and stops it after connections drain. The UI facade closes
+live page sessions before stopping its page application. Use
+`HttpApplication.withLifecycle(...)` or `PageApplication.withLifecycle(...)`
+when adapting a handler lambda; otherwise the lifecycle would be lost.
+
 ## Runtime Metrics
 
 Pass one process-wide `Metrics` sink to the metrics-aware constructor to record

@@ -76,7 +76,7 @@ public class BasicAuthProvider implements AuthComponent.AuthProvider {
 
     public PageApplication pages(App app) {
         Objects.requireNonNull(app, "app");
-        return request -> {
+        return PageApplication.withLifecycle(app, request -> {
             AuthComponent.AuthResult identity = authenticate(request);
             if (identity.authenticated()) {
                 return Pages.live(app.apply(request.relativeUrl(), identity));
@@ -84,7 +84,7 @@ public class BasicAuthProvider implements AuthComponent.AuthProvider {
             return Pages.response(HttpResponse.status(HttpStatus.UNAUTHORIZED)
                     .header("WWW-Authenticate", "Basic realm=\"" + realm + "\"")
                     .build());
-        };
+        });
     }
 
     private record UserEntry(String password, String[] roles) {}
