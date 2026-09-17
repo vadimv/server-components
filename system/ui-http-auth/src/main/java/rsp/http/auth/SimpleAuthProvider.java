@@ -1,14 +1,16 @@
 package rsp.http.auth;
 
-import rsp.component.CommandsEnqueue;
-import rsp.compositions.auth.AuthComponent;
-import rsp.compositions.auth.LoginBlock;
-import rsp.compositions.application.App;
-import rsp.page.events.RemoteCommand;
+import rsp.application.ApplicationLifecycle;
+import rsp.authentication.Authentication;
 import rsp.http.HttpRequest;
+import rsp.http.HttpResponse;
+import rsp.http.HttpStatus;
 import rsp.http.PageApplication;
+import rsp.http.PageResult;
 import rsp.http.Pages;
+import rsp.http.SetCookie;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -23,82 +25,119 @@ import java.util.concurrent.ConcurrentMap;
  * <p>
  * Sessions are stored in-memory (lost on server restart).
  */
-public class SimpleAuthProvider implements AuthComponent.AuthProvider, LoginBlock.DemoSessionProvider {
+public class SimpleAuthProvider implements HttpAuthenticator {
 
     public static final String SESSION_COOKIE_NAME = "rsp_session";
+    public static final String LOGIN_PATH = "/auth/login";
+    public static final String SIGN_IN_PATH = "/auth/signin";
+    public static final String SIGN_OUT_PATH = "/auth/signout";
 
     private final ConcurrentMap<String, UserInfo> sessions = new ConcurrentHashMap<>();
     private final String defaultUsername;
     private final String[] defaultRoles;
 
     public SimpleAuthProvider(String username, String... roles) {
-        this.defaultUsername = username;
-        this.defaultRoles = roles;
+        this.defaultUsername = Objects.requireNonNull(username, "username");
+        this.defaultRoles = Objects.requireNonNull(roles, "roles").clone();
     }
 
     public SimpleAuthProvider() {
         this("admin", "admin");
     }
 
-    public AuthComponent.AuthResult authenticate(HttpRequest request) {
+    @Override
+    public Authentication authenticate(HttpRequest request) {
         List<String> cookies = request.cookies(SESSION_COOKIE_NAME);
         if (cookies.isEmpty()) {
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
 
         String token = cookies.getFirst();
         UserInfo user = sessions.get(token);
         if (user == null) {
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
 
-        return AuthComponent.AuthResult.authenticated(user.username(), user.roles());
+        return Authentication.authenticated(user.username(), user.roles());
     }
 
-    public PageApplication pages(App app) {
-        Objects.requireNonNull(app, "app");
-        return PageApplication.withLifecycle(app, request -> {
-            AuthComponent.AuthResult identity = authenticate(request);
+    public PageApplication pages(ApplicationLifecycle lifecycle, AuthenticatedPageHandler pages) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
+        Objects.requireNonNull(pages, "pages");
+        return PageApplication.withLifecycle(lifecycle, request -> {
             String currentPath = request.path().toString();
-            if (identity.authenticated() || currentPath.startsWith("/auth")) {
-                return Pages.live(app.apply(request.relativeUrl(), identity));
+            if (currentPath.equals(SIGN_IN_PATH)) {
+                return handleSignIn(request);
             }
-            return Pages.redirect("/auth/login?redirect=" + currentPath);
+            if (currentPath.equals(SIGN_OUT_PATH)) {
+                return handleSignOut(request);
+            }
+            Authentication authentication = authenticate(request);
+            if (authentication.isAuthenticated() || currentPath.equals(LOGIN_PATH)) {
+                return pages.handle(request, authentication);
+            }
+            return Pages.redirect(AuthenticationSupport.loginRedirect(
+                    LOGIN_PATH, request.relativeUrl().toString()));
         });
     }
 
-    @Override
-    public boolean supportsSignOut() {
-        return true;
+    public String loginPath() {
+        return LOGIN_PATH;
     }
 
-    @Override
-    public void signOut(CommandsEnqueue commandsEnqueue) {
-        commandsEnqueue.offer(new RemoteCommand.EvalJs(0,
-                "document.cookie='" + SESSION_COOKIE_NAME + "=;path=/;max-age=0'"));
-        commandsEnqueue.offer(new RemoteCommand.SetHref("/auth/login"));
+    public String signInPath() {
+        return SIGN_IN_PATH;
     }
 
-    /**
-     * Creates a new session for the default user and returns the session token.
-     */
-    public String createSession() {
-        return createSession(defaultUsername, defaultRoles);
+    public String signOutPath() {
+        return SIGN_OUT_PATH;
     }
 
-    @Override
-    public String cookieName() {
-        return SESSION_COOKIE_NAME;
-    }
-
-    /**
-     * Creates a new session and returns the session token.
-     */
-    public String createSession(String username, String... roles) {
+    private String createSession(String username, String... roles) {
         String token = UUID.randomUUID().toString();
         sessions.put(token, new UserInfo(username, roles));
         return token;
     }
 
-    public record UserInfo(String username, String[] roles) {}
+    private PageResult handleSignIn(HttpRequest request) {
+        String target = AuthenticationSupport.safeLocalRedirect(
+                request.query().parameterValue("redirect"));
+        String token = createSession(defaultUsername, defaultRoles);
+        SetCookie cookie = SetCookie.of(SESSION_COOKIE_NAME, token)
+                .path("/")
+                .withHttpOnly()
+                .sameSite(SetCookie.SameSite.LAX);
+        return Pages.response(HttpResponse.status(HttpStatus.FOUND)
+                .header("Location", target)
+                .cookie(cookie)
+                .build());
+    }
+
+    private PageResult handleSignOut(HttpRequest request) {
+        List<String> cookies = request.cookies(SESSION_COOKIE_NAME);
+        if (!cookies.isEmpty()) {
+            sessions.remove(cookies.getFirst());
+        }
+        SetCookie expired = SetCookie.of(SESSION_COOKIE_NAME, "")
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .withHttpOnly()
+                .sameSite(SetCookie.SameSite.LAX);
+        return Pages.response(HttpResponse.status(HttpStatus.FOUND)
+                .header("Location", LOGIN_PATH)
+                .cookie(expired)
+                .build());
+    }
+
+    private record UserInfo(String username, String[] roles) {
+        private UserInfo {
+            Objects.requireNonNull(username, "username");
+            roles = Objects.requireNonNull(roles, "roles").clone();
+        }
+
+        @Override
+        public String[] roles() {
+            return roles.clone();
+        }
+    }
 }

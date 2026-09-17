@@ -2,7 +2,6 @@ package rsp.compositions.shell;
 
 import rsp.component.ComponentView;
 import rsp.component.IntentDispatcher;
-import rsp.compositions.auth.AuthComponent;
 import rsp.dsl.Definition;
 
 import static rsp.dsl.Html.*;
@@ -10,36 +9,32 @@ import static rsp.dsl.Html.*;
 /**
  * HeaderView - Renders a horizontal stripe showing the active category name and auth status.
  * <p>
- * Receives auth data from {@link HeaderBlock}'s local state cache.
- * When authenticated, shows username and a "Sign out" button (if the auth provider supports it).
+ * Receives authentication display data from {@link HeaderBlock}'s local state cache.
+ * When authenticated, shows the principal and an optional sign-out link.
  */
-public class HeaderView implements ComponentView<HeaderView.HeaderViewState, HeaderView.SignOutRequested> {
+public class HeaderView implements ComponentView<HeaderView.HeaderViewState, Object> {
 
-    public record HeaderViewState(boolean authenticated, String username, AuthComponent.AuthProvider authProvider) {
+    public record HeaderViewState(boolean authenticated, String username, String signOutHref) {
     }
 
-    public enum SignOutRequested { INSTANCE }
-
     @Override
-    public rsp.component.View<HeaderViewState> resolve(IntentDispatcher<SignOutRequested> intents) {
+    public rsp.component.View<HeaderViewState> resolve(IntentDispatcher<Object> ignored) {
         return state -> div(attr("class", "layout-header"),
-                authSection(state, intents)
+                authSection(state)
         );
     }
 
-    private Definition authSection(HeaderViewState state,
-                                   IntentDispatcher<SignOutRequested> intents) {
+    private Definition authSection(HeaderViewState state) {
         if (!state.authenticated()) {
             return span();
         }
-        if (state.authProvider() == null || !state.authProvider().supportsSignOut()) {
+        if (state.signOutHref() == null) {
             return span(attr("class", "header-auth"),
                     span(attr("class", "header-username"), text(state.username())));
         }
         return span(attr("class", "header-auth"),
                 span(attr("class", "header-username"), text(state.username())),
-                a(attr("href", "#"), attr("class", "header-signout"),
-                        on("click", true, ctx -> intents.dispatch(SignOutRequested.INSTANCE)),
+                a(attr("href", state.signOutHref()), attr("class", "header-signout"),
                         text("Sign out"))
         );
     }

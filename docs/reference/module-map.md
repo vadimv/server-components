@@ -7,6 +7,7 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 
 | Artifact | Purpose | Direct project dependencies | Application use |
 | --- | --- | --- | --- |
+| `authentication-api` | Immutable request/page identity and roles | none | Direct for authentication integrations or identity-aware UI |
 | `application-api` | Immutable configuration, typed application services, and process lifecycle | none | Direct for shared REST or UI application resources |
 | `json` | JSON value model, parser, limits, and writer | none | Usually transitive |
 | `url` | Immutable URL values and generic route templates/tables | none | Direct for framework-neutral routing |
@@ -18,9 +19,9 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `js-client` | Browser bridge sources and packaged client bundle | none | Usually transitive through `ui-http` |
 | `authorization` | ABAC policies, attributes, and delegation grants | none | Direct for custom policies |
 | `schema` | Field, validation, widget, and list-column metadata | none | Direct for schema-driven UI |
-| `compositions` | Blocks, layouts, application-context projection, authentication context, and default list/form UI | `application-api`, `ui-core`, `url`, `authorization`, `schema` | Direct for routed admin applications |
+| `compositions` | Blocks, layouts, application/identity context projection, and default list/form UI | `authentication-api`, `application-api`, `ui-core`, `url`, `authorization`, `schema` | Direct for routed admin applications |
 | `ui-http` | Initial-page and resumable RSP adapters over the generic JDK server | `application-api`, `ui-core`, `http-api`, `websocket-api`, `server-jdk`; `js-client` at runtime | Direct for the built-in UI server |
-| `ui-http-auth` | Basic, cookie-session, and OAuth PKCE page adapters | `ui-http`, `compositions`, `json` | Direct when using the supplied authentication providers |
+| `ui-http-auth` | Basic, cookie-session, and OAuth PKCE page adapters | `authentication-api`, `application-api`, `ui-http`, `json` | Direct when using the supplied authentication providers |
 | `server-jdk` | UI-neutral JDK HTTP/1.1 and RFC 6455 socket transport | `http-api`, `websocket-api` | Direct for embedded REST and custom WebSocket servers |
 
 ## Optional Extensions
@@ -32,7 +33,7 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `telemetry` | Typed keys, timestamped samples, quality, subscriptions, registries, and command boundaries | none |
 | `metrics-runtime` | Fixed framework metric registry with a read-only local JMX mirror | `ui-core` |
 | `dashboard` | Immutable dashboard/widget definitions, telemetry DSL, renderer registry, block, and view | `ui-core`, `compositions`, `telemetry` |
-| `ui-shell` | Explorer and header blocks and views | `ui-core`, `compositions` |
+| `ui-shell` | Explorer and identity-display header blocks and views | `authentication-api`, `ui-core`, `compositions` |
 
 ## Test Harnesses And Examples
 

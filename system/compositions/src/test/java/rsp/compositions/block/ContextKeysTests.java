@@ -108,10 +108,6 @@ class ContextKeysTests {
             assertEquals(String.class, ContextKeys.ROUTE_PATTERN.type());
         }
 
-        @Test
-        void auth_roles_key_has_correct_type() {
-            assertEquals(String[].class, ContextKeys.AUTH_ROLES.type());
-        }
     }
 
     @Nested

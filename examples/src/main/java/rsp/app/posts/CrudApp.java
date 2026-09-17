@@ -9,7 +9,6 @@ import rsp.compositions.agentui.DelegationApprovalBlock;
 import rsp.compositions.agentui.PromptBlock;
 import rsp.compositions.agentui.PromptService;
 import rsp.compositions.application.App;
-import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.auth.LoginBlock;
 import rsp.http.auth.SimpleAuthProvider;
 import rsp.compositions.authorization.*;
@@ -28,6 +27,7 @@ import rsp.compositions.shell.HeaderBlock;
 import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
+import rsp.http.Pages;
 import rsp.http.StaticResources;
 
 import java.io.File;
@@ -90,6 +90,7 @@ public class CrudApp {
         final PromptService promptService = new PromptService();
         final CommentRateStreamService commentRateStreamService = new CommentRateStreamService();
         final LogStreamService logStreamService = new LogStreamService();
+        final SimpleAuthProvider authProvider = new SimpleAuthProvider();
         final var dashboardDefinition = DemoDashboards.definition();
         final var dashboardRuntime = DemoDashboards.runtime(
                 DemoTelemetry.registry(commentRateStreamService, logStreamService));
@@ -127,7 +128,7 @@ public class CrudApp {
         final Group systemBlocks = new Group()
                 .bind(ExplorerBlock.class, () -> new ExplorerBlock(mainBlocks.structureTree()))
                 .bind(PromptBlock.class, () -> new PromptBlock(promptService, agentService, actionDispatcher, authorization, spawner, mainBlocks.structureTree()))
-                .bind(HeaderBlock.class, HeaderBlock::new)
+                .bind(HeaderBlock.class, () -> new HeaderBlock(authProvider.signOutPath()))
                 .bind(DelegationApprovalBlock.class, () -> new DelegationApprovalBlock(delegationStore));
 
         // Layout chooses where each block appears. The sidebars and header are always visible.
@@ -146,19 +147,17 @@ public class CrudApp {
 
         // Login lives in its own composition. The auth provider redirects anonymous users to
         // /auth/login, which keeps login code out of the posts composition.
-        final SimpleAuthProvider authProvider = new SimpleAuthProvider();
         final RouteTable<BlockTarget> authRoutes = BlockRoutes.builder()
                 .route("/auth/login", LoginBlock.class)
                 .build();
         final Group authGroup = new Group()
-                .bind(LoginBlock.class, () -> new LoginBlock(authProvider));
+                .bind(LoginBlock.class, () -> new LoginBlock(authProvider.signInPath(), true));
         final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
 
-        // App-wide services available to any block. The auth provider is stored here so
-        // AuthComponent can find it on every request.
+        // App-wide process services available to any block. Request authentication is
+        // deliberately absent: it is resolved by the HTTP adapter before page creation.
         final ApplicationContext applicationContext = ApplicationContext.builder()
                 .config(config)
-                .service(AuthComponent.AuthProvider.class, authProvider)
                 .service(PromptService.class, promptService)
                 .service(CommentRateStreamService.class, commentRateStreamService)
                 .service(LogStreamService.class, logStreamService)
@@ -168,7 +167,9 @@ public class CrudApp {
         final App app = new App(applicationContext, List.of(authComposition, postsComposition));
 
         final WebServer server = WebServer.pages(8085,
-                                                 authProvider.pages(app),
+                                                 authProvider.pages(app,
+                                                         (request, authentication) -> Pages.live(
+                                                                 app.apply(request.relativeUrl(), authentication))),
                                                  new StaticResources(resolvePostsResourceDir(), "/res/"));
         server.start();
         if (blockCurrentThread) {

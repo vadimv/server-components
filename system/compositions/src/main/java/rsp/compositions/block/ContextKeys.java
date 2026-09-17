@@ -1,7 +1,6 @@
 package rsp.compositions.block;
 
 import rsp.component.ContextKey;
-import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.composition.Composition;
 import rsp.url.Path;
 
@@ -25,17 +24,6 @@ public final class ContextKeys {
     private ContextKeys() {} // Prevent instantiation
 
     // ===== CLASS-BASED KEYS (ServiceLoader style) =====
-
-    /**
-     * Authentication provider for user authentication.
-     * Stored as: AuthComponent.AuthProvider.class → AuthComponent.AuthProvider instance
-     */
-    public static final ContextKey.ClassKey<AuthComponent.AuthProvider> AUTH_PROVIDER =
-            new ContextKey.ClassKey<>(AuthComponent.AuthProvider.class);
-
-    /** The identity established for the current initial page request. */
-    public static final ContextKey.ClassKey<AuthComponent.AuthResult> AUTH_RESULT =
-            new ContextKey.ClassKey<>(AuthComponent.AuthResult.class);
 
     /**
      * Authorization strategy for access control.
@@ -165,31 +153,6 @@ public final class ContextKeys {
     /** Configured binding key for the active block instance. */
     public static final ContextKey.StringKey<Object> BLOCK_KEY =
             new ContextKey.StringKey<>("block.key", Object.class);
-
-    /**
-     * The authenticated user object.
-     * Type: Object (application-specific user type)
-     * Example: User instance with id, username, etc.
-     */
-    public static final ContextKey.StringKey<Object> AUTH_USER =
-            new ContextKey.StringKey<>("auth.user", Object.class);
-
-    /**
-     * Whether the current user is authenticated.
-     * Type: Boolean
-     * Example: true if user is logged in
-     */
-    public static final ContextKey.StringKey<Boolean> AUTH_AUTHENTICATED =
-            new ContextKey.StringKey<>("auth.authenticated", Boolean.class);
-
-    /**
-     * The roles assigned to the current user.
-     * Type: String[] (array of role names)
-     * Example: ["admin", "user"]
-     */
-    public static final ContextKey.StringKey<String[]> AUTH_ROLES =
-            new ContextKey.StringKey<>("auth.roles", String[].class);
-
 
     /**
      * The title of the current block.

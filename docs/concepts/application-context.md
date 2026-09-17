@@ -74,7 +74,9 @@ immutable `ComponentContext`, but does not own their lifecycle:
 
 ```java
 App app = new App(context, List.of(authComposition, postsComposition));
-PageApplication pages = authProvider.pages(app);
+PageApplication pages = authProvider.pages(app,
+        (request, authentication) ->
+                Pages.live(app.apply(request.relativeUrl(), authentication)));
 WebServer server = WebServer.pages(8080, pages);
 server.start();
 server.join();

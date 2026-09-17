@@ -1,7 +1,7 @@
 package rsp.compositions.auth;
 
+import rsp.authentication.Authentication;
 import rsp.component.Lookup;
-import rsp.compositions.block.ContextKeys;
 import rsp.compositions.block.BlockRuntime;
 
 /**
@@ -13,7 +13,7 @@ public class AuthenticatedOnlyStrategy implements BlockRuntime.AuthorizationStra
 
     @Override
     public boolean isAuthorized(BlockRuntime block, Lookup lookup) {
-        Boolean authenticated = lookup.get(ContextKeys.AUTH_AUTHENTICATED);
-        return Boolean.TRUE.equals(authenticated);
+        Authentication authentication = lookup.get(Authentication.class);
+        return authentication != null && authentication.isAuthenticated();
     }
 }

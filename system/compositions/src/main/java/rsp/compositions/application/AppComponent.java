@@ -2,10 +2,10 @@ package rsp.compositions.application;
 
 import rsp.application.ApplicationConfig;
 import rsp.application.ApplicationContext;
+import rsp.authentication.Authentication;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.block.ContextKeys;
-import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.routing.UrlSyncComponent;
 import rsp.url.RelativeUrl;
@@ -21,17 +21,17 @@ public class AppComponent extends Component<AppComponent.AppComponentState, Obje
     private final ApplicationContext applicationContext;
     private final List<Composition> compositions;
     private final RelativeUrl initialUrl;
-    private final AuthComponent.AuthResult identity;
+    private final Authentication authentication;
 
     public AppComponent(ApplicationContext applicationContext,
                         List<Composition> compositions,
                         RelativeUrl initialUrl,
-                        AuthComponent.AuthResult identity) {
+                        Authentication authentication) {
         super();
         this.applicationContext = Objects.requireNonNull(applicationContext);
         this.compositions = List.copyOf(Objects.requireNonNull(compositions));
         this.initialUrl = Objects.requireNonNull(initialUrl);
-        this.identity = Objects.requireNonNull(identity);
+        this.authentication = Objects.requireNonNull(authentication);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState, Obje
             enrichedContext = enrichedContext
                 .with(ApplicationConfig.class, applicationContext.config())
                 .with(ApplicationContext.class, applicationContext)
-                .with(ContextKeys.AUTH_RESULT, identity)
+                .with(Authentication.class, authentication)
                 .with(ContextKeys.APP_COMPOSITIONS, compositions);
 
             enrichedContext = enrichedContext.with(applicationContext.services());

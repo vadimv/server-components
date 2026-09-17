@@ -6,8 +6,10 @@ engine. A policy receives one immutable `Attributes` value and returns either
 
 Authorization is distinct from authentication:
 
-- `system/compositions` contains login providers and block-mount access
-  strategies.
+- `system/authentication-api` defines immutable identity and roles, while
+  `system/ui-http-auth` establishes them at the HTTP boundary.
+- `system/compositions` contains block-mount access strategies that consume the
+  established identity.
 - `system/authorization` evaluates subject, resource, action, control, context,
   and delegation attributes.
 - `extensions/ai-agent` adapts these decisions to agent discovery, execution,

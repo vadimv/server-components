@@ -1,10 +1,9 @@
 package rsp.compositions.shell;
 
-import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.StateUpdater;
-import rsp.compositions.auth.AuthComponent;
+import rsp.authentication.Authentication;
 import rsp.compositions.block.Block;
 import rsp.compositions.block.ContextKeys;
 
@@ -14,13 +13,21 @@ import java.util.Objects;
 /**
  * Header block that displays auth status.
  * <p>
- * Reads auth data from context to display username and sign-out button.
+ * Reads identity data from context to display the principal and sign-out link.
  */
-public class HeaderBlock extends Block<HeaderView.HeaderViewState, HeaderView.SignOutRequested> {
+public class HeaderBlock extends Block<HeaderView.HeaderViewState, Object> {
     private static final System.Logger LOGGER = System.getLogger(HeaderBlock.class.getName());
 
-    private CommandsEnqueue commandsEnqueue;
+    private final String signOutHref;
     private volatile String currentCategory;
+
+    public HeaderBlock() {
+        this(null);
+    }
+
+    public HeaderBlock(String signOutHref) {
+        this.signOutHref = signOutHref;
+    }
 
     @Override
     public String title() {
@@ -30,43 +37,26 @@ public class HeaderBlock extends Block<HeaderView.HeaderViewState, HeaderView.Si
     @Override
     public ComponentStateSupplier<HeaderView.HeaderViewState> initStateSupplier() {
         return (_, context) -> {
-            Boolean authenticated = context.get(ContextKeys.AUTH_AUTHENTICATED);
-            Object user = context.get(ContextKeys.AUTH_USER);
-            AuthComponent.AuthProvider authProvider = context.get(ContextKeys.AUTH_PROVIDER);
-            return new HeaderView.HeaderViewState(Boolean.TRUE.equals(authenticated),
-                    user != null ? user.toString() : "", authProvider);
+            Authentication authentication = context.get(Authentication.class);
+            boolean authenticated = authentication != null && authentication.isAuthenticated();
+            Object principal = authenticated ? authentication.principal() : null;
+            return new HeaderView.HeaderViewState(authenticated,
+                    principal != null ? principal.toString() : "", signOutHref);
         };
     }
 
     @Override
-    public ComponentView<HeaderView.HeaderViewState, HeaderView.SignOutRequested> componentView() {
+    public ComponentView<HeaderView.HeaderViewState, Object> componentView() {
         return new HeaderView();
     }
 
     @Override
     protected void onBlockMounted(HeaderView.HeaderViewState state,
-                                     StateUpdater<HeaderView.HeaderViewState> stateUpdate) {
-        commandsEnqueue = lookup().get(CommandsEnqueue.class);
+                                  StateUpdater<HeaderView.HeaderViewState> stateUpdate) {
         currentCategory = normalizeCategory(lookup().get(ContextKeys.PRIMARY_CATEGORY_KEY));
         logCurrentCategory("mount");
         watch(ContextKeys.PRIMARY_CATEGORY_KEY, (_, next) ->
                 updateCurrentCategory("watch", next));
-    }
-
-    @Override
-    protected void onIntent(HeaderView.SignOutRequested intent,
-                            HeaderView.HeaderViewState state,
-                            StateUpdater<HeaderView.HeaderViewState> stateUpdater) {
-        AuthComponent.AuthProvider authProvider = state.authProvider();
-        if (authProvider != null && authProvider.supportsSignOut() && commandsEnqueue != null) {
-            authProvider.signOut(commandsEnqueue);
-        }
-    }
-
-    @Override
-    public void onUnmounted(rsp.component.ComponentCompositeKey componentId, HeaderView.HeaderViewState state) {
-        super.onUnmounted(componentId, state);
-        commandsEnqueue = null;
     }
 
     private void updateCurrentCategory(String source, String next) {

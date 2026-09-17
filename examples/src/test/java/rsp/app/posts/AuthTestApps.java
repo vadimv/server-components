@@ -18,6 +18,7 @@ import rsp.compositions.routing.BlockRoutes;
 import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
+import rsp.http.Pages;
 import rsp.http.StaticResources;
 
 import java.io.File;
@@ -28,7 +29,7 @@ import java.util.List;
  */
 class AuthTestApps {
 
-    static Composition postsComposition() {
+    static Composition postsComposition(String signOutPath) {
         final PostService postService = new PostService();
         final CommentService commentService = new CommentService(postService::exists);
         postService.onDelete(commentService::deleteByPostId);
@@ -51,7 +52,7 @@ class AuthTestApps {
 
         final Group systemBlocks = new Group()
                 .bind(ExplorerBlock.class, () -> new ExplorerBlock(mainBlocks.structureTree()))
-                .bind(HeaderBlock.class, HeaderBlock::new);
+                .bind(HeaderBlock.class, () -> new HeaderBlock(signOutPath));
 
         final DefaultLayout layout = new DefaultLayout()
                 .leftSidebar(ExplorerBlock.class)
@@ -65,11 +66,12 @@ class AuthTestApps {
 
         final BlockRoutes.Builder authRoutes = BlockRoutes.builder().route("/auth/login", LoginBlock.class);
         final Group authGroup = new Group()
-                .bind(LoginBlock.class, () -> new LoginBlock(authProvider));
+                .bind(LoginBlock.class, () -> new LoginBlock(authProvider.signInPath(), true));
         final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
 
-        final App app = new App(context(authProvider), List.of(authComposition, postsComposition()));
-        final WebServer server = WebServer.pages(port, authProvider.pages(app),
+        final App app = new App(context(), List.of(authComposition, postsComposition(authProvider.signOutPath())));
+        final WebServer server = WebServer.pages(port, authProvider.pages(app,
+                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
@@ -79,8 +81,9 @@ class AuthTestApps {
         final BasicAuthProvider authProvider = new BasicAuthProvider()
                 .user("admin", "pass123", "admin");
 
-        final App app = new App(context(authProvider), List.of(postsComposition()));
-        final WebServer server = WebServer.pages(port, authProvider.pages(app),
+        final App app = new App(context(), List.of(postsComposition(null)));
+        final WebServer server = WebServer.pages(port, authProvider.pages(app,
+                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
@@ -102,17 +105,22 @@ class AuthTestApps {
         );
         final var authProvider = new OAuthPKCEProvider(oauthConfig);
 
-        final App app = new App(context(authProvider),
-                List.of(authProvider.authComposition(), postsComposition()));
-        final WebServer server = WebServer.pages(port, authProvider.pages(app),
+        final BlockRoutes.Builder authRoutes = BlockRoutes.builder()
+                .route(authProvider.loginPath(), LoginBlock.class);
+        final Group authGroup = new Group()
+                .bind(LoginBlock.class, () -> new LoginBlock(authProvider.signInPath()));
+        final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
+
+        final App app = new App(context(),
+                List.of(authComposition, postsComposition(authProvider.signOutPath())));
+        final WebServer server = WebServer.pages(port, authProvider.pages(app,
+                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
     }
 
-    private static ApplicationContext context(AuthComponent.AuthProvider authProvider) {
-        return ApplicationContext.builder()
-                .service(AuthComponent.AuthProvider.class, authProvider)
-                .build();
+    private static ApplicationContext context() {
+        return ApplicationContext.builder().build();
     }
 }

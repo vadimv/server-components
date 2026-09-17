@@ -63,7 +63,9 @@ Add `compositions` for routed admin applications:
 ```
 
 Add `ui-http-auth` when using the supplied Basic, cookie-session, or OAuth PKCE
-page adapters.
+page adapters. Authentication is established before component creation and is
+passed to the app as one immutable identity value; see
+[authentication](concepts/authentication.md).
 
 A REST-only application can use the method-aware router, JSON helpers, and JDK
 transport without pulling in UI modules:
@@ -100,7 +102,8 @@ process-scoped services. Build an `ApplicationContext`, register services that
 implement `ApplicationLifecycle`, and attach it with
 `HttpApplication.withLifecycle(...)`. Compositions-based UI applications pass
 the same context to `App`; authentication page adapters preserve its lifecycle
-automatically. See [application context and lifecycle](concepts/application-context.md).
+when it is passed as the first argument to `pages(...)`. See
+[application context and lifecycle](concepts/application-context.md).
 
 Optional features are separate artifacts: `ai-agent`, `agent-ui`, `telemetry`, `dashboard`,
 and `ui-shell`. See the [module map](reference/module-map.md) before adding them.

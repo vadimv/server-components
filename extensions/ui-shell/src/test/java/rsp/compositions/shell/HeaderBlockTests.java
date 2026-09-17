@@ -1,11 +1,12 @@
 package rsp.compositions.shell;
 
 import org.junit.jupiter.api.Test;
+import rsp.authentication.Authentication;
 import rsp.component.ComponentContext;
-import rsp.compositions.block.ContextKeys;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HeaderBlockTests {
@@ -15,12 +16,12 @@ class HeaderBlockTests {
         HeaderBlock block = new HeaderBlock();
         HeaderView.HeaderViewState state = block.initStateSupplier().getState(null,
                 new ComponentContext()
-                        .with(ContextKeys.AUTH_AUTHENTICATED, Boolean.TRUE)
-                        .with(ContextKeys.AUTH_USER, "alice"));
+                        .with(Authentication.class, Authentication.authenticated("alice", "admin")));
 
         assertEquals("Header", block.title());
         assertTrue(state.authenticated());
         assertEquals("alice", state.username());
+        assertNull(state.signOutHref());
     }
 
     @Test
@@ -30,5 +31,14 @@ class HeaderBlockTests {
 
         assertFalse(state.authenticated());
         assertEquals("", state.username());
+    }
+
+    @Test
+    void configured_sign_out_link_is_presentation_data() {
+        HeaderView.HeaderViewState state = new HeaderBlock("/auth/signout").initStateSupplier()
+                .getState(null, new ComponentContext()
+                        .with(Authentication.class, Authentication.authenticated("alice")));
+
+        assertEquals("/auth/signout", state.signOutHref());
     }
 }

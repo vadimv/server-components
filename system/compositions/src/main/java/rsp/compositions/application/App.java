@@ -2,22 +2,22 @@ package rsp.compositions.application;
 
 import rsp.application.ApplicationContext;
 import rsp.application.ApplicationLifecycle;
+import rsp.authentication.Authentication;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.auth.AuthComponent;
 import rsp.component.definitions.Component;
 import rsp.url.RelativeUrl;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * App - Application entry point.
  * <p>
- * Registers services and compositions, creates AppComponent for each request.
+ * Combines application context, request identity, and compositions into one root component.
  * Routes and UI registries are defined within each Composition.
  */
-public final class App implements Function<RelativeUrl, Component<?, ?>>, ApplicationLifecycle {
+public final class App implements BiFunction<RelativeUrl, Authentication, Component<?, ?>>, ApplicationLifecycle {
     private final ApplicationContext applicationContext;
     private final List<Composition> compositions;
 
@@ -27,12 +27,8 @@ public final class App implements Function<RelativeUrl, Component<?, ?>>, Applic
     }
 
     @Override
-    public Component<?, ?> apply(RelativeUrl initialUrl) {
-        return apply(initialUrl, AuthComponent.AuthResult.anonymous());
-    }
-
-    public Component<?, ?> apply(RelativeUrl initialUrl, AuthComponent.AuthResult identity) {
-        return new AppComponent(applicationContext, compositions, initialUrl, identity);
+    public Component<?, ?> apply(RelativeUrl initialUrl, Authentication authentication) {
+        return new AppComponent(applicationContext, compositions, initialUrl, authentication);
     }
 
     public ApplicationContext applicationContext() {

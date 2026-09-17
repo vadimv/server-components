@@ -17,7 +17,6 @@ HTTP request
   -> AppComponent
   -> AutoAddressBarSyncComponent
   -> RoutingComponent
-  -> AuthComponent
   -> SceneComponent
   -> DirectBlockHost
   -> Block<S, I>
@@ -43,24 +42,27 @@ This gives one state owner per UI fragment:
 
 ## Application Entry Point
 
-An `App` maps an initial `RelativeUrl` and authentication result to a UI
+An `App` maps an initial `RelativeUrl` and immutable `Authentication` to a UI
 component. It receives the UI-independent `ApplicationContext` and the
 available `Composition`s. The HTTP adapter remains outside this module.
 
 ```java
 ApplicationContext context = ApplicationContext.builder()
         .config(new ApplicationConfig().with(System.getProperties()))
-        .service(AuthComponent.AuthProvider.class, authProvider)
         .build();
 App app = new App(context, List.of(postsComposition));
-WebServer.pages(8080, PageApplication.withLifecycle(app,
-        request -> Pages.live(app.apply(request.relativeUrl())))).start();
+PageApplication pages = authProvider.pages(app,
+        (request, authentication) ->
+                Pages.live(app.apply(request.relativeUrl(), authentication)));
+WebServer.pages(8080, pages).start();
 ```
 
 The host starts the context once before accepting requests and stops it after
 live page sessions close. Rendering or unmounting an `AppComponent` only
-projects configuration and services into component context; it never changes
-application lifecycle. See [Application context and lifecycle](application-context.md).
+projects configuration, services, and the request identity into component
+context; it never changes application lifecycle. Authentication happens before
+component creation; see [Authentication](authentication.md). See also
+[Application context and lifecycle](application-context.md).
 
 A `Composition` combines an immutable `RouteTable<BlockTarget>`, a `Layout`,
 and one or more `Group`s. Compositions are considered in order; the first route
@@ -329,11 +331,11 @@ protected void onBlockMounted(HeaderViewState state,
 ```
 
 Use context for inputs supplied by ancestors, such as URL values, route data,
-auth data, and shared framework services. Copy a changing value into component
-state only when it must affect the rendered cache, and keep it current with
-`watch(...)`. `BlockRuntime.enrichContext(...)` remains available for the rare
-case where a block must supply context to descendants; it is not a
-block-to-view state channel.
+the immutable `Authentication` snapshot, and shared framework services. Copy a
+changing value into component state only when it must affect the rendered
+cache, and keep it current with `watch(...)`. `BlockRuntime.enrichContext(...)`
+remains available for the rare case where a block must supply context to
+descendants; it is not a block-to-view state channel.
 
 ## Application Services And Authorization
 
@@ -343,13 +345,18 @@ component context.
 
 ```java
 ApplicationContext context = ApplicationContext.builder()
-        .service(AuthComponent.AuthProvider.class, authProvider)
+        .service(MailService.class, mailService)
         .build();
 ```
 
 Application-scoped services implementing `ApplicationLifecycle` start once for
 the process, not once per page or scene. Use block/component lifecycle for
 resources that truly belong to one mounted UI fragment.
+
+Authentication providers are request adapters rather than process services.
+Do not register them merely to expose them to components. Components read the
+request-scoped `Authentication` value directly when identity affects display
+or block access.
 
 Before mounting a descriptor, `DirectBlockHost` calls
 `BlockRuntime.isAuthorized(Lookup)`. The default implementation delegates to the

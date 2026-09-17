@@ -3,6 +3,7 @@ package rsp.compositions.application;
 import org.junit.jupiter.api.Test;
 import rsp.application.ApplicationConfig;
 import rsp.application.ApplicationContext;
+import rsp.authentication.Authentication;
 import rsp.component.ComponentContext;
 import rsp.component.ContextKey;
 import rsp.compositions.block.ContextKeys;
@@ -14,7 +15,6 @@ import rsp.url.RelativeUrl;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class AppContextTests {
@@ -28,7 +28,8 @@ class AppContextTests {
                 .build();
         App app = new App(applicationContext, List.of());
         AppComponent component = (AppComponent) app.apply(
-                new RelativeUrl(Path.of("/"), Query.EMPTY, Fragment.EMPTY));
+                new RelativeUrl(Path.of("/"), Query.EMPTY, Fragment.EMPTY),
+                Authentication.anonymous());
 
         ComponentContext projected = component.subComponentsContext().apply(
                 new ComponentContext(), new AppComponent.AppComponentState());
@@ -37,7 +38,7 @@ class AppContextTests {
         assertSame(config, projected.get(ApplicationConfig.class));
         assertSame(service, projected.get(Object.class));
         assertEquals("25", projected.get(new ContextKey.StringKey<>("page.size", String.class)));
-        assertFalse(projected.get(ContextKeys.AUTH_RESULT).authenticated());
+        assertSame(Authentication.anonymous(), projected.get(Authentication.class));
         assertEquals(ApplicationContext.State.NEW, applicationContext.state());
     }
 }

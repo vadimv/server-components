@@ -1,16 +1,7 @@
 package rsp.http.auth;
 
-import rsp.component.CommandsEnqueue;
-import rsp.compositions.auth.AuthComponent;
-import rsp.compositions.auth.LoginBlock;
-import rsp.compositions.application.App;
-import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Group;
-import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.block.BlockTarget;
-import rsp.compositions.routing.BlockRoutes;
-import rsp.page.events.RemoteCommand;
-import rsp.url.routing.RouteTable;
+import rsp.application.ApplicationLifecycle;
+import rsp.authentication.Authentication;
 import rsp.http.HttpRequest;
 import rsp.http.PageApplication;
 import rsp.http.PageResult;
@@ -60,7 +51,7 @@ import static rsp.util.SafeDiagnostics.failure;
  *   <li>User redirected to original path → session exists → authenticated</li>
  * </ol>
  */
-public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
+public class OAuthPKCEProvider implements HttpAuthenticator {
 
     private static final String DEVICE_ID_COOKIE_NAME = "deviceId";
     public static final String SESSION_COOKIE_NAME = "rsp_oauth_session";
@@ -97,86 +88,75 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
         this.sessionMaxAgeSeconds = sessionMaxAgeSeconds;
     }
 
-    public AuthComponent.AuthResult authenticate(HttpRequest request) {
+    @Override
+    public Authentication authenticate(HttpRequest request) {
         String token = authSessionToken(request);
         if (token == null) {
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
 
         Session session = sessions.get(token);
         if (session == null) {
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
         if (session.isExpired(clock.instant())) {
             sessions.remove(token, session);
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
 
-        return AuthComponent.AuthResult.authenticated(session.username());
+        return Authentication.authenticated(session.username());
     }
 
-    public PageApplication pages(App app) {
-        Objects.requireNonNull(app, "app");
-        return PageApplication.withLifecycle(app, request -> selectPage(app, request));
+    public PageApplication pages(ApplicationLifecycle lifecycle, AuthenticatedPageHandler pages) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
+        Objects.requireNonNull(pages, "pages");
+        return PageApplication.withLifecycle(lifecycle, request -> selectPage(pages, request));
     }
 
-    private PageResult selectPage(App app, HttpRequest request) {
-        AuthComponent.AuthResult authResult = authenticate(request);
+    private PageResult selectPage(AuthenticatedPageHandler pages, HttpRequest request) {
+        Authentication authentication = authenticate(request);
         String currentPath = request.path().toString();
 
         // Login page: public — let the composition render it
-        if (currentPath.startsWith(config.loginPath())) {
-            return Pages.live(app.apply(request.relativeUrl(), authResult));
+        if (currentPath.equals(config.loginPath())) {
+            return pages.handle(request, authentication);
         }
 
         // Callback: exchange code for token, create session, redirect to original URL
-        if (currentPath.startsWith(config.callbackPath())) {
+        if (currentPath.equals(config.callbackPath())) {
             return handleCallback(request);
         }
 
         // Sign-out path: clear auth session and redirect to root (will trigger login page again)
-        if (currentPath.startsWith(config.signOutPath())) {
+        if (currentPath.equals(config.signOutPath())) {
             return handleSignOut(request);
         }
 
         // Sign-in trigger: start PKCE flow, redirect param has the original path
-        if (currentPath.startsWith(config.signinPath())) {
+        if (currentPath.equals(config.signinPath())) {
             String redirect = request.query().parameterValue("redirect");
-            return startPKCEFlow(request, safeLocalRedirect(redirect));
+            return startPKCEFlow(request, AuthenticationSupport.safeLocalRedirect(redirect));
         }
 
-        if (authResult.authenticated()) {
-            return Pages.live(app.apply(request.relativeUrl(), authResult));
+        if (authentication.isAuthenticated()) {
+            return pages.handle(request, authentication);
         }
 
         // Protected path: redirect to login page
-        return Pages.redirect(config.loginPath() + "?redirect=" + currentPath);
+        return Pages.redirect(AuthenticationSupport.loginRedirect(
+                config.loginPath(), request.relativeUrl().toString()));
     }
 
-    @Override
-    public boolean supportsSignOut() {
-        return true;
+    public String loginPath() {
+        return config.loginPath();
     }
 
-    @Override
-    public void signOut(CommandsEnqueue commandsEnqueue) {
-        commandsEnqueue.offer(new RemoteCommand.SetHref(config.signOutPath()));
+    public String signInPath() {
+        return config.signinPath();
     }
 
-    /**
-     * Creates the auth composition for the login page.
-     * Register this composition before application compositions in the App.
-     */
-    public Composition authComposition() {
-        final RouteTable<BlockTarget> routes = BlockRoutes.builder()
-                .route(config.loginPath(), LoginBlock.class)
-                .route(config.signinPath(), LoginBlock.class)
-                .route(config.callbackPath(), LoginBlock.class)
-                .route(config.signOutPath(), LoginBlock.class)
-                .build();
-        final Group group = new Group()
-                .bind(LoginBlock.class, () -> new LoginBlock(config.signinPath()));
-        return new Composition(routes, new DefaultLayout(), group);
+    public String signOutPath() {
+        return config.signOutPath();
     }
 
     // ===== PKCE Flow =====
@@ -325,27 +305,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
      * External, protocol-relative, malformed, or header-unsafe values fall back to root.
      */
     static String safeLocalRedirect(String redirect) {
-        if (redirect == null || redirect.isBlank()) {
-            return "/";
-        }
-
-        final String candidate = redirect.trim();
-        if (!candidate.startsWith("/")
-                || candidate.startsWith("//")
-                || candidate.indexOf('\\') >= 0
-                || candidate.chars().anyMatch(ch -> Character.isISOControl(ch) || Character.isWhitespace(ch))) {
-            return "/";
-        }
-
-        try {
-            final URI uri = URI.create(candidate);
-            if (uri.isAbsolute() || uri.getRawAuthority() != null || uri.getRawPath() == null) {
-                return "/";
-            }
-            return candidate;
-        } catch (IllegalArgumentException _) {
-            return "/";
-        }
+        return AuthenticationSupport.safeLocalRedirect(redirect);
     }
 
     // ===== Token Exchange =====

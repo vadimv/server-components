@@ -145,6 +145,10 @@ Use `Pages.staticHtml(component)` for detached server-rendered HTML and
 `Pages.response(httpResponse)` when no UI rendering is required. `HtmlDocument`
 does not contain HTTP status, header, cookie, or redirect state.
 
+The supplied `ui-http-auth` providers apply this boundary consistently and
+pass an immutable `Authentication` value to the page callback before component
+creation. See [Authentication](../concepts/authentication.md).
+
 ## HTTP Behavior
 
 The current server supports HTTP/1.0 and HTTP/1.1 request parsing for:

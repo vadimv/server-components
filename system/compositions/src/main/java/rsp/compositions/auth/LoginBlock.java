@@ -7,39 +7,42 @@ import rsp.component.StateUpdater;
 import rsp.compositions.block.ContextKeys;
 import rsp.compositions.block.Block;
 import rsp.page.events.RemoteCommand;
+import rsp.url.Query;
 
+import java.util.List;
 import java.util.Objects;
 
 import static rsp.dsl.Html.*;
 
-/** Intent-driven login block for the demo and OAuth sign-in flows. */
+/** Presentation-only sign-in block which navigates to an HTTP authentication endpoint. */
 public class LoginBlock extends Block<LoginBlock.State, LoginBlock.SignInRequested> {
-    private final DemoSessionProvider demoSessionProvider;
-    private final String oauthSignInPath;
+    private final String signInPath;
+    private final boolean showDemoDescription;
     private CommandsEnqueue commandsEnqueue;
 
     public enum SignInRequested {
         INSTANCE
     }
 
-    public record State(String redirectPath, boolean showDemoDescription) {
+    public record State(String signInHref, boolean showDemoDescription) {
     }
 
-    public LoginBlock(DemoSessionProvider demoSessionProvider) {
-        this.demoSessionProvider = Objects.requireNonNull(demoSessionProvider);
-        this.oauthSignInPath = null;
+    public LoginBlock(String signInPath) {
+        this(signInPath, false);
     }
 
-    public LoginBlock(String oauthSignInPath) {
-        this.demoSessionProvider = null;
-        this.oauthSignInPath = Objects.requireNonNull(oauthSignInPath);
+    public LoginBlock(String signInPath, boolean showDemoDescription) {
+        this.signInPath = Objects.requireNonNull(signInPath);
+        this.showDemoDescription = showDemoDescription;
     }
 
     @Override
     public ComponentStateSupplier<State> initStateSupplier() {
         return (_, context) -> {
             String redirect = context.get(ContextKeys.URL_QUERY.with("redirect"));
-            return new State(redirect == null ? "/" : redirect, demoSessionProvider != null);
+            String target = redirect == null ? "/" : redirect;
+            Query query = new Query(List.of(new Query.Parameter("redirect", target)));
+            return new State(signInPath + query, showDemoDescription);
         };
     }
 
@@ -65,15 +68,7 @@ public class LoginBlock extends Block<LoginBlock.State, LoginBlock.SignInRequest
         if (commandsEnqueue == null) {
             return;
         }
-        if (demoSessionProvider != null) {
-            String token = demoSessionProvider.createSession();
-            commandsEnqueue.offer(new RemoteCommand.EvalJs(0,
-                    "document.cookie = '" + demoSessionProvider.cookieName()
-                            + "=" + token + "; path=/; SameSite=Strict'"));
-            commandsEnqueue.offer(new RemoteCommand.SetHref(state.redirectPath()));
-            return;
-        }
-        commandsEnqueue.offer(new RemoteCommand.SetHref(oauthSignInPath + "?redirect=" + state.redirectPath()));
+        commandsEnqueue.offer(new RemoteCommand.SetHref(state.signInHref()));
     }
 
     @Override
@@ -85,12 +80,5 @@ public class LoginBlock extends Block<LoginBlock.State, LoginBlock.SignInRequest
     @Override
     public String title() {
         return "Sign In";
-    }
-
-    /** Minimal adapter implemented by demo authentication integrations. */
-    public interface DemoSessionProvider {
-        String createSession();
-
-        String cookieName();
     }
 }

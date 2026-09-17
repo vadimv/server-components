@@ -27,12 +27,12 @@ class OAuthPKCEProviderTests {
         final OAuthPKCEProvider provider = new OAuthPKCEProvider(config(), clock, 1);
         final String token = provider.createSession("alice");
 
-        assertTrue(provider.authenticate(contextWithOAuthCookie(token)).authenticated(),
+        assertTrue(provider.authenticate(contextWithOAuthCookie(token)).isAuthenticated(),
                 "fresh OAuth session should authenticate");
 
         clock.advanceSeconds(1);
 
-        assertFalse(provider.authenticate(contextWithOAuthCookie(token)).authenticated(),
+        assertFalse(provider.authenticate(contextWithOAuthCookie(token)).isAuthenticated(),
                 "OAuth session should expire server-side with the cookie max age");
     }
 

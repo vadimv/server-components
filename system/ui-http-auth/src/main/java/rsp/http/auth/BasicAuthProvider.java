@@ -1,16 +1,16 @@
 package rsp.http.auth;
 
-import rsp.compositions.auth.AuthComponent;
-import rsp.compositions.application.App;
+import rsp.application.ApplicationLifecycle;
+import rsp.authentication.Authentication;
 import rsp.http.HttpRequest;
 import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
 import rsp.http.PageApplication;
 import rsp.http.Pages;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Credentials are validated against an in-memory map.
  * The browser resends credentials on every request — no server-side session needed.
  */
-public class BasicAuthProvider implements AuthComponent.AuthProvider {
+public class BasicAuthProvider implements HttpAuthenticator {
 
     private final String realm;
     private final Map<String, UserEntry> credentials = new ConcurrentHashMap<>();
@@ -45,22 +45,23 @@ public class BasicAuthProvider implements AuthComponent.AuthProvider {
         return this;
     }
 
-    public AuthComponent.AuthResult authenticate(HttpRequest request) {
+    @Override
+    public Authentication authenticate(HttpRequest request) {
         String authHeader = request.header("Authorization");
         if (authHeader == null || !authHeader.startsWith("Basic ")) {
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
 
         String decoded;
         try {
             decoded = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
 
         int colonIndex = decoded.indexOf(':');
         if (colonIndex < 0) {
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
 
         String username = decoded.substring(0, colonIndex);
@@ -68,18 +69,19 @@ public class BasicAuthProvider implements AuthComponent.AuthProvider {
 
         UserEntry entry = credentials.get(username);
         if (entry == null || !entry.password().equals(password)) {
-            return AuthComponent.AuthResult.anonymous();
+            return Authentication.anonymous();
         }
 
-        return AuthComponent.AuthResult.authenticated(username, entry.roles());
+        return Authentication.authenticated(username, entry.roles());
     }
 
-    public PageApplication pages(App app) {
-        Objects.requireNonNull(app, "app");
-        return PageApplication.withLifecycle(app, request -> {
-            AuthComponent.AuthResult identity = authenticate(request);
-            if (identity.authenticated()) {
-                return Pages.live(app.apply(request.relativeUrl(), identity));
+    public PageApplication pages(ApplicationLifecycle lifecycle, AuthenticatedPageHandler pages) {
+        Objects.requireNonNull(lifecycle, "lifecycle");
+        Objects.requireNonNull(pages, "pages");
+        return PageApplication.withLifecycle(lifecycle, request -> {
+            Authentication authentication = authenticate(request);
+            if (authentication.isAuthenticated()) {
+                return pages.handle(request, authentication);
             }
             return Pages.response(HttpResponse.status(HttpStatus.UNAUTHORIZED)
                     .header("WWW-Authenticate", "Basic realm=\"" + realm + "\"")
@@ -87,5 +89,15 @@ public class BasicAuthProvider implements AuthComponent.AuthProvider {
         });
     }
 
-    private record UserEntry(String password, String[] roles) {}
+    private record UserEntry(String password, String[] roles) {
+        private UserEntry {
+            Objects.requireNonNull(password, "password");
+            roles = Objects.requireNonNull(roles, "roles").clone();
+        }
+
+        @Override
+        public String[] roles() {
+            return roles.clone();
+        }
+    }
 }
