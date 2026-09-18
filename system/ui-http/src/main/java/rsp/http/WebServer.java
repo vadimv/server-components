@@ -12,10 +12,17 @@ import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.server.jdk.JdkServerObserver;
 import rsp.server.jdk.JdkWebServer;
+import rsp.http.routing.HttpPrefixHandler;
+import rsp.http.routing.HttpRouteHandler;
+import rsp.http.routing.HttpRouter;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.URL;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -40,6 +47,7 @@ public class WebServer implements ApplicationLifecycle {
     private final LocalSessionRegistry localSessionRegistry;
     private final Optional<StaticResourceHandler> staticResourceHandler;
     private final PageHttpHandler httpHandler;
+    private final HttpApplication httpApplication;
     private final JdkWebServer transport;
 
     public WebServer(int port,
@@ -83,6 +91,19 @@ public class WebServer implements ApplicationLifecycle {
                      Supplier<EventLoop> eventLoopSupplier,
                      LocalSessionResumeConfig localSessionResumeConfig,
                      Metrics metrics) {
+        this(port, pageApplication, staticResources, sslConfiguration, connectionLimit, eventLoopSupplier,
+                localSessionResumeConfig, metrics, HttpRouter.builder().build());
+    }
+
+    private WebServer(int port,
+                      PageApplication pageApplication,
+                      Optional<StaticResources> staticResources,
+                      Optional<SslConfiguration> sslConfiguration,
+                      int connectionLimit,
+                      Supplier<EventLoop> eventLoopSupplier,
+                      LocalSessionResumeConfig localSessionResumeConfig,
+                      Metrics metrics,
+                      HttpRouter applicationRoutes) {
         this.pageApplication = Objects.requireNonNull(pageApplication, "pageApplication");
         this.staticResources = Objects.requireNonNull(staticResources, "staticResources");
         this.sslConfiguration = Objects.requireNonNull(sslConfiguration, "sslConfiguration");
@@ -94,22 +115,26 @@ public class WebServer implements ApplicationLifecycle {
                 this.localSessionResumeConfig, this.metrics);
         this.staticResourceHandler = this.staticResources.map(resources ->
                 new StaticResourceHandler(resources.resourcesBaseDir(), resources.contextPath()));
-        this.httpHandler = new PageHttpHandler(pagesStorage, this.pageApplication, this.staticResourceHandler,
+        this.httpHandler = new PageHttpHandler(pagesStorage, this.pageApplication,
                 DEFAULT_HEARTBEAT_INTERVAL_MS, this.metrics);
-        this.transport = new JdkWebServer(port, httpHandler,
+        this.httpApplication = Objects.requireNonNull(applicationRoutes, "applicationRoutes")
+                .withFallback(uiRoutes(httpHandler, this.staticResources, this.staticResourceHandler));
+        this.transport = new JdkWebServer(port, httpApplication,
                 java.util.List.of(new RspWebSocketEndpoint(localSessionRegistry)), connectionLimit,
                 DEFAULT_HEARTBEAT_INTERVAL_MS * 3, transportObserver(this.metrics));
     }
 
+    /** Starts fluent assembly of a UI server with optional generic HTTP routes. */
+    public static Builder builder(int port, PageApplication pageApplication) {
+        return new Builder(port, pageApplication);
+    }
+
     public static WebServer pages(int port, PageApplication pageApplication) {
-        return new WebServer(port, pageApplication, Optional.empty(), Optional.empty(), DEFAULT_CONNECTION_LIMIT,
-                DefaultEventLoop::new, LocalSessionResumeConfig.defaults(), Metrics.noop());
+        return builder(port, pageApplication).build();
     }
 
     public static WebServer pages(int port, PageApplication pageApplication, StaticResources staticResources) {
-        return new WebServer(port, pageApplication, Optional.of(staticResources), Optional.empty(),
-                DEFAULT_CONNECTION_LIMIT, DefaultEventLoop::new, LocalSessionResumeConfig.defaults(),
-                Metrics.noop());
+        return builder(port, pageApplication).staticResources(staticResources).build();
     }
 
     public WebServer(int port,
@@ -238,6 +263,10 @@ public class WebServer implements ApplicationLifecycle {
         return httpHandler;
     }
 
+    protected HttpApplication httpApplication() {
+        return httpApplication;
+    }
+
     int activeWebSocketCount() {
         return transport.activeWebSocketCount();
     }
@@ -293,5 +322,95 @@ public class WebServer implements ApplicationLifecycle {
             throw new IllegalArgumentException("connectionLimit must be greater than 0");
         }
         return connectionLimit;
+    }
+
+    private static HttpRouter uiRoutes(PageHttpHandler pages,
+                                       Optional<StaticResources> staticResources,
+                                       Optional<StaticResourceHandler> staticResourceHandler) {
+        HttpRouter.Builder routes = HttpRouter.builder()
+                .get(PageHttpHandler.JS_CLIENT_BUNDLE_PATH,
+                        HttpRouteHandler.sync((_, _) -> jsClientBundleResponse()))
+                .get("/favicon.ico", HttpRouteHandler.sync((_, _) ->
+                        HttpResponses.text(404, "No favicon.ico")));
+        if (staticResources.isPresent() && staticResourceHandler.isPresent()) {
+            routes.getPrefix(staticResources.get().contextPath(), HttpPrefixHandler.sync((request, _) ->
+                    staticResourceHandler.get().handle(request.path())));
+        }
+        return routes.fallback(pages).build();
+    }
+
+    private static HttpResponse jsClientBundleResponse() {
+        URL resource = WebServer.class.getResource(PageHttpHandler.JS_CLIENT_BUNDLE_PATH);
+        if (resource == null) {
+            return HttpResponses.status(500);
+        }
+        return HttpResponse.ok()
+                .stream(() -> {
+                    try {
+                        return resource.openStream();
+                    } catch (IOException failure) {
+                        throw new UncheckedIOException(failure);
+                    }
+                }, OptionalLong.empty(), MediaType.parse("application/javascript"))
+                .build();
+    }
+
+    /** Mutable configuration DSL. The built server and its route graph are immutable. */
+    public static final class Builder {
+        private final int port;
+        private final PageApplication pageApplication;
+        private Optional<StaticResources> staticResources = Optional.empty();
+        private Optional<SslConfiguration> sslConfiguration = Optional.empty();
+        private int connectionLimit = DEFAULT_CONNECTION_LIMIT;
+        private Supplier<EventLoop> eventLoopSupplier = DefaultEventLoop::new;
+        private LocalSessionResumeConfig localSessionResumeConfig = LocalSessionResumeConfig.defaults();
+        private Metrics metrics = Metrics.noop();
+        private final HttpRouter.Builder routes = HttpRouter.builder();
+
+        private Builder(int port, PageApplication pageApplication) {
+            this.port = port;
+            this.pageApplication = Objects.requireNonNull(pageApplication, "pageApplication");
+        }
+
+        /** Adds routes handled before framework assets and UI page fallback. */
+        public Builder routes(HttpRouter routes) {
+            this.routes.include(Objects.requireNonNull(routes, "routes"));
+            return this;
+        }
+
+        public Builder staticResources(StaticResources staticResources) {
+            this.staticResources = Optional.of(Objects.requireNonNull(staticResources, "staticResources"));
+            return this;
+        }
+
+        public Builder ssl(SslConfiguration sslConfiguration) {
+            this.sslConfiguration = Optional.of(Objects.requireNonNull(sslConfiguration, "sslConfiguration"));
+            return this;
+        }
+
+        public Builder connectionLimit(int connectionLimit) {
+            this.connectionLimit = requirePositiveConnectionLimit(connectionLimit);
+            return this;
+        }
+
+        public Builder eventLoops(Supplier<EventLoop> eventLoopSupplier) {
+            this.eventLoopSupplier = Objects.requireNonNull(eventLoopSupplier, "eventLoopSupplier");
+            return this;
+        }
+
+        public Builder localSessionResume(LocalSessionResumeConfig config) {
+            this.localSessionResumeConfig = Objects.requireNonNull(config, "config");
+            return this;
+        }
+
+        public Builder metrics(Metrics metrics) {
+            this.metrics = Objects.requireNonNull(metrics, "metrics");
+            return this;
+        }
+
+        public WebServer build() {
+            return new WebServer(port, pageApplication, staticResources, sslConfiguration, connectionLimit,
+                    eventLoopSupplier, localSessionResumeConfig, metrics, routes.build());
+        }
     }
 }

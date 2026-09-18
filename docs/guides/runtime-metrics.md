@@ -9,7 +9,9 @@ server:
 
 ```java
 try (MetricsRuntime runtime = MetricsRuntime.withPlatformJmx()) {
-    WebServer server = new WebServer(8080, request -> rootComponent(), runtime.metrics());
+    WebServer server = WebServer.builder(8080, Pages.live(request -> rootComponent()))
+            .metrics(runtime.metrics())
+            .build();
     server.start();
     server.join();
 }

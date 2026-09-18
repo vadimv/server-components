@@ -5,12 +5,15 @@ import rsp.http.HttpMethod;
 import rsp.http.HttpRequest;
 import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
+import rsp.url.Path;
 import rsp.url.routing.RouteMatch;
 import rsp.url.routing.RouteTable;
 import rsp.url.routing.RouteTemplate;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,63 +26,124 @@ import java.util.concurrent.CompletionStage;
 /** Immutable, method-aware HTTP router backed by the generic URL route table. */
 public final class HttpRouter implements HttpApplication {
     private final Map<HttpMethod, RouteTable<HttpRouteHandler>> routes;
+    private final Map<HttpMethod, List<PrefixRegistration>> prefixes;
+    private final HttpApplication fallback;
 
-    private HttpRouter(Map<HttpMethod, RouteTable<HttpRouteHandler>> routes) {
+    private HttpRouter(Map<HttpMethod, RouteTable<HttpRouteHandler>> routes,
+                       Map<HttpMethod, List<PrefixRegistration>> prefixes,
+                       HttpApplication fallback) {
         this.routes = Map.copyOf(routes);
+        EnumMap<HttpMethod, List<PrefixRegistration>> copiedPrefixes = new EnumMap<>(HttpMethod.class);
+        prefixes.forEach((method, registrations) -> copiedPrefixes.put(method, List.copyOf(registrations)));
+        this.prefixes = Map.copyOf(copiedPrefixes);
+        this.fallback = fallback;
     }
 
     public static Builder builder() {
         return new Builder();
     }
 
+    /** Returns a copy that delegates unknown paths to {@code application}. */
+    public HttpRouter withFallback(HttpApplication application) {
+        Objects.requireNonNull(application, "application");
+        if (fallback != null) {
+            throw new IllegalStateException("Router already has a fallback application");
+        }
+        return new HttpRouter(routes, prefixes, application);
+    }
+
     @Override
     public CompletionStage<HttpResponse> handle(HttpRequest request) {
         Objects.requireNonNull(request, "request");
-        Optional<RouteMatch<HttpRouteHandler>> match = match(request.method(), request);
+        Optional<SelectedHandler> match = match(request.method(), request);
         if (match.isEmpty() && request.method() == HttpMethod.HEAD) {
             match = match(HttpMethod.GET, request);
         }
         if (match.isPresent()) {
-            RouteMatch<HttpRouteHandler> selected = match.get();
+            return invoke(match.get(), request);
+        }
+
+        Set<String> allowed = allowedMethods(request);
+        if (!allowed.isEmpty()) {
+            return CompletableFuture.completedFuture(HttpResponse.status(HttpStatus.METHOD_NOT_ALLOWED)
+                    .header("Allow", String.join(", ", allowed))
+                    .build());
+        }
+
+        if (fallback != null) {
             try {
-                return Objects.requireNonNull(selected.target().handle(
-                        request, new HttpRouteContext(selected.template(), selected.path())),
-                        "handler completion stage");
+                return Objects.requireNonNull(fallback.handle(request), "fallback completion stage");
             } catch (Throwable failure) {
                 return CompletableFuture.failedFuture(failure);
             }
         }
-
-        Set<String> allowed = allowedMethods(request);
-        if (allowed.isEmpty()) {
-            return CompletableFuture.completedFuture(HttpResponse.status(HttpStatus.NOT_FOUND).build());
-        }
-        return CompletableFuture.completedFuture(HttpResponse.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .header("Allow", String.join(", ", allowed))
-                .build());
+        return CompletableFuture.completedFuture(HttpResponse.status(HttpStatus.NOT_FOUND).build());
     }
 
-    private Optional<RouteMatch<HttpRouteHandler>> match(HttpMethod method, HttpRequest request) {
+    @Override
+    public void start() {
+        if (fallback != null) {
+            fallback.start();
+        }
+    }
+
+    @Override
+    public void stop() {
+        if (fallback != null) {
+            fallback.stop();
+        }
+    }
+
+    private Optional<SelectedHandler> match(HttpMethod method, HttpRequest request) {
         RouteTable<HttpRouteHandler> table = routes.get(method);
-        return table == null ? Optional.empty() : table.match(request.path());
+        Optional<RouteMatch<HttpRouteHandler>> exact = table == null
+                ? Optional.empty()
+                : table.match(request.path());
+        if (exact.isPresent()) {
+            RouteMatch<HttpRouteHandler> selected = exact.get();
+            return Optional.of(selectedRequest -> selected.target().handle(
+                    selectedRequest, new HttpRouteContext(selected.template(), selected.path())));
+        }
+
+        return matchingPrefix(method, request.path()).map(selected -> selectedRequest ->
+                selected.handler().handle(selectedRequest,
+                        new HttpPrefixContext(selected.prefix(), request.path().relativize(selected.prefix()))));
     }
 
     private Set<String> allowedMethods(HttpRequest request) {
         Set<String> result = new TreeSet<>();
-        routes.forEach((method, table) -> {
-            if (table.match(request.path()).isPresent()) {
+        for (HttpMethod method : HttpMethod.values()) {
+            RouteTable<HttpRouteHandler> table = routes.get(method);
+            if ((table != null && table.match(request.path()).isPresent())
+                    || matchingPrefix(method, request.path()).isPresent()) {
                 result.add(method.name());
                 if (method == HttpMethod.GET) {
                     result.add(HttpMethod.HEAD.name());
                 }
             }
-        });
+        }
         return result;
+    }
+
+    private Optional<PrefixRegistration> matchingPrefix(HttpMethod method, Path path) {
+        return prefixes.getOrDefault(method, List.of()).stream()
+                .filter(prefix -> path.startsWith(prefix.prefix()))
+                .findFirst();
+    }
+
+    private static CompletionStage<HttpResponse> invoke(SelectedHandler selected, HttpRequest request) {
+        try {
+            return Objects.requireNonNull(selected.handle(request), "handler completion stage");
+        } catch (Throwable failure) {
+            return CompletableFuture.failedFuture(failure);
+        }
     }
 
     /** Mutable assembly DSL producing an immutable router. */
     public static final class Builder {
         private final Map<HttpMethod, List<Registration>> registrations = new EnumMap<>(HttpMethod.class);
+        private final Map<HttpMethod, List<PrefixRegistration>> prefixes = new EnumMap<>(HttpMethod.class);
+        private HttpApplication fallback;
 
         public Builder route(HttpMethod method, String template, HttpRouteHandler handler) {
             return route(method, RouteTemplate.parse(template), handler);
@@ -120,6 +184,68 @@ public final class HttpRouter implements HttpApplication {
             return route(HttpMethod.OPTIONS, template, handler);
         }
 
+        /** Registers a literal path prefix. Exact template routes take precedence. */
+        public Builder prefix(HttpMethod method, String pathPrefix, HttpPrefixHandler handler) {
+            Objects.requireNonNull(pathPrefix, "pathPrefix");
+            if (!pathPrefix.startsWith("/")) {
+                throw new IllegalArgumentException("A route prefix must be absolute: " + pathPrefix);
+            }
+            Path prefix = Path.parse(pathPrefix);
+            prefixes.computeIfAbsent(Objects.requireNonNull(method, "method"), _ -> new ArrayList<>())
+                    .add(new PrefixRegistration(prefix, Objects.requireNonNull(handler, "handler")));
+            return this;
+        }
+
+        public Builder getPrefix(String pathPrefix, HttpPrefixHandler handler) {
+            return prefix(HttpMethod.GET, pathPrefix, handler);
+        }
+
+        public Builder headPrefix(String pathPrefix, HttpPrefixHandler handler) {
+            return prefix(HttpMethod.HEAD, pathPrefix, handler);
+        }
+
+        public Builder postPrefix(String pathPrefix, HttpPrefixHandler handler) {
+            return prefix(HttpMethod.POST, pathPrefix, handler);
+        }
+
+        public Builder putPrefix(String pathPrefix, HttpPrefixHandler handler) {
+            return prefix(HttpMethod.PUT, pathPrefix, handler);
+        }
+
+        public Builder patchPrefix(String pathPrefix, HttpPrefixHandler handler) {
+            return prefix(HttpMethod.PATCH, pathPrefix, handler);
+        }
+
+        public Builder deletePrefix(String pathPrefix, HttpPrefixHandler handler) {
+            return prefix(HttpMethod.DELETE, pathPrefix, handler);
+        }
+
+        public Builder optionsPrefix(String pathPrefix, HttpPrefixHandler handler) {
+            return prefix(HttpMethod.OPTIONS, pathPrefix, handler);
+        }
+
+        /** Adds every route from a non-terminal router. */
+        public Builder include(HttpRouter router) {
+            Objects.requireNonNull(router, "router");
+            if (router.fallback != null) {
+                throw new IllegalArgumentException("Cannot include a router that has a fallback application");
+            }
+            router.routes.forEach((method, table) -> table.routes().forEach(route ->
+                    route(method, route.template(), route.target())));
+            router.prefixes.forEach((method, methodPrefixes) -> methodPrefixes.forEach(prefix ->
+                    prefixes.computeIfAbsent(method, _ -> new ArrayList<>()).add(prefix)));
+            return this;
+        }
+
+        /** Handles paths that are unknown to every method-specific route. */
+        public Builder fallback(HttpApplication application) {
+            if (fallback != null) {
+                throw new IllegalStateException("Router already has a fallback application");
+            }
+            fallback = Objects.requireNonNull(application, "application");
+            return this;
+        }
+
         public HttpRouter build() {
             Map<HttpMethod, RouteTable<HttpRouteHandler>> built = new EnumMap<>(HttpMethod.class);
             registrations.forEach((method, methodRoutes) -> {
@@ -127,10 +253,39 @@ public final class HttpRouter implements HttpApplication {
                 methodRoutes.forEach(route -> table.route(route.template(), route.handler()));
                 built.put(method, table.build());
             });
-            return new HttpRouter(built);
+
+            EnumMap<HttpMethod, List<PrefixRegistration>> builtPrefixes = new EnumMap<>(HttpMethod.class);
+            prefixes.forEach((method, methodPrefixes) -> {
+                Set<Path> seen = new HashSet<>();
+                methodPrefixes.forEach(prefix -> {
+                    if (!seen.add(prefix.prefix())) {
+                        throw new IllegalArgumentException("Duplicate " + method
+                                + " route prefix: " + prefix.prefix());
+                    }
+                });
+                builtPrefixes.put(method, methodPrefixes.stream()
+                        .sorted(Comparator.comparingInt((PrefixRegistration prefix) ->
+                                        prefix.prefix().elementsCount())
+                                .reversed()
+                                .thenComparing(prefix -> prefix.prefix().toString()))
+                        .toList());
+            });
+            return new HttpRouter(built, builtPrefixes, fallback);
         }
     }
 
     private record Registration(RouteTemplate template, HttpRouteHandler handler) {
+    }
+
+    private record PrefixRegistration(Path prefix, HttpPrefixHandler handler) {
+        private PrefixRegistration {
+            Objects.requireNonNull(prefix, "prefix");
+            Objects.requireNonNull(handler, "handler");
+        }
+    }
+
+    @FunctionalInterface
+    private interface SelectedHandler {
+        CompletionStage<HttpResponse> handle(HttpRequest request);
     }
 }

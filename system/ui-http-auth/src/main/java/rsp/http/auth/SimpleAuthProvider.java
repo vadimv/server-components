@@ -6,9 +6,10 @@ import rsp.http.HttpRequest;
 import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
 import rsp.http.PageApplication;
-import rsp.http.PageResult;
 import rsp.http.Pages;
 import rsp.http.SetCookie;
+import rsp.http.routing.HttpRouteHandler;
+import rsp.http.routing.HttpRouter;
 
 import java.time.Duration;
 import java.util.List;
@@ -35,10 +36,15 @@ public class SimpleAuthProvider implements HttpAuthenticator {
     private final ConcurrentMap<String, UserInfo> sessions = new ConcurrentHashMap<>();
     private final String defaultUsername;
     private final String[] defaultRoles;
+    private final HttpRouter routes;
 
     public SimpleAuthProvider(String username, String... roles) {
         this.defaultUsername = Objects.requireNonNull(username, "username");
         this.defaultRoles = Objects.requireNonNull(roles, "roles").clone();
+        this.routes = HttpRouter.builder()
+                .get(SIGN_IN_PATH, HttpRouteHandler.sync((request, _) -> handleSignIn(request)))
+                .get(SIGN_OUT_PATH, HttpRouteHandler.sync((request, _) -> handleSignOut(request)))
+                .build();
     }
 
     public SimpleAuthProvider() {
@@ -66,12 +72,6 @@ public class SimpleAuthProvider implements HttpAuthenticator {
         Objects.requireNonNull(pages, "pages");
         return PageApplication.withLifecycle(lifecycle, request -> {
             String currentPath = request.path().toString();
-            if (currentPath.equals(SIGN_IN_PATH)) {
-                return handleSignIn(request);
-            }
-            if (currentPath.equals(SIGN_OUT_PATH)) {
-                return handleSignOut(request);
-            }
             Authentication authentication = authenticate(request);
             if (authentication.isAuthenticated() || currentPath.equals(LOGIN_PATH)) {
                 return pages.handle(request, authentication);
@@ -79,6 +79,11 @@ public class SimpleAuthProvider implements HttpAuthenticator {
             return Pages.redirect(AuthenticationSupport.loginRedirect(
                     LOGIN_PATH, request.relativeUrl().toString()));
         });
+    }
+
+    @Override
+    public HttpRouter routes() {
+        return routes;
     }
 
     public String loginPath() {
@@ -99,7 +104,7 @@ public class SimpleAuthProvider implements HttpAuthenticator {
         return token;
     }
 
-    private PageResult handleSignIn(HttpRequest request) {
+    private HttpResponse handleSignIn(HttpRequest request) {
         String target = AuthenticationSupport.safeLocalRedirect(
                 request.query().parameterValue("redirect"));
         String token = createSession(defaultUsername, defaultRoles);
@@ -107,13 +112,13 @@ public class SimpleAuthProvider implements HttpAuthenticator {
                 .path("/")
                 .withHttpOnly()
                 .sameSite(SetCookie.SameSite.LAX);
-        return Pages.response(HttpResponse.status(HttpStatus.FOUND)
+        return HttpResponse.status(HttpStatus.FOUND)
                 .header("Location", target)
                 .cookie(cookie)
-                .build());
+                .build();
     }
 
-    private PageResult handleSignOut(HttpRequest request) {
+    private HttpResponse handleSignOut(HttpRequest request) {
         List<String> cookies = request.cookies(SESSION_COOKIE_NAME);
         if (!cookies.isEmpty()) {
             sessions.remove(cookies.getFirst());
@@ -123,10 +128,10 @@ public class SimpleAuthProvider implements HttpAuthenticator {
                 .maxAge(Duration.ZERO)
                 .withHttpOnly()
                 .sameSite(SetCookie.SameSite.LAX);
-        return Pages.response(HttpResponse.status(HttpStatus.FOUND)
+        return HttpResponse.status(HttpStatus.FOUND)
                 .header("Location", LOGIN_PATH)
                 .cookie(expired)
-                .build());
+                .build();
     }
 
     private record UserInfo(String username, String[] roles) {

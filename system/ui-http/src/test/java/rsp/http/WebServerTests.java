@@ -13,6 +13,8 @@ import rsp.http.StaticResources;
 import rsp.component.ComponentAccessDeniedException;
 import rsp.http.HttpRequest;
 import rsp.page.PageNotFoundException;
+import rsp.http.routing.HttpRouteHandler;
+import rsp.http.routing.HttpRouter;
 
 import java.net.URI;
 import java.net.Socket;
@@ -62,6 +64,42 @@ class WebServerTests {
             assertEquals(200, response.statusCode());
             assertTrue(response.body().contains("Hello from http"));
             assertTrue(response.headers().firstValue("set-cookie").orElse("").contains("deviceId="));
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void serves_generic_http_routes_and_ui_pages_on_the_same_port() throws Exception {
+        AtomicInteger pageRequests = new AtomicInteger();
+        PageApplication pages = request -> {
+            pageRequests.incrementAndGet();
+            return Pages.staticHtml(page("dashboard"));
+        };
+        HttpRouter routes = HttpRouter.builder()
+                .get("/api/items/{id}", HttpRouteHandler.sync((_, route) -> rsp.http.HttpResponse.ok()
+                        .header("X-Item", route.requiredParameter("id"))
+                        .text("api")
+                        .build()))
+                .build();
+        WebServer server = started(WebServer.builder(0, pages).routes(routes).build());
+        try {
+            HttpResponse<String> api = client.send(get(server, "/api/items/42"), BodyHandlers.ofString());
+            HttpResponse<String> page = client.send(get(server, "/dashboard"), BodyHandlers.ofString());
+            java.net.http.HttpRequest wrongMethod = java.net.http.HttpRequest.newBuilder(
+                            uri(server, "/api/items/42"))
+                    .POST(BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> disallowed = client.send(wrongMethod, BodyHandlers.ofString());
+
+            assertEquals(200, api.statusCode());
+            assertEquals("api", api.body());
+            assertEquals("42", api.headers().firstValue("X-Item").orElseThrow());
+            assertEquals(200, page.statusCode());
+            assertTrue(page.body().contains("dashboard"));
+            assertEquals(405, disallowed.statusCode());
+            assertEquals("GET, HEAD", disallowed.headers().firstValue("Allow").orElseThrow());
+            assertEquals(1, pageRequests.get());
         } finally {
             server.stop();
         }

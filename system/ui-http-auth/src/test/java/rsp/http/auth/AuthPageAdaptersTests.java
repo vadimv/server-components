@@ -68,11 +68,11 @@ class AuthPageAdaptersTests {
             return Pages.response(rsp.http.HttpResponse.ok().build());
         });
 
-        PageResult.Response signIn = assertInstanceOf(PageResult.Response.class,
-                pages.handle(request("/auth/signin?redirect=%2Fprivate")));
-        assertEquals(HttpStatus.FOUND, signIn.response().status());
-        assertEquals("/private", signIn.response().headers().first("Location").orElseThrow());
-        String setCookie = signIn.response().headers().first("Set-Cookie").orElseThrow();
+        var signIn = provider.routes().handle(request("/auth/signin?redirect=%2Fprivate"))
+                .toCompletableFuture().join();
+        assertEquals(HttpStatus.FOUND, signIn.status());
+        assertEquals("/private", signIn.headers().first("Location").orElseThrow());
+        String setCookie = signIn.headers().first("Set-Cookie").orElseThrow();
         assertTrue(setCookie.contains("HttpOnly"));
         assertTrue(setCookie.contains("SameSite=Lax"));
         String cookie = setCookie.substring(0, setCookie.indexOf(';'));
@@ -81,10 +81,10 @@ class AuthPageAdaptersTests {
                 pages.handle(request("/private", new HttpHeader("Cookie", cookie))));
         assertEquals("alice", seen.get().principal());
 
-        PageResult.Response signOut = assertInstanceOf(PageResult.Response.class,
-                pages.handle(request("/auth/signout", new HttpHeader("Cookie", cookie))));
-        assertEquals("/auth/login", signOut.response().headers().first("Location").orElseThrow());
-        assertTrue(signOut.response().headers().first("Set-Cookie").orElseThrow().contains("Max-Age=0"));
+        var signOut = provider.routes().handle(request("/auth/signout", new HttpHeader("Cookie", cookie)))
+                .toCompletableFuture().join();
+        assertEquals("/auth/login", signOut.headers().first("Location").orElseThrow());
+        assertTrue(signOut.headers().first("Set-Cookie").orElseThrow().contains("Max-Age=0"));
     }
 
     @Test

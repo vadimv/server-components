@@ -458,7 +458,9 @@ final var staticResources =
 Pass it to `WebServer`:
 
 ```java
-new WebServer(8080, app, staticResources);
+WebServer.builder(8080, Pages.live(app))
+        .staticResources(staticResources)
+        .build();
 ```
 
 Use a trailing slash for static resource context paths such as `"/res/"`.

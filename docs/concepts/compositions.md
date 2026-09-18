@@ -54,7 +54,10 @@ App app = new App(context, List.of(postsComposition));
 PageApplication pages = authProvider.pages(app,
         (request, authentication) ->
                 Pages.live(app.apply(request.relativeUrl(), authentication)));
-WebServer.pages(8080, pages).start();
+WebServer.builder(8080, pages)
+        .routes(authProvider.routes())
+        .build()
+        .start();
 ```
 
 The host starts the context once before accepting requests and stops it after

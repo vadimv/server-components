@@ -6,6 +6,8 @@ import rsp.http.HttpRequest;
 import rsp.http.PageApplication;
 import rsp.http.PageResult;
 import rsp.http.Pages;
+import rsp.http.routing.HttpRouteHandler;
+import rsp.http.routing.HttpRouter;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonParser;
 import rsp.util.json.JsonUtils;
@@ -69,6 +71,7 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
     private final OAuthConfig config;
     private final Clock clock;
     private final long sessionMaxAgeSeconds;
+    private final HttpRouter routes;
 
     // auth session token → session data
     private final ConcurrentMap<String, Session> sessions = new ConcurrentHashMap<>();
@@ -86,6 +89,14 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
             throw new IllegalArgumentException("sessionMaxAgeSeconds must be positive");
         }
         this.sessionMaxAgeSeconds = sessionMaxAgeSeconds;
+        this.routes = HttpRouter.builder()
+                .get(config.signinPath(), HttpRouteHandler.sync((request, _) -> {
+                    String redirect = request.query().parameterValue("redirect");
+                    return startPKCEFlow(request, AuthenticationSupport.safeLocalRedirect(redirect));
+                }))
+                .get(config.callbackPath(), HttpRouteHandler.sync((request, _) -> handleCallback(request)))
+                .get(config.signOutPath(), HttpRouteHandler.sync((request, _) -> handleSignOut(request)))
+                .build();
     }
 
     @Override
@@ -122,22 +133,6 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
             return pages.handle(request, authentication);
         }
 
-        // Callback: exchange code for token, create session, redirect to original URL
-        if (currentPath.equals(config.callbackPath())) {
-            return handleCallback(request);
-        }
-
-        // Sign-out path: clear auth session and redirect to root (will trigger login page again)
-        if (currentPath.equals(config.signOutPath())) {
-            return handleSignOut(request);
-        }
-
-        // Sign-in trigger: start PKCE flow, redirect param has the original path
-        if (currentPath.equals(config.signinPath())) {
-            String redirect = request.query().parameterValue("redirect");
-            return startPKCEFlow(request, AuthenticationSupport.safeLocalRedirect(redirect));
-        }
-
         if (authentication.isAuthenticated()) {
             return pages.handle(request, authentication);
         }
@@ -145,6 +140,11 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
         // Protected path: redirect to login page
         return Pages.redirect(AuthenticationSupport.loginRedirect(
                 config.loginPath(), request.relativeUrl().toString()));
+    }
+
+    @Override
+    public HttpRouter routes() {
+        return routes;
     }
 
     public String loginPath() {
@@ -161,11 +161,11 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
 
     // ===== PKCE Flow =====
 
-    private PageResult startPKCEFlow(HttpRequest request, String currentPath) {
+    private rsp.http.HttpResponse startPKCEFlow(HttpRequest request, String currentPath) {
         String deviceId = deviceId(request);
         if (deviceId == null) {
             logger.log(System.Logger.Level.WARNING, "No deviceId cookie — cannot start PKCE flow");
-            return Pages.redirect("/");
+            return redirectResponse("/");
         }
 
         String codeVerifier = generateRandomString(64);
@@ -174,7 +174,7 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
             codeChallenge = generateCodeChallenge(codeVerifier);
         } catch (NoSuchAlgorithmException e) {
             logger.log(System.Logger.Level.ERROR, () -> failure("PKCE code challenge generation failed", e));
-            return Pages.redirect("/");
+            return redirectResponse("/");
         }
 
         String state = generateRandomString(16);
@@ -190,28 +190,28 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
                 + "&code_challenge_method=S256";
 
         logger.log(System.Logger.Level.DEBUG, "Starting PKCE flow, redirecting to IdP");
-        return Pages.redirect(authorizationUrl);
+        return redirectResponse(authorizationUrl);
     }
 
-    private PageResult handleCallback(HttpRequest request) {
+    private rsp.http.HttpResponse handleCallback(HttpRequest request) {
         String state = request.query().parameterValue("state");
         String code = request.query().parameterValue("code");
 
         if (state == null || code == null) {
             logger.log(System.Logger.Level.WARNING, "Callback missing state or code parameter");
-            return Pages.redirect("/");
+            return redirectResponse("/");
         }
 
         PendingAuth pending = pendingAuths.remove(state);
         if (pending == null) {
             logger.log(System.Logger.Level.WARNING, "No pending authentication for callback state");
-            return Pages.redirect("/");
+            return redirectResponse("/");
         }
 
         String deviceId = deviceId(request);
         if (deviceId == null || !deviceId.equals(pending.deviceId())) {
             logger.log(System.Logger.Level.WARNING, "Callback deviceId does not match pending auth");
-            return Pages.redirect("/");
+            return redirectResponse("/");
         }
 
         try {
@@ -219,14 +219,14 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
             String accessToken = exchangeCodeForToken(code, pending.codeVerifier());
             if (accessToken == null) {
                 logger.log(System.Logger.Level.ERROR, "Token exchange failed");
-                return Pages.redirect("/");
+                return redirectResponse("/");
             }
 
             // Fetch user info
             String username = fetchUsername(accessToken);
             if (username == null) {
                 logger.log(System.Logger.Level.ERROR, "UserInfo fetch failed");
-                return Pages.redirect("/");
+                return redirectResponse("/");
             }
 
             // Create session
@@ -236,11 +236,11 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
             return redirectWithCookie(pending.originalPath(), sessionCookie(sessionToken));
         } catch (Exception e) {
             logger.log(System.Logger.Level.ERROR, () -> failure("OAuth callback failed", e));
-            return Pages.redirect("/");
+            return redirectResponse("/");
         }
     }
 
-    private PageResult handleSignOut(HttpRequest request) {
+    private rsp.http.HttpResponse handleSignOut(HttpRequest request) {
         String token = authSessionToken(request);
         if (token != null) {
             sessions.remove(token);
@@ -248,11 +248,17 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
         return redirectWithCookie("/", expiredSessionCookie());
     }
 
-    private static PageResult redirectWithCookie(String location, String cookie) {
-        return Pages.response(rsp.http.HttpResponse.status(rsp.http.HttpStatus.FOUND)
+    private static rsp.http.HttpResponse redirectWithCookie(String location, String cookie) {
+        return rsp.http.HttpResponse.status(rsp.http.HttpStatus.FOUND)
                 .header("Location", location)
                 .header("Set-Cookie", cookie)
-                .build());
+                .build();
+    }
+
+    private static rsp.http.HttpResponse redirectResponse(String location) {
+        return rsp.http.HttpResponse.status(rsp.http.HttpStatus.FOUND)
+                .header("Location", location)
+                .build();
     }
 
     String createSession(String username) {

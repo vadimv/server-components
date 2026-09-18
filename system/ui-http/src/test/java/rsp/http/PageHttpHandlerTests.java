@@ -12,7 +12,6 @@ import rsp.url.Query;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,7 +70,7 @@ class PageHttpHandlerTests {
 
     private static PageHttpHandler handler(Map<QualifiedSessionId, RenderedPage> sessions,
                                            PageApplication application) {
-        return new PageHttpHandler(sessions, application, Optional.empty(), 10_000);
+        return new PageHttpHandler(sessions, application, 10_000);
     }
 
     private static Component<?, ?> page() {

@@ -35,15 +35,6 @@ public final class StaticResourceHandler {
     }
 
     /**
-     * Checks if this handler should handle the given request path.
-     * @param requestPath the path of the requested resource
-     * @return true if this handler should handle the request, false otherwise
-     */
-    public boolean shouldHandle(final rsp.url.Path requestPath) {
-        return requestPath.startsWith(webContextPath);
-    }
-
-    /**
      * Handles a request for a static resource.
      * @param requestPath the path of the requested resource, must start with the web context path
      * @return an HttpResponse with the file content, or a 404 response if not found or not allowed

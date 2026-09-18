@@ -70,9 +70,11 @@ class AuthTestApps {
         final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
 
         final App app = new App(context(), List.of(authComposition, postsComposition(authProvider.signOutPath())));
-        final WebServer server = WebServer.pages(port, authProvider.pages(app,
-                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))),
-                new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
+        final WebServer server = WebServer.builder(port, authProvider.pages(app,
+                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))))
+                .routes(authProvider.routes())
+                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"))
+                .build();
         server.start();
         return server;
     }
@@ -82,9 +84,10 @@ class AuthTestApps {
                 .user("admin", "pass123", "admin");
 
         final App app = new App(context(), List.of(postsComposition(null)));
-        final WebServer server = WebServer.pages(port, authProvider.pages(app,
-                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))),
-                new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
+        final WebServer server = WebServer.builder(port, authProvider.pages(app,
+                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))))
+                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"))
+                .build();
         server.start();
         return server;
     }
@@ -113,9 +116,11 @@ class AuthTestApps {
 
         final App app = new App(context(),
                 List.of(authComposition, postsComposition(authProvider.signOutPath())));
-        final WebServer server = WebServer.pages(port, authProvider.pages(app,
-                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))),
-                new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
+        final WebServer server = WebServer.builder(port, authProvider.pages(app,
+                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))))
+                .routes(authProvider.routes())
+                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"))
+                .build();
         server.start();
         return server;
     }

@@ -15,7 +15,6 @@ import rsp.page.RedirectableEventsConsumer;
 import rsp.page.RenderedPage;
 import rsp.util.RandomString;
 
-import java.io.InputStream;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -33,58 +32,33 @@ public final class PageHttpHandler implements HttpApplication {
 
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
     private final PageApplication pageApplication;
-    private final Optional<StaticResourceHandler> staticResourceHandler;
     private final int heartBeatIntervalMs;
     private final Metrics metrics;
 
     public PageHttpHandler(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
-                       final PageApplication pageApplication,
-                       final Optional<StaticResourceHandler> staticResourceHandler,
-                       final int heartBeatIntervalMs) {
+                           final PageApplication pageApplication,
+                           final int heartBeatIntervalMs) {
 
         this(pagesStorage,
              pageApplication,
-             staticResourceHandler,
              heartBeatIntervalMs,
              Metrics.noop());
     }
 
     public PageHttpHandler(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
-                       final PageApplication pageApplication,
-                       final Optional<StaticResourceHandler> staticResourceHandler,
-                       final int heartBeatIntervalMs,
-                       final Metrics metrics) {
+                           final PageApplication pageApplication,
+                           final int heartBeatIntervalMs,
+                           final Metrics metrics) {
 
         this.renderedPages = Objects.requireNonNull(pagesStorage);
         this.pageApplication = Objects.requireNonNull(pageApplication);
-        this.staticResourceHandler = Objects.requireNonNull(staticResourceHandler);
         this.heartBeatIntervalMs = heartBeatIntervalMs;
         this.metrics = Objects.requireNonNull(metrics);
     }
 
     @Override
     public CompletableFuture<HttpResponse> handle(final HttpRequest request) {
-        Objects.requireNonNull(request);
-        if (request.path().endsWith("favicon.ico")) {
-            return CompletableFuture.completedFuture(HttpResponses.text(404, "No favicon.ico"));
-        } else if (request.path().toString().equals(JS_CLIENT_BUNDLE_PATH)) {
-            return CompletableFuture.completedFuture(jsClientBundleResponse());
-        } else if (staticResourceHandler.isPresent() && staticResourceHandler.get().shouldHandle(request.path())) {
-            return CompletableFuture.completedFuture(staticResourceHandler.get().handle(request.path()));
-        } else {
-            return handlePage(request);
-        }
-    }
-
-    private HttpResponse jsClientBundleResponse() {
-        final InputStream inputStream = this.getClass().getResourceAsStream(JS_CLIENT_BUNDLE_PATH);
-        if (inputStream != null) {
-            return HttpResponse.ok()
-                    .stream(() -> inputStream, OptionalLong.empty(), MediaType.parse("application/javascript"))
-                    .build();
-        } else {
-            return HttpResponses.status(500);
-        }
+        return handlePage(Objects.requireNonNull(request, "request"));
     }
 
     private CompletableFuture<HttpResponse> handlePage(final HttpRequest request) {

@@ -1,6 +1,7 @@
 package rsp.http.routing;
 
 import org.junit.jupiter.api.Test;
+import rsp.http.HttpApplication;
 import rsp.http.HttpHeader;
 import rsp.http.HttpHeaders;
 import rsp.http.HttpMethod;
@@ -12,7 +13,9 @@ import rsp.url.Path;
 import rsp.url.Query;
 
 import java.net.URI;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -107,6 +110,95 @@ class HttpRouterTests {
         CompletionException failure = assertThrows(CompletionException.class,
                 () -> router.handle(request(HttpMethod.GET, "/failure")).toCompletableFuture().join());
         assertEquals("boom", failure.getCause().getMessage());
+    }
+
+    @Test
+    void dispatches_literal_prefixes_by_longest_match_and_exposes_the_remainder() {
+        HttpPrefixHandler prefix = HttpPrefixHandler.sync((_, route) -> HttpResponse.ok()
+                .text(route.prefix() + "|" + route.remainingPath())
+                .build());
+        HttpRouter router = HttpRouter.builder()
+                .getPrefix("/assets", prefix)
+                .getPrefix("/assets/images", prefix)
+                .build();
+
+        HttpResponse nested = router.handle(request(HttpMethod.GET, "/assets/images/logo%20mark.svg"))
+                .toCompletableFuture().join();
+        HttpResponse boundary = router.handle(request(HttpMethod.GET, "/assets2/file.css"))
+                .toCompletableFuture().join();
+
+        assertEquals("/assets/images|logo%20mark.svg", read(nested));
+        assertEquals(HttpStatus.NOT_FOUND, boundary.status());
+    }
+
+    @Test
+    void exact_routes_win_over_prefixes_and_prefixes_are_method_aware() {
+        HttpRouter router = HttpRouter.builder()
+                .getPrefix("/assets", HttpPrefixHandler.sync((_, _) ->
+                        HttpResponse.ok().text("prefix").build()))
+                .get("/assets/manifest", HttpRouteHandler.sync((_, _) ->
+                        HttpResponse.ok().text("exact").build()))
+                .build();
+
+        assertEquals("exact", read(router.handle(request(HttpMethod.GET, "/assets/manifest"))
+                .toCompletableFuture().join()));
+        HttpResponse disallowed = router.handle(request(HttpMethod.POST, "/assets/site.css"))
+                .toCompletableFuture().join();
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, disallowed.status());
+        assertEquals("GET, HEAD", disallowed.headers().first("Allow").orElseThrow());
+    }
+
+    @Test
+    void includes_non_terminal_routers_and_rejects_duplicate_prefixes() {
+        HttpRouter health = HttpRouter.builder()
+                .get("/health", HttpRouteHandler.sync((_, _) -> HttpResponse.ok().text("up").build()))
+                .build();
+        HttpRouter router = HttpRouter.builder()
+                .include(health)
+                .post("/items", HttpRouteHandler.sync((_, _) -> HttpResponse.ok().text("created").build()))
+                .build();
+
+        assertEquals("up", read(router.handle(request(HttpMethod.GET, "/health")).toCompletableFuture().join()));
+        assertThrows(IllegalArgumentException.class, () -> HttpRouter.builder()
+                .getPrefix("/assets/", HttpPrefixHandler.sync((_, _) -> HttpResponse.ok().build()))
+                .getPrefix("/assets", HttpPrefixHandler.sync((_, _) -> HttpResponse.ok().build()))
+                .build());
+    }
+
+    @Test
+    void fallback_handles_only_unknown_paths_and_owns_its_lifecycle() {
+        AtomicInteger starts = new AtomicInteger();
+        AtomicInteger stops = new AtomicInteger();
+        HttpApplication fallback = new HttpApplication() {
+            @Override
+            public java.util.concurrent.CompletionStage<HttpResponse> handle(HttpRequest request) {
+                return CompletableFuture.completedFuture(HttpResponse.ok().text("fallback").build());
+            }
+
+            @Override
+            public void start() {
+                starts.incrementAndGet();
+            }
+
+            @Override
+            public void stop() {
+                stops.incrementAndGet();
+            }
+        };
+        HttpRouter router = HttpRouter.builder()
+                .get("/known", HttpRouteHandler.sync((_, _) -> HttpResponse.ok().build()))
+                .fallback(fallback)
+                .build();
+
+        router.start();
+        assertEquals("fallback", read(router.handle(request(HttpMethod.POST, "/unknown"))
+                .toCompletableFuture().join()));
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED,
+                router.handle(request(HttpMethod.POST, "/known")).toCompletableFuture().join().status());
+        router.stop();
+        assertEquals(1, starts.get());
+        assertEquals(1, stops.get());
+        assertThrows(IllegalStateException.class, () -> router.withFallback(fallback));
     }
 
     private static HttpRequest request(HttpMethod method, String rawTarget) {

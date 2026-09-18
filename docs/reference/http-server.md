@@ -33,8 +33,9 @@ int port = server.port();
 ```
 
 The default connection limit is `WebServer.DEFAULT_CONNECTION_LIMIT` (`50`).
-The advanced constructor accepts a positive custom limit and an `EventLoop`
-supplier for deterministic tests.
+Use `WebServer.builder(...)` to set a positive custom limit, an `EventLoop`
+supplier for deterministic tests, metrics, static resources, or generic HTTP
+routes.
 
 REST-only applications can use the transport directly and do not need a UI
 dependency:
@@ -60,6 +61,37 @@ accepts requests and stops it after connections drain. The UI facade closes
 live page sessions before stopping its page application. Use
 `HttpApplication.withLifecycle(...)` or `PageApplication.withLifecycle(...)`
 when adapting a handler lambda; otherwise the lifecycle would be lost.
+
+## Combine HTTP Routes And UI Pages
+
+One `WebServer` can host REST endpoints and UI pages on the same port:
+
+```java
+HttpRouter api = HttpRouter.builder()
+        .get("/api/items/{id}", HttpRouteHandler.sync((request, route) ->
+                HttpResponse.ok()
+                        .text("item=" + route.requiredParameter("id"))
+                        .build()))
+        .build();
+
+WebServer server = WebServer.builder(8080, pages)
+        .routes(api)
+        .build();
+```
+
+Application routes are selected first. A path registered for another method
+returns `405` with `Allow`; it does not fall through to a page with the same
+path. An unknown path falls through to framework assets, mounted static
+resources, and finally the `PageApplication`. Multiple independent route sets
+can be composed with `HttpRouter.Builder.include(...)` or added through
+repeated `WebServer.Builder.routes(...)` calls.
+
+`HttpRouter` also supports literal prefix handlers such as
+`getPrefix("/assets", ...)`. Exact route templates win over prefix handlers;
+among prefixes, the longest matching prefix wins. `HttpPrefixContext` exposes
+both the selected prefix and its relative remainder. A router-level fallback
+is invoked only for paths unknown to every method, and owns the fallback
+application lifecycle.
 
 ## Runtime Metrics
 
@@ -87,15 +119,12 @@ var resume = new LocalSessionResumeConfig(
         8_192,
         8L * 1024L * 1024L);
 
-var server = new WebServer(
-        8080,
-        pageApplication,
-        Optional.empty(),
-        Optional.empty(),
-        WebServer.DEFAULT_CONNECTION_LIMIT,
-        DefaultEventLoop::new,
-        resume,
-        Metrics.noop());
+var server = WebServer.builder(8080, pageApplication)
+        .connectionLimit(WebServer.DEFAULT_CONNECTION_LIMIT)
+        .eventLoops(DefaultEventLoop::new)
+        .localSessionResume(resume)
+        .metrics(Metrics.noop())
+        .build();
 ```
 
 Expiry is measured from a confirmed detachment. Failed reconnect attempts do
@@ -118,7 +147,9 @@ Mount one directory at a context path ending in `/`:
 ```java
 StaticResources resources =
         new StaticResources(new File("src/main/resources/public"), "/res/");
-WebServer server = WebServer.pages(8080, Pages.live(app), resources);
+WebServer server = WebServer.builder(8080, Pages.live(app))
+        .staticResources(resources)
+        .build();
 ```
 
 The bundled browser client is served automatically from
@@ -166,7 +197,8 @@ Each non-WebSocket response closes its connection. Keep-alive, pipelining,
 chunked request or response bodies, multipart forms, and a general request-body
 decoder registry are not implemented. `HttpApplication` is the UI-neutral
 application contract and can be bound directly to `JdkWebServer`. `HttpRouter`
-adds method-aware routing, including `HEAD` fallback and `404`/`405` behavior;
+adds composable exact and literal-prefix routing, `HEAD` fallback, terminal
+application fallback, and `404`/`405` behavior;
 `JsonHttp` adds strict UTF-8 JSON request and response helpers.
 
 Current parser limits are fixed in the implementation:

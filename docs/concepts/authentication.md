@@ -48,7 +48,9 @@ PageApplication pages = auth.pages(
         (request, authentication) ->
                 Pages.live(app.apply(request.relativeUrl(), authentication)));
 
-WebServer server = WebServer.pages(8080, pages);
+WebServer server = WebServer.builder(8080, pages)
+        .routes(auth.routes())
+        .build();
 ```
 
 This explicit adapter keeps `ui-http-auth` independent from `compositions`.
@@ -67,7 +69,11 @@ result as `Authentication.class` in component context.
 - `OAuthPKCEProvider` owns authorization redirects, callback validation, token
   exchange, user-info lookup, server-side session expiry, and sign-out.
 
-Authentication endpoint paths are handled by the provider and matched exactly.
+Session and OAuth endpoint paths are exposed by `auth.routes()` as ordinary,
+method-aware `HttpRouter` routes. Add them to `WebServer.Builder`; they run
+before UI page fallback and never create a component tree. Basic authentication
+has no owned endpoints, so its route set is empty. Authentication endpoint paths
+are matched exactly.
 Post-authentication redirect values are restricted to same-origin path URLs.
 The simple provider remains a demo facility: production deployments need a
 persistent session store, credential controls, CSRF policy, TLS, key rotation,

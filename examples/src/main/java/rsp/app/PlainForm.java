@@ -7,7 +7,11 @@ import rsp.component.View;
 import rsp.dsl.Html;
 import rsp.dsl.Tag;
 import rsp.http.WebServer;
+import rsp.http.PageApplication;
 import rsp.http.Pages;
+import rsp.http.HttpResponse;
+import rsp.http.routing.HttpRouteHandler;
+import rsp.http.routing.HttpRouter;
 
 import java.util.Objects;
 
@@ -22,7 +26,7 @@ import static rsp.dsl.Html.*;
  */
 public class PlainForm {
     static void main(final String[] args) {
-        final var server = WebServer.pages(8080, httpRequest -> Pages.staticHtml(new Component<Name, Object>() {
+        final PageApplication pages = httpRequest -> Pages.staticHtml(new Component<Name, Object>() {
 
             @Override
             public ComponentStateSupplier<Name> initStateSupplier() {
@@ -39,7 +43,14 @@ public class PlainForm {
             public ComponentView<Name, Object> componentView() {
                 return _ -> pagesView();
             }
-        }));
+        });
+        final HttpRouter routes = HttpRouter.builder()
+                .get("/api/health", HttpRouteHandler.sync((_, _) ->
+                        HttpResponse.ok().text("ok").build()))
+                .build();
+        final var server = WebServer.builder(8080, pages)
+                .routes(routes)
+                .build();
         server.start();
         server.join();
     }

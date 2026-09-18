@@ -77,7 +77,9 @@ App app = new App(context, List.of(authComposition, postsComposition));
 PageApplication pages = authProvider.pages(app,
         (request, authentication) ->
                 Pages.live(app.apply(request.relativeUrl(), authentication)));
-WebServer server = WebServer.pages(8080, pages);
+WebServer server = WebServer.builder(8080, pages)
+        .routes(authProvider.routes())
+        .build();
 server.start();
 server.join();
 ```

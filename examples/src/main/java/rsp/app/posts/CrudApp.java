@@ -166,11 +166,13 @@ public class CrudApp {
         // Compositions are tried in order; the login route is checked before the posts routes.
         final App app = new App(applicationContext, List.of(authComposition, postsComposition));
 
-        final WebServer server = WebServer.pages(8085,
-                                                 authProvider.pages(app,
-                                                         (request, authentication) -> Pages.live(
-                                                                 app.apply(request.relativeUrl(), authentication))),
-                                                 new StaticResources(resolvePostsResourceDir(), "/res/"));
+        final WebServer server = WebServer.builder(8085,
+                        authProvider.pages(app,
+                                (request, authentication) -> Pages.live(
+                                        app.apply(request.relativeUrl(), authentication))))
+                .routes(authProvider.routes())
+                .staticResources(new StaticResources(resolvePostsResourceDir(), "/res/"))
+                .build();
         server.start();
         if (blockCurrentThread) {
             server.join();

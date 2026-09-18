@@ -29,7 +29,7 @@ Or from your IDE, by running the `main` method of the entry-point class.
 ### 2. PlainForm — request-driven page with GET/POST
 - Entry point: [PlainForm.java](../examples/src/main/java/rsp/app/PlainForm.java)
 - URL: <http://localhost:8080>
-- Demonstrates: branching the initial state on the HTTP method, sealed interface state (`EmptyName` / `FullName`), and posting a classic HTML `<form>` whose query parameters drive the next render.
+- Demonstrates: a generic `/api/health` route and UI pages on one `WebServer`, branching the page state on the HTTP method, sealed interface state (`EmptyName` / `FullName`), and posting a classic HTML `<form>` whose query parameters drive the next render.
 
 ### 3. JettyTodos — TODO tracker with form submit
 - Entry point: [JettyTodos.java](../examples/src/main/java/rsp/app/todos/JettyTodos.java)
@@ -84,6 +84,7 @@ Or from your IDE, by running the `main` method of the entry-point class.
 | Custom `Component<S>` subclass                           |         |     +     |            |  +   |    +     |    +    |
 | Sealed-interface state                                   |         |     +     |            |      |    +     |         |
 | `ElementRef` / form submit                               |         |           |     +      |      |          |    +    |
+| HTTP route + UI page on one server                      |         |     +     |            |      |          |    +    |
 | HTTP method / query-param branching                      |         |     +     |            |      |          |         |
 | Lifecycle hooks (`onUpdated` / `onUnmounted`)            |         |           |            |  +   |          |    +    |
 | URL ↔ state sync (`AddressBarSyncComponent`)             |         |           |            |      |    +     |         |
