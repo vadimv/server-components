@@ -7,7 +7,7 @@ import java.util.OptionalLong;
 import java.util.function.Supplier;
 
 /** Immutable HTTP response with a fluent construction DSL. */
-public record HttpResponse(HttpStatus status, HttpHeaders headers, ResponseBody body) {
+public record HttpResponse(HttpStatus status, HttpHeaders headers, ResponseBody body) implements HttpResult {
     public HttpResponse {
         Objects.requireNonNull(status, "status");
         Objects.requireNonNull(headers, "headers");

@@ -14,7 +14,6 @@ import rsp.server.socket.SocketServerObserver;
 import rsp.server.socket.SocketWebServer;
 import rsp.http.routing.HttpPrefixHandler;
 import rsp.http.routing.HttpRouteHandler;
-import rsp.http.routing.HttpRouter;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -25,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -94,7 +94,7 @@ public class WebServer implements ApplicationLifecycle {
                      LocalSessionResumeConfig localSessionResumeConfig,
                      Metrics metrics) {
         this(port, pageApplication, staticResources, sslConfiguration, connectionLimit, eventLoopSupplier,
-                localSessionResumeConfig, metrics, HttpRouter.builder().build(), List.of());
+                localSessionResumeConfig, metrics, rsp.http.routing.HttpRouter.builder().build(), List.of(), List.of());
     }
 
     private WebServer(int port,
@@ -105,7 +105,8 @@ public class WebServer implements ApplicationLifecycle {
                       Supplier<EventLoop> eventLoopSupplier,
                       LocalSessionResumeConfig localSessionResumeConfig,
                       Metrics metrics,
-                      HttpRouter applicationRoutes,
+                      rsp.http.routing.HttpRouter applicationRoutes,
+                      List<HttpRouter.ResultRegistration> resultRoutes,
                       List<? extends HttpMiddleware> middleware) {
         this.pageApplication = Objects.requireNonNull(pageApplication, "pageApplication");
         this.staticResources = Objects.requireNonNull(staticResources, "staticResources");
@@ -120,8 +121,12 @@ public class WebServer implements ApplicationLifecycle {
                 new StaticResourceHandler(resources.resourcesBaseDir(), resources.contextPath()));
         this.httpHandler = new PageHttpHandler(pagesStorage, this.pageApplication,
                 DEFAULT_HEARTBEAT_INTERVAL_MS, this.metrics);
-        HttpApplication routes = Objects.requireNonNull(applicationRoutes, "applicationRoutes")
-                .withFallback(uiRoutes(httpHandler, this.staticResources, this.staticResourceHandler));
+        rsp.http.routing.HttpRouter.Builder routesBuilder = rsp.http.routing.HttpRouter.builder()
+                .include(Objects.requireNonNull(applicationRoutes, "applicationRoutes"));
+        addResultRoutes(routesBuilder, Objects.requireNonNull(resultRoutes, "resultRoutes"), httpHandler);
+        HttpApplication routes = routesBuilder
+                .fallback(uiRoutes(httpHandler, this.staticResources, this.staticResourceHandler))
+                .build();
         this.httpApplication = HttpMiddleware.pipeline(routes,
                 Objects.requireNonNull(middleware, "middleware"));
         this.transport = new SocketWebServer(port, httpApplication,
@@ -132,6 +137,16 @@ public class WebServer implements ApplicationLifecycle {
     /** Starts fluent assembly of a UI server with optional generic HTTP routes. */
     public static Builder builder(int port, PageApplication pageApplication) {
         return new Builder(port, pageApplication);
+    }
+
+    /** Starts fluent assembly of a server whose endpoints are supplied through {@link Builder#routes(Router)}. */
+    public static Builder builder(int port) {
+        return new Builder(port, _ -> Pages.response(HttpResponse.status(HttpStatus.NOT_FOUND).build()));
+    }
+
+    /** Starts fluent assembly with a mixed graph of HTTP and UI page routes. */
+    public static Builder builder(int port, Router router) {
+        return builder(port).routes(router);
     }
 
     public static WebServer pages(int port, PageApplication pageApplication) {
@@ -329,10 +344,10 @@ public class WebServer implements ApplicationLifecycle {
         return connectionLimit;
     }
 
-    private static HttpRouter uiRoutes(PageHttpHandler pages,
-                                       Optional<StaticResources> staticResources,
-                                       Optional<StaticResourceHandler> staticResourceHandler) {
-        HttpRouter.Builder routes = HttpRouter.builder()
+    private static rsp.http.routing.HttpRouter uiRoutes(PageHttpHandler pages,
+                                                        Optional<StaticResources> staticResources,
+                                                        Optional<StaticResourceHandler> staticResourceHandler) {
+        rsp.http.routing.HttpRouter.Builder routes = rsp.http.routing.HttpRouter.builder()
                 .get(PageHttpHandler.JS_CLIENT_BUNDLE_PATH,
                         HttpRouteHandler.sync((_, _) -> jsClientBundleResponse()))
                 .get("/favicon.ico", HttpRouteHandler.sync((_, _) ->
@@ -342,6 +357,29 @@ public class WebServer implements ApplicationLifecycle {
                     staticResourceHandler.get().handle(request.path())));
         }
         return routes.fallback(pages).build();
+    }
+
+    private static void addResultRoutes(rsp.http.routing.HttpRouter.Builder routes,
+                                        List<HttpRouter.ResultRegistration> resultRoutes,
+                                        PageHttpHandler pages) {
+        for (HttpRouter.ResultRegistration registration : resultRoutes) {
+            routes.route(registration.method(), registration.template(), (request, route) -> {
+                try {
+                    HttpResult result = Objects.requireNonNull(
+                            registration.handler().handle(request, route), "route result");
+                    if (result instanceof HttpResponse response) {
+                        return CompletableFuture.completedFuture(response);
+                    }
+                    if (result instanceof PageResult page) {
+                        return pages.handle(request, page);
+                    }
+                    return CompletableFuture.failedFuture(new IllegalStateException(
+                            "Unsupported HTTP result: " + result.getClass().getName()));
+                } catch (Throwable failure) {
+                    return CompletableFuture.failedFuture(failure);
+                }
+            }, registration.metadata().toArray(rsp.http.routing.HttpRouteMetadata[]::new));
+        }
     }
 
     private static HttpResponse jsClientBundleResponse() {
@@ -370,7 +408,8 @@ public class WebServer implements ApplicationLifecycle {
         private Supplier<EventLoop> eventLoopSupplier = DefaultEventLoop::new;
         private LocalSessionResumeConfig localSessionResumeConfig = LocalSessionResumeConfig.defaults();
         private Metrics metrics = Metrics.noop();
-        private final HttpRouter.Builder routes = HttpRouter.builder();
+        private final rsp.http.routing.HttpRouter.Builder routes = rsp.http.routing.HttpRouter.builder();
+        private final List<HttpRouter.ResultRegistration> resultRoutes = new ArrayList<>();
         private final List<HttpMiddleware> middleware = new ArrayList<>();
 
         private Builder(int port, PageApplication pageApplication) {
@@ -379,8 +418,16 @@ public class WebServer implements ApplicationLifecycle {
         }
 
         /** Adds routes handled before framework assets and UI page fallback. */
-        public Builder routes(HttpRouter routes) {
+        public Builder routes(rsp.http.routing.HttpRouter routes) {
             this.routes.include(Objects.requireNonNull(routes, "routes"));
+            return this;
+        }
+
+        /** Adds ordinary HTTP endpoints and UI pages to one method-aware route graph. */
+        public Builder routes(Router router) {
+            HttpRouter routes = (HttpRouter) Objects.requireNonNull(router, "router");
+            this.routes.include(routes.responseRoutes());
+            resultRoutes.addAll(routes.resultRoutes());
             return this;
         }
 
@@ -422,7 +469,7 @@ public class WebServer implements ApplicationLifecycle {
 
         public WebServer build() {
             return new WebServer(port, pageApplication, staticResources, sslConfiguration, connectionLimit,
-                    eventLoopSupplier, localSessionResumeConfig, metrics, routes.build(), middleware);
+                    eventLoopSupplier, localSessionResumeConfig, metrics, routes.build(), resultRoutes, middleware);
         }
     }
 }

@@ -162,27 +162,49 @@ when adapting a handler lambda; otherwise the lifecycle would be lost.
 
 ## Combine HTTP Routes And UI Pages
 
-One `WebServer` can host REST endpoints and UI pages on the same port:
+The UI-facing `rsp.http.Router` is one immutable graph for ordinary HTTP
+responses and rendered pages. Build its `rsp.http.HttpRouter` implementation
+with direct synchronous lambdas; the lambda result determines whether the
+route is an HTTP endpoint or a page endpoint:
 
 ```java
-HttpRouter api = HttpRouter.builder()
-        .get("/api/items/{id}", HttpRouteHandler.sync((request, route) ->
+Router routes = HttpRouter.builder()
+        .get("/items/{id}", (request, route) ->
+                Pages.staticHtml(itemPage(route.requiredParameter("id"))))
+        .post("/items/{id}", (request, route) ->
+                Pages.staticHtml(updatedItemPage(request, route.requiredParameter("id"))))
+        .get("/api/items/{id}", (request, route) ->
                 HttpResponse.ok()
                         .text("item=" + route.requiredParameter("id"))
-                        .build()))
+                        .build())
         .build();
 
-WebServer server = WebServer.builder(8080, pages)
-        .routes(api)
+WebServer server = WebServer.builder(8080)
+        .routes(routes)
         .build();
 ```
 
-Application routes are selected first. A path registered for another method
-returns `405` with `Allow`; it does not fall through to a page with the same
-path. An unknown path falls through to framework assets, mounted static
-resources, and finally the `PageApplication`. Multiple independent route sets
-can be composed with `HttpRouter.Builder.include(...)` or added through
-repeated `WebServer.Builder.routes(...)` calls.
+Asynchronous `HttpRouteHandler` and `RestRouteHandler` values use the same
+builder's `getAsync(...)`, `postAsync(...)`, and corresponding method helpers.
+The distinct names avoid ambiguous Java lambda overloads while leaving the
+common synchronous form uncluttered. Route metadata remains attached to HTTP
+routes, so a mixed `Router` can also be passed to `OpenApiDocument`;
+undocumented page routes are omitted from the generated API document.
+
+Generic and page routes are combined before matching, so they may handle
+different methods on the same path. A method owned by neither returns `405`
+with the complete `Allow` value. An unknown path falls through to framework
+assets and mounted static resources, then returns `404` for a route-only
+server. Route sets compose with `HttpRouter.Builder.include(...)` or repeated
+`WebServer.Builder.routes(...)` calls. UI-independent libraries may continue
+to expose `rsp.http.routing.HttpRouter`; the UI-facing builder and `WebServer`
+accept those route sets without making the lower routing module depend on UI
+components.
+
+`WebServer.builder(port, pageApplication)` remains the terminal-page form for
+client-side routing and other applications that intentionally select a page
+for otherwise unknown paths. Its `PageApplication` runs after exact generic
+and page routes, framework assets, and static resources.
 
 `HttpRouter` also supports literal prefix handlers such as
 `getPrefix("/assets", ...)`. Exact route templates win over prefix handlers;

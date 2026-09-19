@@ -442,6 +442,26 @@ headers, sets cookies, returns a direct response, or redirects. Once the live
 page response has been sent, browser navigation uses component commands such
 as `setHref`; it cannot modify that completed HTTP response.
 
+Use the UI-facing `Router` when pages belong to specific server-side paths and
+methods. It can declare page and ordinary HTTP endpoints together:
+
+```java
+Router routes = HttpRouter.builder()
+        .get("/orders/{id}", (request, route) ->
+                Pages.live(orderPage(route.requiredParameter("id"))))
+        .post("/orders/{id}", (request, route) ->
+                Pages.staticHtml(orderSubmitted(request, route.requiredParameter("id"))))
+        .get("/api/health", (request, route) ->
+                HttpResponse.ok().text("ok").build())
+        .build();
+
+WebServer.builder(8080).routes(routes).build();
+```
+
+All declarations share one method-aware graph and one ambiguity check. Use a
+`PageApplication` directly when unknown server paths should intentionally fall
+through to page selection, as with client-side UI routing.
+
 ## Static Resources
 
 Static resource configuration lives in `ui-http`:

@@ -14,7 +14,6 @@ import rsp.component.ComponentAccessDeniedException;
 import rsp.http.HttpRequest;
 import rsp.page.PageNotFoundException;
 import rsp.http.routing.HttpRouteHandler;
-import rsp.http.routing.HttpRouter;
 
 import java.net.URI;
 import java.net.Socket;
@@ -76,11 +75,11 @@ class WebServerTests {
             pageRequests.incrementAndGet();
             return Pages.staticHtml(page("dashboard"));
         };
-        HttpRouter routes = HttpRouter.builder()
-                .get("/api/items/{id}", HttpRouteHandler.sync((_, route) -> rsp.http.HttpResponse.ok()
+        Router routes = HttpRouter.builder()
+                .get("/api/items/{id}", (_, route) -> rsp.http.HttpResponse.ok()
                         .header("X-Item", route.requiredParameter("id"))
                         .text("api")
-                        .build()))
+                        .build())
                 .build();
         WebServer server = started(WebServer.builder(0, pages).routes(routes).build());
         try {
@@ -106,9 +105,74 @@ class WebServerTests {
     }
 
     @Test
+    void serves_exact_method_aware_page_routes_with_path_parameters() throws Exception {
+        Router routes = HttpRouter.builder()
+                .get("/forms/{name}", (_, route) ->
+                        Pages.staticHtml(page("form " + route.requiredParameter("name"))))
+                .post("/forms/{name}", (_, route) ->
+                        Pages.staticHtml(page("submitted " + route.requiredParameter("name"))))
+                .build();
+        WebServer server = started(WebServer.builder(0).routes(routes).build());
+        try {
+            HttpResponse<String> get = client.send(get(server, "/forms/Ada"), BodyHandlers.ofString());
+            java.net.http.HttpRequest post = java.net.http.HttpRequest.newBuilder(uri(server, "/forms/Ada"))
+                    .POST(BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> submitted = client.send(post, BodyHandlers.ofString());
+            java.net.http.HttpRequest put = java.net.http.HttpRequest.newBuilder(uri(server, "/forms/Ada"))
+                    .PUT(BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> disallowed = client.send(put, BodyHandlers.ofString());
+            HttpResponse<String> missing = client.send(get(server, "/other"), BodyHandlers.ofString());
+
+            assertEquals(200, get.statusCode());
+            assertTrue(get.body().contains("form Ada"));
+            assertEquals(200, submitted.statusCode());
+            assertTrue(submitted.body().contains("submitted Ada"));
+            assertEquals(405, disallowed.statusCode());
+            assertEquals("GET, HEAD, POST", disallowed.headers().firstValue("Allow").orElseThrow());
+            assertEquals(404, missing.statusCode());
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void combines_page_and_generic_handlers_for_different_methods_on_one_path() throws Exception {
+        Router routes = HttpRouter.builder()
+                .get("/mixed", (_, _) -> rsp.http.HttpResponse.ok().text("generic").build())
+                .post("/mixed", (_, _) -> Pages.staticHtml(page("page")))
+                .build();
+        WebServer server = started(WebServer.builder(0).routes(routes).build());
+        try {
+            HttpResponse<String> get = client.send(get(server, "/mixed"), BodyHandlers.ofString());
+            java.net.http.HttpRequest post = java.net.http.HttpRequest.newBuilder(uri(server, "/mixed"))
+                    .POST(BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> submitted = client.send(post, BodyHandlers.ofString());
+
+            assertEquals(200, get.statusCode());
+            assertEquals("generic", get.body());
+            assertEquals(200, submitted.statusCode());
+            assertTrue(submitted.body().contains("page"));
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void router_rejects_ambiguous_templates_across_handler_kinds() {
+        HttpRouter.Builder routes = HttpRouter.builder()
+                .get("/users/{id}", (_, _) -> Pages.staticHtml(page("id")))
+                .get("/users/{name}", (_, _) -> rsp.http.HttpResponse.ok().build());
+
+        assertThrows(IllegalArgumentException.class, routes::build);
+    }
+
+    @Test
     void builder_middleware_wraps_the_complete_http_route_graph() {
-        HttpRouter routes = HttpRouter.builder()
-                .get("/api", HttpRouteHandler.sync((_, _) -> rsp.http.HttpResponse.ok().build()))
+        Router routes = HttpRouter.builder()
+                .getAsync("/api", HttpRouteHandler.sync((_, _) -> rsp.http.HttpResponse.ok().build()))
                 .build();
         HttpMiddleware marker = (request, next) -> next.handle(request)
                 .thenApply(response -> response.withHeader("X-Middleware", "applied"));

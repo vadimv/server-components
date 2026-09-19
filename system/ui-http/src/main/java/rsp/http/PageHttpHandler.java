@@ -58,13 +58,18 @@ public final class PageHttpHandler implements HttpApplication {
 
     @Override
     public CompletableFuture<HttpResponse> handle(final HttpRequest request) {
-        return handlePage(Objects.requireNonNull(request, "request"));
+        Objects.requireNonNull(request, "request");
+        try {
+            return handle(request, Objects.requireNonNull(pageApplication.handle(request), "page result"));
+        } catch (final Exception failure) {
+            return CompletableFuture.failedFuture(failure);
+        }
     }
 
-    private CompletableFuture<HttpResponse> handlePage(final HttpRequest request) {
+    CompletableFuture<HttpResponse> handle(final HttpRequest request, final PageResult result) {
         Objects.requireNonNull(request);
+        Objects.requireNonNull(result);
         try {
-            PageResult result = pageApplication.handle(request);
             if (result instanceof PageResult.Redirect redirect) {
                 HttpResponse.Builder response = HttpResponse.status(redirect.status())
                         .header("Location", redirect.location().toASCIIString());

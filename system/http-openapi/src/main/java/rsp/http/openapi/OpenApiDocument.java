@@ -3,9 +3,9 @@ package rsp.http.openapi;
 import rsp.http.HttpMethod;
 import rsp.http.HttpResponse;
 import rsp.http.json.JsonHttp;
+import rsp.http.routing.HttpRouteCatalog;
 import rsp.http.routing.HttpRouteDefinition;
 import rsp.http.routing.HttpRouteHandler;
-import rsp.http.routing.HttpRouter;
 import rsp.util.json.Json;
 import rsp.util.json.JsonDataType;
 
@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Immutable OpenAPI 3.1 document generated from an {@link HttpRouter} snapshot. */
+/** Immutable OpenAPI 3.1 document generated from an {@link HttpRouteCatalog} snapshot. */
 public final class OpenApiDocument {
     public static final String VERSION = "3.1.0";
 
@@ -30,11 +30,11 @@ public final class OpenApiDocument {
         this.document = document;
     }
 
-    public static Builder builder(OpenApiInfo info, HttpRouter router) {
+    public static Builder builder(OpenApiInfo info, HttpRouteCatalog router) {
         return new Builder(info, router);
     }
 
-    public static OpenApiDocument generate(OpenApiInfo info, HttpRouter router) {
+    public static OpenApiDocument generate(OpenApiInfo info, HttpRouteCatalog router) {
         return builder(info, router).build();
     }
 
@@ -57,10 +57,10 @@ public final class OpenApiDocument {
 
     public static final class Builder {
         private final OpenApiInfo info;
-        private final HttpRouter router;
+        private final HttpRouteCatalog router;
         private final Map<String, OpenApiSchema> componentSchemas = new LinkedHashMap<>();
 
-        private Builder(OpenApiInfo info, HttpRouter router) {
+        private Builder(OpenApiInfo info, HttpRouteCatalog router) {
             this.info = Objects.requireNonNull(info, "info");
             this.router = Objects.requireNonNull(router, "router");
         }

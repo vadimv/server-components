@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /** Immutable, method-aware HTTP router backed by the generic URL route table. */
-public final class HttpRouter implements HttpApplication {
+public final class HttpRouter implements HttpApplication, HttpRouteCatalog {
     private final Map<HttpMethod, RouteTable<RegisteredRoute>> routes;
     private final Map<HttpMethod, List<PrefixRegistration>> prefixes;
     private final HttpApplication fallback;
@@ -44,6 +44,7 @@ public final class HttpRouter implements HttpApplication {
     }
 
     /** Exact routes exposed without handlers for documentation and tooling. */
+    @Override
     public List<HttpRouteDefinition> routeDefinitions() {
         List<HttpRouteDefinition> result = new ArrayList<>();
         routes.forEach((method, table) -> table.routes().forEach(route -> result.add(

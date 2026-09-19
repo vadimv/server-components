@@ -11,9 +11,9 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `application-api` | Immutable configuration, typed application services, and process lifecycle | none | Direct for shared REST or UI application resources |
 | `json` | JSON value model, parser, limits, writer, domain codecs, and immutable object-building/access helpers | none | Usually transitive |
 | `url` | Immutable URL values and generic route templates/tables | none | Direct for framework-neutral routing |
-| `http-api` | Transport-neutral HTTP request, response, headers, cookies, bodies, and lifecycle-aware applications | `application-api`, `url` | Direct for REST applications and server adapters |
+| `http-api` | Transport-neutral HTTP request, response/result, headers, cookies, bodies, and lifecycle-aware applications | `application-api`, `url` | Direct for REST applications and server adapters |
 | `http-middleware` | Request correlation, completion/access events, sanitized failures, CORS, and defensive response-header middleware | `http-api` | Direct for shared production HTTP policy |
-| `http-routing` | Immutable, composable, method-aware HTTP router over generic URL route tables | `http-api` | Direct for routed REST applications |
+| `http-routing` | Immutable, composable, method-aware HTTP-response router and shared route-metadata catalog over generic URL route tables | `http-api` | Direct for routed REST applications |
 | `http-json` | JSON request validation, tree/domain-codec decoding, responses, and error envelopes | `http-api`, `json` | Direct for JSON HTTP APIs without routing policy |
 | `http-rest` | REST route adapters for JSON bodies and expected JSON error mapping | `http-api`, `http-routing`, `http-json`, `json` | Direct for routed JSON REST applications |
 | `http-openapi` | OpenAPI 3.1 operation/schema metadata and deterministic documents from exact routes | `http-api`, `http-routing`, `http-json`, `json` | Direct when publishing an OpenAPI description |
@@ -23,7 +23,7 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `authorization` | ABAC policies, attributes, and delegation grants | none | Direct for custom policies |
 | `schema` | Field, validation, widget, and list-column metadata | none | Direct for schema-driven UI |
 | `compositions` | Blocks, layouts, application/identity context projection, and default list/form UI | `authentication-api`, `application-api`, `ui-core`, `url`, `authorization`, `schema` | Direct for routed admin applications |
-| `ui-http` | Initial-page and resumable RSP adapters over the generic socket server | `application-api`, `ui-core`, `http-api`, `http-routing`, `websocket-api`, `server-socket`; `js-client` at runtime | Direct for the built-in UI server |
+| `ui-http` | Unified HTTP/page `Router`, initial-page fallback, and resumable RSP adapters over the generic socket server | `application-api`, `ui-core`, `http-api`, `http-routing`, `websocket-api`, `server-socket`; `js-client` at runtime | Direct for the built-in UI server |
 | `ui-http-auth` | Basic, cookie-session, and OAuth PKCE page adapters and endpoint routes | `authentication-api`, `application-api`, `ui-http`, `http-routing`, `json` | Direct when using the supplied authentication providers |
 | `server-socket` | UI-neutral socket HTTP/1.1 and RFC 6455 WebSocket transport | `http-api`, `websocket-api` | Direct for embedded REST and custom WebSocket servers |
 

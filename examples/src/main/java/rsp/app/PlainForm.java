@@ -6,13 +6,14 @@ import rsp.component.definitions.Component;
 import rsp.component.View;
 import rsp.dsl.Html;
 import rsp.dsl.Tag;
+import rsp.http.PageResult;
+import rsp.http.HttpRouter;
+import rsp.http.Router;
 import rsp.http.WebServer;
-import rsp.http.PageApplication;
 import rsp.http.Pages;
 import rsp.http.HttpResponse;
-import rsp.http.routing.HttpRouteHandler;
-import rsp.http.routing.HttpRouter;
 
+import java.net.URI;
 import java.util.Objects;
 
 import static rsp.dsl.Html.*;
@@ -25,18 +26,29 @@ import static rsp.dsl.Html.*;
  * </ul>
  */
 public class PlainForm {
-    static void main(final String[] args) {
-        final PageApplication pages = httpRequest -> Pages.staticHtml(new Component<Name, Object>() {
+    private static final String FORM_PATH = "/forms/name";
 
+    static void main(final String[] args) {
+        final Router routes = HttpRouter.builder()
+                .get(FORM_PATH, (_, _) -> page(new EmptyName()))
+                .post(FORM_PATH, (request, _) -> page(new FullName(
+                        Objects.requireNonNull(request.query().parameterValue("firstname")),
+                        Objects.requireNonNull(request.query().parameterValue("lastname")))))
+                .get("/", (_, _) -> Pages.redirect(URI.create(FORM_PATH)))
+                .get("/api/health", (_, _) -> HttpResponse.ok().text("ok").build())
+                .build();
+        final var server = WebServer.builder(8080)
+                .routes(routes)
+                .build();
+        server.start();
+        server.join();
+    }
+
+    private static PageResult page(Name initialState) {
+        return Pages.staticHtml(new Component<Name, Object>() {
             @Override
             public ComponentStateSupplier<Name> initStateSupplier() {
-                return (_, _) ->
-                    switch (httpRequest.method()) {
-                        case GET -> new EmptyName();
-                        case POST -> new FullName(Objects.requireNonNull(httpRequest.query().parameterValue("firstname")),
-                                                  Objects.requireNonNull(httpRequest.query().parameterValue("lastname")));
-                        default -> throw new IllegalStateException("Unexpected HTTP mehtod: " + httpRequest.method());
-                    };
+                return (_, _) -> initialState;
             }
 
             @Override
@@ -44,15 +56,6 @@ public class PlainForm {
                 return _ -> pagesView();
             }
         });
-        final HttpRouter routes = HttpRouter.builder()
-                .get("/api/health", HttpRouteHandler.sync((_, _) ->
-                        HttpResponse.ok().text("ok").build()))
-                .build();
-        final var server = WebServer.builder(8080, pages)
-                .routes(routes)
-                .build();
-        server.start();
-        server.join();
     }
 
     public sealed interface Name {}
@@ -83,7 +86,7 @@ public class PlainForm {
     private static Tag form() {
         return div(
                 h2(text("HTML Form")),
-                Html.form(attr("action", "page0"), attr("method", "post"),
+                Html.form(attr("action", FORM_PATH), attr("method", "post"),
                      label(attr("for", "firstname"), text("First name:")),
                      input(attr("type", "text"), attr("name","firstname"), attr("value", "First")),
                      br(),

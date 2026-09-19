@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Objects;
 
 /** Initial-page outcome: render a component with response metadata, or redirect. */
-public sealed interface PageResult permits PageResult.Render, PageResult.Redirect, PageResult.Response {
+public sealed interface PageResult extends HttpResult permits PageResult.Render, PageResult.Redirect, PageResult.Response {
     record Render(Component<?, ?> component,
                   boolean live,
                   HttpStatus status,
