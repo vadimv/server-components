@@ -25,11 +25,11 @@ import java.util.concurrent.CompletionStage;
 
 /** Immutable, method-aware HTTP router backed by the generic URL route table. */
 public final class HttpRouter implements HttpApplication {
-    private final Map<HttpMethod, RouteTable<HttpRouteHandler>> routes;
+    private final Map<HttpMethod, RouteTable<RegisteredRoute>> routes;
     private final Map<HttpMethod, List<PrefixRegistration>> prefixes;
     private final HttpApplication fallback;
 
-    private HttpRouter(Map<HttpMethod, RouteTable<HttpRouteHandler>> routes,
+    private HttpRouter(Map<HttpMethod, RouteTable<RegisteredRoute>> routes,
                        Map<HttpMethod, List<PrefixRegistration>> prefixes,
                        HttpApplication fallback) {
         this.routes = Map.copyOf(routes);
@@ -41,6 +41,17 @@ public final class HttpRouter implements HttpApplication {
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    /** Exact routes exposed without handlers for documentation and tooling. */
+    public List<HttpRouteDefinition> routeDefinitions() {
+        List<HttpRouteDefinition> result = new ArrayList<>();
+        routes.forEach((method, table) -> table.routes().forEach(route -> result.add(
+                new HttpRouteDefinition(method, route.template(), route.target().metadata()))));
+        return result.stream()
+                .sorted(Comparator.comparing((HttpRouteDefinition route) -> route.template().toString())
+                        .thenComparing(route -> route.method().ordinal()))
+                .toList();
     }
 
     /** Returns a copy that delegates unknown paths to {@code application}. */
@@ -95,13 +106,13 @@ public final class HttpRouter implements HttpApplication {
     }
 
     private Optional<SelectedHandler> match(HttpMethod method, HttpRequest request) {
-        RouteTable<HttpRouteHandler> table = routes.get(method);
-        Optional<RouteMatch<HttpRouteHandler>> exact = table == null
+        RouteTable<RegisteredRoute> table = routes.get(method);
+        Optional<RouteMatch<RegisteredRoute>> exact = table == null
                 ? Optional.empty()
                 : table.match(request.path());
         if (exact.isPresent()) {
-            RouteMatch<HttpRouteHandler> selected = exact.get();
-            return Optional.of(selectedRequest -> selected.target().handle(
+            RouteMatch<RegisteredRoute> selected = exact.get();
+            return Optional.of(selectedRequest -> selected.target().handler().handle(
                     selectedRequest, new HttpRouteContext(selected.template(), selected.path())));
         }
 
@@ -113,7 +124,7 @@ public final class HttpRouter implements HttpApplication {
     private Set<String> allowedMethods(HttpRequest request) {
         Set<String> result = new TreeSet<>();
         for (HttpMethod method : HttpMethod.values()) {
-            RouteTable<HttpRouteHandler> table = routes.get(method);
+            RouteTable<RegisteredRoute> table = routes.get(method);
             if ((table != null && table.match(request.path()).isPresent())
                     || matchingPrefix(method, request.path()).isPresent()) {
                 result.add(method.name());
@@ -146,13 +157,27 @@ public final class HttpRouter implements HttpApplication {
         private HttpApplication fallback;
 
         public Builder route(HttpMethod method, String template, HttpRouteHandler handler) {
-            return route(method, RouteTemplate.parse(template), handler);
+            return route(method, template, handler, new HttpRouteMetadata[0]);
+        }
+
+        public Builder route(HttpMethod method,
+                             String template,
+                             HttpRouteHandler handler,
+                             HttpRouteMetadata... metadata) {
+            return route(method, RouteTemplate.parse(template), handler, metadata);
         }
 
         public Builder route(HttpMethod method, RouteTemplate template, HttpRouteHandler handler) {
+            return route(method, template, handler, new HttpRouteMetadata[0]);
+        }
+
+        public Builder route(HttpMethod method,
+                             RouteTemplate template,
+                             HttpRouteHandler handler,
+                             HttpRouteMetadata... metadata) {
             registrations.computeIfAbsent(Objects.requireNonNull(method, "method"), _ -> new ArrayList<>())
                     .add(new Registration(Objects.requireNonNull(template, "template"),
-                            Objects.requireNonNull(handler, "handler")));
+                            Objects.requireNonNull(handler, "handler"), List.of(metadata)));
             return this;
         }
 
@@ -160,28 +185,56 @@ public final class HttpRouter implements HttpApplication {
             return route(HttpMethod.GET, template, handler);
         }
 
+        public Builder get(String template, HttpRouteHandler handler, HttpRouteMetadata... metadata) {
+            return route(HttpMethod.GET, template, handler, metadata);
+        }
+
         public Builder head(String template, HttpRouteHandler handler) {
             return route(HttpMethod.HEAD, template, handler);
+        }
+
+        public Builder head(String template, HttpRouteHandler handler, HttpRouteMetadata... metadata) {
+            return route(HttpMethod.HEAD, template, handler, metadata);
         }
 
         public Builder post(String template, HttpRouteHandler handler) {
             return route(HttpMethod.POST, template, handler);
         }
 
+        public Builder post(String template, HttpRouteHandler handler, HttpRouteMetadata... metadata) {
+            return route(HttpMethod.POST, template, handler, metadata);
+        }
+
         public Builder put(String template, HttpRouteHandler handler) {
             return route(HttpMethod.PUT, template, handler);
+        }
+
+        public Builder put(String template, HttpRouteHandler handler, HttpRouteMetadata... metadata) {
+            return route(HttpMethod.PUT, template, handler, metadata);
         }
 
         public Builder patch(String template, HttpRouteHandler handler) {
             return route(HttpMethod.PATCH, template, handler);
         }
 
+        public Builder patch(String template, HttpRouteHandler handler, HttpRouteMetadata... metadata) {
+            return route(HttpMethod.PATCH, template, handler, metadata);
+        }
+
         public Builder delete(String template, HttpRouteHandler handler) {
             return route(HttpMethod.DELETE, template, handler);
         }
 
+        public Builder delete(String template, HttpRouteHandler handler, HttpRouteMetadata... metadata) {
+            return route(HttpMethod.DELETE, template, handler, metadata);
+        }
+
         public Builder options(String template, HttpRouteHandler handler) {
             return route(HttpMethod.OPTIONS, template, handler);
+        }
+
+        public Builder options(String template, HttpRouteHandler handler, HttpRouteMetadata... metadata) {
+            return route(HttpMethod.OPTIONS, template, handler, metadata);
         }
 
         /** Registers a literal path prefix. Exact template routes take precedence. */
@@ -231,7 +284,8 @@ public final class HttpRouter implements HttpApplication {
                 throw new IllegalArgumentException("Cannot include a router that has a fallback application");
             }
             router.routes.forEach((method, table) -> table.routes().forEach(route ->
-                    route(method, route.template(), route.target())));
+                    route(method, route.template(), route.target().handler(),
+                            route.target().metadata().toArray(HttpRouteMetadata[]::new))));
             router.prefixes.forEach((method, methodPrefixes) -> methodPrefixes.forEach(prefix ->
                     prefixes.computeIfAbsent(method, _ -> new ArrayList<>()).add(prefix)));
             return this;
@@ -247,10 +301,11 @@ public final class HttpRouter implements HttpApplication {
         }
 
         public HttpRouter build() {
-            Map<HttpMethod, RouteTable<HttpRouteHandler>> built = new EnumMap<>(HttpMethod.class);
+            Map<HttpMethod, RouteTable<RegisteredRoute>> built = new EnumMap<>(HttpMethod.class);
             registrations.forEach((method, methodRoutes) -> {
-                RouteTable.Builder<HttpRouteHandler> table = RouteTable.builder();
-                methodRoutes.forEach(route -> table.route(route.template(), route.handler()));
+                RouteTable.Builder<RegisteredRoute> table = RouteTable.builder();
+                methodRoutes.forEach(route -> table.route(route.template(),
+                        new RegisteredRoute(route.handler(), route.metadata())));
                 built.put(method, table.build());
             });
 
@@ -274,7 +329,19 @@ public final class HttpRouter implements HttpApplication {
         }
     }
 
-    private record Registration(RouteTemplate template, HttpRouteHandler handler) {
+    private record Registration(RouteTemplate template,
+                                HttpRouteHandler handler,
+                                List<HttpRouteMetadata> metadata) {
+        private Registration {
+            metadata = List.copyOf(Objects.requireNonNull(metadata, "metadata"));
+        }
+    }
+
+    private record RegisteredRoute(HttpRouteHandler handler, List<HttpRouteMetadata> metadata) {
+        private RegisteredRoute {
+            Objects.requireNonNull(handler, "handler");
+            metadata = List.copyOf(Objects.requireNonNull(metadata, "metadata"));
+        }
     }
 
     private record PrefixRegistration(Path prefix, HttpPrefixHandler handler) {

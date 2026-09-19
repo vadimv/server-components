@@ -166,6 +166,21 @@ class HttpRouterTests {
     }
 
     @Test
+    void exposes_exact_route_metadata_and_preserves_it_across_inclusion() {
+        TestMetadata metadata = new TestMetadata("public");
+        HttpRouter child = HttpRouter.builder()
+                .get("/items/{id}", USERS, metadata)
+                .build();
+        HttpRouter router = HttpRouter.builder().include(child).build();
+
+        HttpRouteDefinition route = router.routeDefinitions().getFirst();
+
+        assertEquals(HttpMethod.GET, route.method());
+        assertEquals("/items/{id}", route.template().toString());
+        assertEquals(metadata, route.metadata(TestMetadata.class).orElseThrow());
+    }
+
+    @Test
     void fallback_handles_only_unknown_paths_and_owns_its_lifecycle() {
         AtomicInteger starts = new AtomicInteger();
         AtomicInteger stops = new AtomicInteger();
@@ -214,5 +229,8 @@ class HttpRouterTests {
         } catch (java.io.IOException failure) {
             throw new AssertionError(failure);
         }
+    }
+
+    private record TestMetadata(String value) implements HttpRouteMetadata {
     }
 }

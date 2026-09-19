@@ -36,6 +36,16 @@ public record HttpRequest(HttpMethod method,
         return headers.first(name).orElse(null);
     }
 
+    /** Returns a copy with all values for {@code name} replaced by one value. */
+    public HttpRequest withHeader(String name, String value) {
+        HttpHeaders replaced = HttpHeaders.builder()
+                .addAll(headers)
+                .set(name, value)
+                .build();
+        return new HttpRequest(method, rawTarget, rawPath, uri, absoluteUrl, path, query,
+                replaced, body);
+    }
+
     public List<String> cookies(String name) {
         Objects.requireNonNull(name, "name");
         return headers.all("Cookie").stream()

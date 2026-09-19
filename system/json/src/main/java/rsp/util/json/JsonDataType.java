@@ -123,7 +123,13 @@ public sealed interface JsonDataType {
         private final Map<java.lang.String, JsonDataType> values;
 
         public Object(final Map<java.lang.String, JsonDataType> values) {
-            this.values = Collections.unmodifiableMap(new LinkedHashMap<>(Objects.requireNonNull(values)));
+            Map<java.lang.String, JsonDataType> copy =
+                    new LinkedHashMap<>(Objects.requireNonNull(values, "values"));
+            copy.forEach((name, value) -> {
+                Objects.requireNonNull(name, "JSON object field name");
+                Objects.requireNonNull(value, "JSON object field value");
+            });
+            this.values = Collections.unmodifiableMap(copy);
         }
 
         public Object() {
@@ -136,8 +142,77 @@ public sealed interface JsonDataType {
 
         public Object put(final java.lang.String name, final JsonDataType value) {
             final Map<java.lang.String, JsonDataType> newValues = new LinkedHashMap<>(values);
-            newValues.put(name, value);
+            newValues.put(Objects.requireNonNull(name, "name"), Objects.requireNonNull(value, "value"));
             return new JsonDataType.Object(newValues);
+        }
+
+        public Object put(final java.lang.String name, final java.lang.String value) {
+            return put(name, new JsonDataType.String(value));
+        }
+
+        public Object put(final java.lang.String name, final boolean value) {
+            return put(name, new JsonDataType.Boolean(value));
+        }
+
+        public Object put(final java.lang.String name, final long value) {
+            return put(name, JsonDataType.Number.of(value));
+        }
+
+        public Object put(final java.lang.String name, final double value) {
+            return put(name, JsonDataType.Number.of(value));
+        }
+
+        public Object putNull(final java.lang.String name) {
+            return put(name, JsonDataType.Null.INSTANCE);
+        }
+
+        /** Returns a required field without coercion. */
+        public JsonDataType required(final java.lang.String name) {
+            Objects.requireNonNull(name, "name");
+            JsonDataType value = values.get(name);
+            if (value == null) {
+                throw new JsonDecodingException("Missing required JSON field '" + name + "'");
+            }
+            return value;
+        }
+
+        public java.lang.String requiredString(final java.lang.String name) {
+            if (required(name) instanceof JsonDataType.String string) {
+                return string.value();
+            }
+            throw wrongType(name, "a string");
+        }
+
+        public boolean requiredBoolean(final java.lang.String name) {
+            if (required(name) instanceof JsonDataType.Boolean bool) {
+                return bool.value();
+            }
+            throw wrongType(name, "a boolean");
+        }
+
+        public JsonDataType.Number requiredNumber(final java.lang.String name) {
+            if (required(name) instanceof JsonDataType.Number number) {
+                return number;
+            }
+            throw wrongType(name, "a number");
+        }
+
+        public JsonDataType.Object requiredObject(final java.lang.String name) {
+            if (required(name) instanceof JsonDataType.Object object) {
+                return object;
+            }
+            throw wrongType(name, "an object");
+        }
+
+        public JsonDataType.Array requiredArray(final java.lang.String name) {
+            if (required(name) instanceof JsonDataType.Array array) {
+                return array;
+            }
+            throw wrongType(name, "an array");
+        }
+
+        private static JsonDecodingException wrongType(java.lang.String name, java.lang.String expected) {
+            return new JsonDecodingException("JSON field '" + name + "' must be " + expected);
         }
 
         public Set<java.lang.String> keys() {
@@ -173,7 +248,15 @@ public sealed interface JsonDataType {
     record Array(JsonDataType... elements) implements JsonDataType {
 
         public Array {
-            Objects.requireNonNull(elements);
+            elements = Objects.requireNonNull(elements, "elements").clone();
+            for (JsonDataType element : elements) {
+                Objects.requireNonNull(element, "JSON array element");
+            }
+        }
+
+        @Override
+        public JsonDataType[] elements() {
+            return elements.clone();
         }
 
         public JsonDataType get(final int index) {

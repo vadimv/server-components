@@ -11,6 +11,7 @@ import rsp.http.RequestBody;
 import rsp.url.Path;
 import rsp.url.Query;
 import rsp.util.json.Json;
+import rsp.util.json.JsonCodec;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonLimits;
 
@@ -22,6 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JsonHttpTests {
+    private static final JsonCodec<Message> MESSAGE_CODEC = JsonCodec.of(
+            value -> new Message(Json.requireObject(value).requiredString("message")),
+            message -> Json.object().put("message", message.value()));
+
     @Test
     void reads_utf8_json_and_vendor_json_media_types() {
         JsonDataType.Object parsed = assertInstanceOf(JsonDataType.Object.class,
@@ -77,6 +82,22 @@ class JsonHttpTests {
         assertEquals("{\"error\":\"invalid_json\",\"message\":\"bad input\"}", read(error));
     }
 
+    @Test
+    void decodes_and_encodes_domain_values_with_a_codec() throws Exception {
+        Message decoded = JsonHttp.read(request("application/json", "{\"message\":\"hello\"}"),
+                MESSAGE_CODEC);
+        HttpResponse response = JsonHttp.response(HttpStatus.CREATED, decoded, MESSAGE_CODEC);
+
+        assertEquals(new Message("hello"), decoded);
+        assertEquals(HttpStatus.CREATED, response.status());
+        assertEquals("{\"message\":\"hello\"}", read(response));
+
+        JsonHttpException wrongShape = assertThrows(JsonHttpException.class,
+                () -> JsonHttp.read(request("application/json", "{\"message\":7}"), MESSAGE_CODEC));
+        assertEquals(HttpStatus.BAD_REQUEST, wrongShape.status());
+        assertEquals("The JSON request body does not match the expected shape", wrongShape.getMessage());
+    }
+
     private static HttpRequest request(String contentType, String body) {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         return new HttpRequest(HttpMethod.POST, "/items", "/items", URI.create("http://localhost/items"),
@@ -87,5 +108,8 @@ class JsonHttpTests {
 
     private static String read(HttpResponse response) throws Exception {
         return new String(response.body().openStream().readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    private record Message(String value) {
     }
 }

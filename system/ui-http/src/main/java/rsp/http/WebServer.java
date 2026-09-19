@@ -19,6 +19,8 @@ import rsp.http.routing.HttpRouter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -92,7 +94,7 @@ public class WebServer implements ApplicationLifecycle {
                      LocalSessionResumeConfig localSessionResumeConfig,
                      Metrics metrics) {
         this(port, pageApplication, staticResources, sslConfiguration, connectionLimit, eventLoopSupplier,
-                localSessionResumeConfig, metrics, HttpRouter.builder().build());
+                localSessionResumeConfig, metrics, HttpRouter.builder().build(), List.of());
     }
 
     private WebServer(int port,
@@ -103,7 +105,8 @@ public class WebServer implements ApplicationLifecycle {
                       Supplier<EventLoop> eventLoopSupplier,
                       LocalSessionResumeConfig localSessionResumeConfig,
                       Metrics metrics,
-                      HttpRouter applicationRoutes) {
+                      HttpRouter applicationRoutes,
+                      List<? extends HttpMiddleware> middleware) {
         this.pageApplication = Objects.requireNonNull(pageApplication, "pageApplication");
         this.staticResources = Objects.requireNonNull(staticResources, "staticResources");
         this.sslConfiguration = Objects.requireNonNull(sslConfiguration, "sslConfiguration");
@@ -117,8 +120,10 @@ public class WebServer implements ApplicationLifecycle {
                 new StaticResourceHandler(resources.resourcesBaseDir(), resources.contextPath()));
         this.httpHandler = new PageHttpHandler(pagesStorage, this.pageApplication,
                 DEFAULT_HEARTBEAT_INTERVAL_MS, this.metrics);
-        this.httpApplication = Objects.requireNonNull(applicationRoutes, "applicationRoutes")
+        HttpApplication routes = Objects.requireNonNull(applicationRoutes, "applicationRoutes")
                 .withFallback(uiRoutes(httpHandler, this.staticResources, this.staticResourceHandler));
+        this.httpApplication = HttpMiddleware.pipeline(routes,
+                Objects.requireNonNull(middleware, "middleware"));
         this.transport = new JdkWebServer(port, httpApplication,
                 java.util.List.of(new RspWebSocketEndpoint(localSessionRegistry)), connectionLimit,
                 DEFAULT_HEARTBEAT_INTERVAL_MS * 3, transportObserver(this.metrics));
@@ -366,6 +371,7 @@ public class WebServer implements ApplicationLifecycle {
         private LocalSessionResumeConfig localSessionResumeConfig = LocalSessionResumeConfig.defaults();
         private Metrics metrics = Metrics.noop();
         private final HttpRouter.Builder routes = HttpRouter.builder();
+        private final List<HttpMiddleware> middleware = new ArrayList<>();
 
         private Builder(int port, PageApplication pageApplication) {
             this.port = port;
@@ -408,9 +414,15 @@ public class WebServer implements ApplicationLifecycle {
             return this;
         }
 
+        /** Adds cross-cutting behavior around application, framework, and page routes. */
+        public Builder middleware(HttpMiddleware value) {
+            middleware.add(Objects.requireNonNull(value, "value"));
+            return this;
+        }
+
         public WebServer build() {
             return new WebServer(port, pageApplication, staticResources, sslConfiguration, connectionLimit,
-                    eventLoopSupplier, localSessionResumeConfig, metrics, routes.build());
+                    eventLoopSupplier, localSessionResumeConfig, metrics, routes.build(), middleware);
         }
     }
 }

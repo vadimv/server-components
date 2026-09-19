@@ -14,8 +14,11 @@ and attaches a `*-javadoc.jar`. For example:
 - `system/authentication-api/target/apidocs/index.html`
 - `system/application-api/target/apidocs/index.html`
 - `system/http-api/target/apidocs/index.html`
+- `system/http-middleware/target/apidocs/index.html`
 - `system/http-routing/target/apidocs/index.html`
 - `system/http-json/target/apidocs/index.html`
+- `system/http-rest/target/apidocs/index.html`
+- `system/http-openapi/target/apidocs/index.html`
 - `system/websocket-api/target/apidocs/index.html`
 - `system/server-jdk/target/apidocs/index.html`
 - `system/compositions/target/apidocs/index.html`

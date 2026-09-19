@@ -5,7 +5,9 @@ import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
 import rsp.http.MediaType;
 import rsp.util.json.Json;
+import rsp.util.json.JsonCodec;
 import rsp.util.json.JsonDataType;
+import rsp.util.json.JsonDecodingException;
 import rsp.util.json.JsonParser;
 
 import java.nio.charset.StandardCharsets;
@@ -39,6 +41,23 @@ public final class JsonHttp {
         }
     }
 
+    /** Parses and decodes a required JSON request body with a domain codec. */
+    public static <T> T read(HttpRequest request, JsonCodec<T> codec) {
+        return read(request, Json.parser(), codec);
+    }
+
+    /** Parses and decodes a required JSON request body with explicit limits and a domain codec. */
+    public static <T> T read(HttpRequest request, JsonParser parser, JsonCodec<T> codec) {
+        Objects.requireNonNull(codec, "codec");
+        JsonDataType value = read(request, parser);
+        try {
+            return codec.decode(value);
+        } catch (JsonDecodingException failure) {
+            throw new JsonHttpException(HttpStatus.BAD_REQUEST,
+                    "The JSON request body does not match the expected shape", failure);
+        }
+    }
+
     /** Returns a {@code 200 application/json} response. */
     public static HttpResponse response(JsonDataType value) {
         return response(HttpStatus.OK, value);
@@ -51,11 +70,22 @@ public final class JsonHttp {
         return HttpResponse.status(status).bytes(bytes, JSON_UTF_8).build();
     }
 
+    /** Encodes one domain value into a {@code 200 application/json} response. */
+    public static <T> HttpResponse response(T value, JsonCodec<T> codec) {
+        return response(HttpStatus.OK, value, codec);
+    }
+
+    /** Encodes one domain value into an application/json response. */
+    public static <T> HttpResponse response(HttpStatus status, T value, JsonCodec<T> codec) {
+        Objects.requireNonNull(codec, "codec");
+        return response(status, codec.encode(value));
+    }
+
     /** Returns a deterministic JSON error envelope. */
     public static HttpResponse error(HttpStatus status, String error, String message) {
-        JsonDataType.Object body = new JsonDataType.Object()
-                .put("error", new JsonDataType.String(Objects.requireNonNull(error, "error")))
-                .put("message", new JsonDataType.String(Objects.requireNonNull(message, "message")));
+        JsonDataType.Object body = Json.object()
+                .put("error", Objects.requireNonNull(error, "error"))
+                .put("message", Objects.requireNonNull(message, "message"));
         return response(status, body);
     }
 

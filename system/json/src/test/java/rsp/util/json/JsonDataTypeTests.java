@@ -116,4 +116,18 @@ class JsonDataTypeTests {
         assertEquals(a1.hashCode(), a2.hashCode());
         assertNotEquals(a1, new JsonDataType.Array(JsonDataType.Number.of(1), new JsonDataType.String("str1"), new JsonDataType.Array()));
     }
+
+    @Test
+    void containers_are_defensive_and_reject_null_members() {
+        JsonDataType[] source = {Json.string("original")};
+        JsonDataType.Array array = new JsonDataType.Array(source);
+
+        source[0] = Json.string("changed");
+        array.elements()[0] = Json.string("also changed");
+
+        assertEquals(Json.string("original"), array.get(0));
+        assertThrows(NullPointerException.class, () -> new JsonDataType.Array((JsonDataType) null));
+        assertThrows(NullPointerException.class, () -> new JsonDataType.Object(
+                java.util.Collections.singletonMap("invalid", null)));
+    }
 }

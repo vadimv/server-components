@@ -67,23 +67,35 @@ page adapters. Authentication is established before component creation and is
 passed to the app as one immutable identity value; see
 [authentication](concepts/authentication.md).
 
-A REST-only application can use the method-aware router, JSON helpers, and JDK
-transport without pulling in UI modules:
+A REST-only application can use the REST adapter and JDK transport without
+pulling in UI modules. `http-rest` brings in the method-aware router, typed JSON
+helpers, and their transport-neutral HTTP contracts:
 
 ```xml
 <dependency>
     <groupId>io.github.vadimv</groupId>
-    <artifactId>http-routing</artifactId>
-    <version>3.1.0-SNAPSHOT</version>
-</dependency>
-<dependency>
-    <groupId>io.github.vadimv</groupId>
-    <artifactId>http-json</artifactId>
+    <artifactId>http-rest</artifactId>
     <version>3.1.0-SNAPSHOT</version>
 </dependency>
 <dependency>
     <groupId>io.github.vadimv</groupId>
     <artifactId>server-jdk</artifactId>
+    <version>3.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Add transport-neutral production policy and generated API documentation without
+pulling in UI modules:
+
+```xml
+<dependency>
+    <groupId>io.github.vadimv</groupId>
+    <artifactId>http-middleware</artifactId>
+    <version>3.1.0-SNAPSHOT</version>
+</dependency>
+<dependency>
+    <groupId>io.github.vadimv</groupId>
+    <artifactId>http-openapi</artifactId>
     <version>3.1.0-SNAPSHOT</version>
 </dependency>
 ```
@@ -94,8 +106,14 @@ Run the minimal REST example with:
 mvn exec:java -pl examples -Dexec.mainClass=rsp.app.rest.RestHello
 ```
 
-Then try `GET /api/hello/Alice` or post an `application/json` body to
-`POST /api/echo` on port 8080.
+Then try `GET /api/hello/Alice` or post
+`{"message":"hello"}` with `Content-Type: application/json` to
+`POST /api/echo` on port 8080. The example uses a `JsonCodec<Message>` to keep
+domain values out of route-level JSON tree manipulation, and
+`RestRouteHandler` to map invalid JSON and expected REST failures to stable JSON
+error envelopes. It also serves its generated OpenAPI 3.1 document at
+`GET /openapi.json`, and wraps requests with request IDs, CORS, defensive
+response headers, and (when run from `main`) access logging.
 
 Use `application-api` when the application has shared configuration or
 process-scoped services. Build an `ApplicationContext`, register services that

@@ -23,6 +23,86 @@ public final class Json {
 
     private Json() {}
 
+    /** Starts an immutable JSON object value. */
+    public static JsonDataType.Object object() {
+        return new JsonDataType.Object();
+    }
+
+    /** Creates an immutable JSON array value. */
+    public static JsonDataType.Array array(JsonDataType... elements) {
+        return new JsonDataType.Array(elements);
+    }
+
+    /** Creates a JSON string value. */
+    public static JsonDataType.String string(String value) {
+        return new JsonDataType.String(value);
+    }
+
+    /** Creates a JSON boolean value. */
+    public static JsonDataType.Boolean bool(boolean value) {
+        return new JsonDataType.Boolean(value);
+    }
+
+    /** Creates a JSON number from an integer without losing precision. */
+    public static JsonDataType.Number number(long value) {
+        return JsonDataType.Number.of(value);
+    }
+
+    /** Creates a JSON number from a floating-point value. */
+    public static JsonDataType.Number number(double value) {
+        return JsonDataType.Number.of(value);
+    }
+
+    /** Creates a JSON number from an exact decimal value. */
+    public static JsonDataType.Number number(BigDecimal value) {
+        return new JsonDataType.Number(value);
+    }
+
+    /** Returns the JSON null value. */
+    public static JsonDataType.Null nullValue() {
+        return JsonDataType.Null.INSTANCE;
+    }
+
+    /** Requires a JSON object for codec decoding. */
+    public static JsonDataType.Object requireObject(JsonDataType value) {
+        if (value instanceof JsonDataType.Object object) {
+            return object;
+        }
+        throw new JsonDecodingException("Expected a JSON object");
+    }
+
+    /** Requires a JSON array for codec decoding. */
+    public static JsonDataType.Array requireArray(JsonDataType value) {
+        if (value instanceof JsonDataType.Array array) {
+            return array;
+        }
+        throw new JsonDecodingException("Expected a JSON array");
+    }
+
+    /** Requires a JSON string and returns its Java value for codec decoding. */
+    public static String requireString(JsonDataType value) {
+        if (value instanceof JsonDataType.String string) {
+            return string.value();
+        }
+        throw new JsonDecodingException("Expected a JSON string");
+    }
+
+    /** Requires a JSON boolean and returns its Java value for codec decoding. */
+    public static boolean requireBoolean(JsonDataType value) {
+        if (value instanceof JsonDataType.Boolean bool) {
+            return bool.value();
+        }
+        throw new JsonDecodingException("Expected a JSON boolean");
+    }
+
+    /** Requires a JSON number for codec decoding. */
+    public static JsonDataType.Number requireNumber(JsonDataType value) {
+        if (value instanceof JsonDataType.Number number) {
+            return number;
+        }
+        throw new JsonDecodingException("Expected a JSON number");
+    }
+
     /**
      * Parses JSON text using {@link JsonLimits#DEFAULT}.
      *

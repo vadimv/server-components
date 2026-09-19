@@ -18,8 +18,11 @@
         <module>json</module>
         <module>url</module>
         <module>http-api</module>
+        <module>http-middleware</module>
         <module>http-routing</module>
         <module>http-json</module>
+        <module>http-rest</module>
+        <module>http-openapi</module>
         <module>websocket-api</module>
         <module>ui-core</module>
         <module>js-client</module>

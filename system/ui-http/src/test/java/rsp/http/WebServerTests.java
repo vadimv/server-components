@@ -106,6 +106,26 @@ class WebServerTests {
     }
 
     @Test
+    void builder_middleware_wraps_the_complete_http_route_graph() {
+        HttpRouter routes = HttpRouter.builder()
+                .get("/api", HttpRouteHandler.sync((_, _) -> rsp.http.HttpResponse.ok().build()))
+                .build();
+        HttpMiddleware marker = (request, next) -> next.handle(request)
+                .thenApply(response -> response.withHeader("X-Middleware", "applied"));
+        WebServer server = WebServer.builder(0, _ -> Pages.staticHtml(page("fallback")))
+                .routes(routes)
+                .middleware(marker)
+                .build();
+        rsp.http.HttpRequest request = new rsp.http.HttpRequest(HttpMethod.GET, "/api", "/api",
+                URI.create("http://localhost/api"), "http://localhost/api",
+                rsp.url.Path.parse("/api"), rsp.url.Query.EMPTY, HttpHeaders.EMPTY, RequestBody.EMPTY);
+
+        rsp.http.HttpResponse response = server.httpApplication().handle(request).toCompletableFuture().join();
+
+        assertEquals("applied", response.header("X-Middleware"));
+    }
+
+    @Test
     void starts_page_lifecycle_once_and_stops_it_after_all_pages_close() throws Exception {
         AtomicInteger starts = new AtomicInteger();
         AtomicInteger stops = new AtomicInteger();

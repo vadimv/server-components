@@ -51,9 +51,107 @@ server.start();
 server.join();
 ```
 
+For a JSON API, `http-rest` joins routing and JSON without making either
+lower-level module depend on the other:
+
+```java
+record Message(String value) {}
+
+JsonCodec<Message> messages = JsonCodec.of(
+        json -> new Message(Json.requireObject(json).requiredString("message")),
+        message -> Json.object().put("message", message.value()));
+
+HttpRouter application = HttpRouter.builder()
+        .post("/api/messages", RestRouteHandler.jsonSync(messages,
+                (request, route, message) ->
+                        JsonHttp.response(HttpStatus.CREATED, message, messages)))
+        .build();
+```
+
+`RestRouteHandler.json(...)` and `jsonSync(...)` validate the media type, parse
+the body, and decode it before calling the endpoint. Empty, malformed, or
+shape-invalid JSON produces the standard `invalid_json` envelope; an unsupported
+media type produces the same envelope with status `415`. Throw a
+`RestException` for an expected domain failure with an explicit status, stable
+error code, and public message. Unexpected exceptions remain failed completion
+stages and reach the transport's generic `500` boundary, so internal exception
+details are not exposed.
+
+The lower-level APIs remain available separately. `JsonHttp.read(...)` and
+`response(...)` accept either the immutable JSON tree or a `JsonCodec<T>`, while
+`HttpRouteHandler` continues to support non-JSON handlers with no REST error
+policy.
+
 `JdkWebServer` has equivalent `start()`, `join()`, `stop()`, ephemeral-port,
 and connection-limit behavior. Its most explicit constructor also accepts
 WebSocket endpoints, a WebSocket read timeout, and a `JdkServerObserver`.
+
+## Cross-cutting HTTP policy
+
+Use `HttpMiddleware.pipeline(...)` around any `HttpApplication` for shared
+request/response policy. The first middleware is the outer request boundary;
+responses return through the list in reverse order:
+
+```java
+CorsPolicy cors = CorsPolicy.builder()
+        .allowOrigin("https://client.example")
+        .allowMethods(HttpMethod.GET, HttpMethod.POST)
+        .allowHeaders("Content-Type", "Authorization")
+        .allowCredentials()
+        .build();
+
+HttpApplication production = HttpMiddleware.pipeline(application,
+        new RequestIdMiddleware(),
+        AccessLogMiddleware.systemLogger(System.getLogger("http.access")),
+        SecurityHeadersMiddleware.defaults(),
+        new CorsMiddleware(cors),
+        ServerErrorMiddleware.systemLogger(System.getLogger("http.errors")));
+```
+
+Request IDs are bounded and safe for logs. Access events contain the raw path,
+not the query, and report only a failure class rather than its message. CORS is
+deny-by-default and valid preflights bypass the application. The default
+security-header middleware is opt-in and deliberately excludes deployment-
+specific CSP and HSTS choices. `ServerErrorMiddleware` creates a body-free
+`500` before the transport boundary and reports the failure class without its
+message; putting it last lets outer middleware decorate that response.
+
+`WebServer.Builder.middleware(...)` applies middleware around application
+routes, framework assets, static resources, and the page fallback.
+
+## OpenAPI route metadata
+
+Exact router registrations may carry format-neutral metadata. `http-openapi`
+provides one such metadata type and an immutable schema DSL:
+
+```java
+OpenApiOperation getMessage = OpenApiOperation.builder()
+        .operationId("getMessage")
+        .pathParameter("id", OpenApiSchema.string())
+        .jsonResponse(200, "Message", OpenApiSchema.ref("Message"))
+        .response(404, "Not found")
+        .build();
+
+HttpRouter api = HttpRouter.builder()
+        .get("/api/messages/{id}", handler, getMessage)
+        .build();
+
+OpenApiDocument document = OpenApiDocument.builder(
+                new OpenApiInfo("Messages", "1.0.0"), api)
+        .componentSchema("Message", OpenApiSchema.object()
+                .requiredProperty("message", OpenApiSchema.string()))
+        .build();
+
+HttpRouter application = HttpRouter.builder()
+        .include(api)
+        .get("/openapi.json", document.handler())
+        .build();
+```
+
+Undocumented routes and literal-prefix handlers are omitted. Missing template
+parameters are emitted as required strings; contradictory path parameters,
+duplicate operation IDs, and documented `CONNECT` methods fail when the
+document is built.
 
 Both `HttpApplication` and `PageApplication` can carry an
 `ApplicationLifecycle`. The JDK server starts an HTTP application before it
@@ -199,7 +297,9 @@ decoder registry are not implemented. `HttpApplication` is the UI-neutral
 application contract and can be bound directly to `JdkWebServer`. `HttpRouter`
 adds composable exact and literal-prefix routing, `HEAD` fallback, terminal
 application fallback, and `404`/`405` behavior;
-`JsonHttp` adds strict UTF-8 JSON request and response helpers.
+`JsonHttp` adds strict UTF-8 JSON request and response helpers; and
+`RestRouteHandler` adds codec-aware body handling plus explicit JSON failure
+mapping at the route boundary.
 
 Current parser limits are fixed in the implementation:
 

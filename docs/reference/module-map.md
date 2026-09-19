@@ -9,11 +9,14 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | --- | --- | --- | --- |
 | `authentication-api` | Immutable request/page identity and roles | none | Direct for authentication integrations or identity-aware UI |
 | `application-api` | Immutable configuration, typed application services, and process lifecycle | none | Direct for shared REST or UI application resources |
-| `json` | JSON value model, parser, limits, and writer | none | Usually transitive |
+| `json` | JSON value model, parser, limits, writer, domain codecs, and immutable object-building/access helpers | none | Usually transitive |
 | `url` | Immutable URL values and generic route templates/tables | none | Direct for framework-neutral routing |
 | `http-api` | Transport-neutral HTTP request, response, headers, cookies, bodies, and lifecycle-aware applications | `application-api`, `url` | Direct for REST applications and server adapters |
+| `http-middleware` | Request correlation, completion/access events, sanitized failures, CORS, and defensive response-header middleware | `http-api` | Direct for shared production HTTP policy |
 | `http-routing` | Immutable, composable, method-aware HTTP router over generic URL route tables | `http-api` | Direct for routed REST applications |
-| `http-json` | JSON request validation, decoding, responses, and error envelopes | `http-api`, `json` | Direct for JSON HTTP APIs |
+| `http-json` | JSON request validation, tree/domain-codec decoding, responses, and error envelopes | `http-api`, `json` | Direct for JSON HTTP APIs without routing policy |
+| `http-rest` | REST route adapters for JSON bodies and expected JSON error mapping | `http-api`, `http-routing`, `http-json`, `json` | Direct for routed JSON REST applications |
+| `http-openapi` | OpenAPI 3.1 operation/schema metadata and deterministic documents from exact routes | `http-api`, `http-routing`, `http-json`, `json` | Direct when publishing an OpenAPI description |
 | `websocket-api` | UI-independent endpoint, session, listener, error, and close-code contracts | `http-api` | Direct for custom WebSocket endpoints |
 | `ui-core` | HTML DSL, components, DOM diffing, and live page sessions | `url`, `json` | Direct for custom UI adapters or low-level runtime use |
 | `js-client` | Browser bridge sources and packaged client bundle | none | Usually transitive through `ui-http` |
@@ -44,7 +47,10 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `examples` | Runnable demonstrations and browser integration tests | Not an application dependency |
 
 Start with `ui-http` for a live UI application. For a REST-only application,
-combine `server-jdk` with `http-routing` and optionally `http-json`; none of
-those modules pulls in the UI runtime. Add `compositions` for routed admin UI,
-then opt into extensions individually. See [getting started](../getting-started.md)
-for dependency examples.
+combine `server-jdk` with `http-rest`; it transitively provides routing and JSON
+conveniences without pulling in the UI runtime. Applications needing only one
+lower-level concern can use `http-routing` or `http-json` independently. Add
+`http-middleware` for shared production policy and `http-openapi` for a generated
+OpenAPI 3.1 document. Add `compositions` for routed admin UI, then opt into
+extensions individually. See
+[getting started](../getting-started.md) for dependency examples.

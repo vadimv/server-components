@@ -26,6 +26,28 @@ public record HttpResponse(HttpStatus status, HttpHeaders headers, ResponseBody 
         return status(HttpStatus.FOUND).header("Location", Objects.requireNonNull(location, "location").toASCIIString()).build();
     }
 
+    public String header(String name) {
+        return headers.first(name).orElse(null);
+    }
+
+    /** Returns a copy with all values for {@code name} replaced by one value. */
+    public HttpResponse withHeader(String name, String value) {
+        HttpHeaders replaced = HttpHeaders.builder()
+                .addAll(headers)
+                .set(name, value)
+                .build();
+        return new HttpResponse(status, replaced, body);
+    }
+
+    /** Returns a copy with an additional header value. */
+    public HttpResponse addHeader(String name, String value) {
+        HttpHeaders extended = HttpHeaders.builder()
+                .addAll(headers)
+                .add(name, value)
+                .build();
+        return new HttpResponse(status, extended, body);
+    }
+
     public static final class Builder {
         private final HttpStatus status;
         private final HttpHeaders.Builder headers = HttpHeaders.builder();
