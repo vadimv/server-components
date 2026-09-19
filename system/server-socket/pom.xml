@@ -8,7 +8,7 @@
         <artifactId>system</artifactId>
         <version>${revision}</version>
     </parent>
-    <artifactId>server-jdk</artifactId>
+    <artifactId>server-socket</artifactId>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

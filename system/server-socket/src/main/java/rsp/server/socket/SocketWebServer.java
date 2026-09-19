@@ -1,4 +1,4 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
 import rsp.http.HttpApplication;
 import rsp.http.HttpRequest;
@@ -30,26 +30,26 @@ import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
 
 /**
- * JDK-socket HTTP/1.1 and RFC 6455 transport for UI-independent applications.
+ * Socket-based HTTP/1.1 and RFC 6455 transport for UI-independent applications.
  *
  * <p>Each accepted HTTP connection serves one request and is then closed. Request bodies and
  * assembled WebSocket messages are bounded at 256 KiB. TLS, keep-alive, pipelining, and chunked
  * request decoding are intentionally outside this transport.</p>
  */
-public final class JdkWebServer {
+public final class SocketWebServer {
     public static final int DEFAULT_CONNECTION_LIMIT = 50;
     public static final int DEFAULT_WEB_SOCKET_READ_TIMEOUT_MS = 30_000;
     public static final int WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS = 1_000;
 
     private static final String SERVER_STOP_REASON = "Server stopping";
-    private static final System.Logger logger = System.getLogger(JdkWebServer.class.getName());
+    private static final System.Logger logger = System.getLogger(SocketWebServer.class.getName());
 
     private final int configuredPort;
     private final HttpApplication application;
     private final List<WebSocketEndpoint> webSocketEndpoints;
     private final int connectionLimit;
     private final int webSocketReadTimeoutMs;
-    private final JdkServerObserver observer;
+    private final SocketServerObserver observer;
     private final HttpRequestParser requestParser = new HttpRequestParser();
     private final HttpResponseWriter responseWriter = new HttpResponseWriter();
     private final WebSocketUpgrader webSocketUpgrader = new WebSocketUpgrader();
@@ -63,22 +63,22 @@ public final class JdkWebServer {
     private volatile boolean running;
     private volatile int boundPort;
 
-    public JdkWebServer(int port, HttpApplication application) {
+    public SocketWebServer(int port, HttpApplication application) {
         this(port, application, List.of(), DEFAULT_CONNECTION_LIMIT,
-                DEFAULT_WEB_SOCKET_READ_TIMEOUT_MS, JdkServerObserver.NOOP);
+                DEFAULT_WEB_SOCKET_READ_TIMEOUT_MS, SocketServerObserver.NOOP);
     }
 
-    public JdkWebServer(int port, HttpApplication application, List<? extends WebSocketEndpoint> endpoints) {
+    public SocketWebServer(int port, HttpApplication application, List<? extends WebSocketEndpoint> endpoints) {
         this(port, application, endpoints, DEFAULT_CONNECTION_LIMIT,
-                DEFAULT_WEB_SOCKET_READ_TIMEOUT_MS, JdkServerObserver.NOOP);
+                DEFAULT_WEB_SOCKET_READ_TIMEOUT_MS, SocketServerObserver.NOOP);
     }
 
-    public JdkWebServer(int port,
+    public SocketWebServer(int port,
                         HttpApplication application,
                         List<? extends WebSocketEndpoint> endpoints,
                         int connectionLimit,
                         int webSocketReadTimeoutMs,
-                        JdkServerObserver observer) {
+                        SocketServerObserver observer) {
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
@@ -101,7 +101,7 @@ public final class JdkWebServer {
     public void start() {
         synchronized (lifecycleLock) {
             if (running) {
-                throw new IllegalStateException("JdkWebServer is already running");
+                throw new IllegalStateException("SocketWebServer is already running");
             }
             ServerSocket socket = null;
             boolean applicationStarted = false;
@@ -297,10 +297,10 @@ public final class JdkWebServer {
                     .orElseThrow(() -> new WebSocketHandshakeException(404, "WebSocket endpoint not found"));
             endpoint.validate(request.request());
             webSocketUpgrader.upgrade(socket, request, endpoint.supportedSubprotocols());
-            JdkServerObserver.WebSocketObserver connectionObserver =
+            SocketServerObserver.WebSocketObserver connectionObserver =
                     Objects.requireNonNull(observer.openWebSocket(), "WebSocket observer");
             try (connectionObserver) {
-                JdkWebSocketSession session = new JdkWebSocketSession(socket, connectionObserver);
+                SocketWebSocketSession session = new SocketWebSocketSession(socket, connectionObserver);
                 WebSocketConnection connection = new WebSocketConnection(socket, session,
                         endpoint.open(request.request(), session), connectionObserver, webSocketReadTimeoutMs);
                 boolean shouldRun = registerWebSocket(connection);

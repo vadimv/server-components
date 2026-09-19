@@ -67,7 +67,7 @@ page adapters. Authentication is established before component creation and is
 passed to the app as one immutable identity value; see
 [authentication](concepts/authentication.md).
 
-A REST-only application can use the REST adapter and JDK transport without
+A REST-only application can use the REST adapter and socket transport without
 pulling in UI modules. `http-rest` brings in the method-aware router, typed JSON
 helpers, and their transport-neutral HTTP contracts:
 
@@ -79,7 +79,7 @@ helpers, and their transport-neutral HTTP contracts:
 </dependency>
 <dependency>
     <groupId>io.github.vadimv</groupId>
-    <artifactId>server-jdk</artifactId>
+    <artifactId>server-socket</artifactId>
     <version>3.1.0-SNAPSHOT</version>
 </dependency>
 ```

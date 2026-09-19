@@ -1,4 +1,4 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
 import org.junit.jupiter.api.Test;
 import rsp.http.HttpApplication;
@@ -20,13 +20,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class JdkWebServerTests {
+class SocketWebServerTests {
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Test
     void serves_a_transport_neutral_http_application() throws Exception {
         RecordingObserver observer = new RecordingObserver();
-        JdkWebServer server = started(new JdkWebServer(0,
+        SocketWebServer server = started(new SocketWebServer(0,
                 request -> CompletableFuture.completedFuture(HttpResponse.ok()
                         .header("X-Method", request.method().name())
                         .text(request.path().toString())
@@ -66,7 +66,7 @@ class JdkWebServerTests {
                 calls.add("stop");
             }
         };
-        JdkWebServer server = started(new JdkWebServer(0, application));
+        SocketWebServer server = started(new SocketWebServer(0, application));
         try {
             client.send(java.net.http.HttpRequest.newBuilder(uri(server, "/one")).GET().build(),
                     java.net.http.HttpResponse.BodyHandlers.discarding());
@@ -83,7 +83,7 @@ class JdkWebServerTests {
     @Test
     void maps_failed_application_stages_to_sanitized_500_responses() throws Exception {
         RecordingObserver observer = new RecordingObserver();
-        JdkWebServer server = started(new JdkWebServer(0,
+        SocketWebServer server = started(new SocketWebServer(0,
                 _ -> CompletableFuture.failedFuture(new IllegalStateException("secret")),
                 List.of(), 4, 2_000, observer));
         try {
@@ -103,7 +103,7 @@ class JdkWebServerTests {
     void hosts_a_generic_websocket_endpoint_with_subprotocol_and_traffic_observation() throws Exception {
         RecordingObserver observer = new RecordingObserver();
         EchoEndpoint endpoint = new EchoEndpoint();
-        JdkWebServer server = started(new JdkWebServer(0,
+        SocketWebServer server = started(new SocketWebServer(0,
                 _ -> CompletableFuture.completedFuture(HttpResponse.status(rsp.http.HttpStatus.NOT_FOUND).build()),
                 List.of(endpoint), 4, 2_000, observer));
         CompletableFuture<String> received = new CompletableFuture<>();
@@ -132,12 +132,12 @@ class JdkWebServerTests {
         }
     }
 
-    private static JdkWebServer started(JdkWebServer server) {
+    private static SocketWebServer started(SocketWebServer server) {
         server.start();
         return server;
     }
 
-    private static URI uri(JdkWebServer server, String path) {
+    private static URI uri(SocketWebServer server, String path) {
         return URI.create("http://localhost:" + server.port() + path);
     }
 
@@ -170,7 +170,7 @@ class JdkWebServerTests {
         }
     }
 
-    private static final class RecordingObserver implements JdkServerObserver {
+    private static final class RecordingObserver implements SocketServerObserver {
         private final AtomicInteger requests = new AtomicInteger();
         private final AtomicInteger failures = new AtomicInteger();
         private final AtomicInteger activeWebSockets = new AtomicInteger();

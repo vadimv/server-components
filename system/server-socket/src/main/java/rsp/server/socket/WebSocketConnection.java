@@ -1,4 +1,4 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
 import rsp.websocket.WebSocketListener;
 import rsp.websocket.WebSocketProtocolException;
@@ -27,9 +27,9 @@ final class WebSocketConnection {
     private static final System.Logger logger = System.getLogger(WebSocketConnection.class.getName());
 
     private final Socket socket;
-    private final JdkWebSocketSession session;
+    private final SocketWebSocketSession session;
     private final WebSocketListener listener;
-    private final JdkServerObserver.WebSocketObserver observer;
+    private final SocketServerObserver.WebSocketObserver observer;
     private final int readTimeoutMs;
     private final CompletableFuture<Void> closed = new CompletableFuture<>();
 
@@ -38,8 +38,8 @@ final class WebSocketConnection {
     private volatile int closeCode = 1006;
     private volatile String closeReason = "";
 
-    WebSocketConnection(Socket socket, JdkWebSocketSession session, WebSocketListener listener,
-                        JdkServerObserver.WebSocketObserver observer, int readTimeoutMs) {
+    WebSocketConnection(Socket socket, SocketWebSocketSession session, WebSocketListener listener,
+                        SocketServerObserver.WebSocketObserver observer, int readTimeoutMs) {
         this.socket = Objects.requireNonNull(socket, "socket");
         this.session = Objects.requireNonNull(session, "session");
         this.listener = Objects.requireNonNull(listener, "listener");

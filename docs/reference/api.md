@@ -20,7 +20,7 @@ and attaches a `*-javadoc.jar`. For example:
 - `system/http-rest/target/apidocs/index.html`
 - `system/http-openapi/target/apidocs/index.html`
 - `system/websocket-api/target/apidocs/index.html`
-- `system/server-jdk/target/apidocs/index.html`
+- `system/server-socket/target/apidocs/index.html`
 - `system/compositions/target/apidocs/index.html`
 - `system/ui-http/target/apidocs/index.html`
 - `extensions/ai-agent/target/apidocs/index.html`

@@ -22,7 +22,7 @@ application-api
 http-api  compositions      ui-http
   ^                             ^
   |                             |
-server-jdk ---------------------+
+server-socket ------------------+
 ```
 
 `application-api` has no project dependencies. It owns immutable configuration,
@@ -55,7 +55,7 @@ A stopped context cannot be restarted.
 remaining functional interfaces through default no-op lifecycle methods. Each
 provides a lifecycle-preserving wrapper for handler lambdas.
 
-`JdkWebServer` starts its `HttpApplication` before accepting requests, rolls it
+`SocketWebServer` starts its `HttpApplication` before accepting requests, rolls it
 back if binding fails, and stops it only after connections and WebSockets have
 closed. `ui-http.WebServer` similarly brackets its page application, but closes
 live UI sessions before stopping application services.

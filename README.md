@@ -8,7 +8,7 @@ the browser receives initial HTML and small DOM updates over WebSocket.
 
 - plain Java with constructor injection and no annotation-driven lifecycle;
 - typed component state, intents, context, and events;
-- UI-independent REST routing, JSON helpers, and JDK HTTP/WebSocket transport;
+- UI-independent REST routing, JSON helpers, and socket HTTP/WebSocket transport;
 - immutable typed application context with deterministic process lifecycle;
 - HTTP-bound authentication with immutable request/page identity;
 - no third-party runtime dependencies in the framework modules;

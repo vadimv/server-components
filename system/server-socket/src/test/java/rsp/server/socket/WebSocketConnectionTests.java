@@ -1,4 +1,4 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
 import org.junit.jupiter.api.Test;
 import rsp.websocket.WebSocketListener;
@@ -28,8 +28,8 @@ class WebSocketConnectionTests {
              Socket serverSideSocket = serverSocket.accept()) {
             Thread.startVirtualThread(() -> {
                 try {
-                    JdkWebSocketSession session = new JdkWebSocketSession(serverSideSocket,
-                            JdkServerObserver.WebSocketObserver.NOOP);
+                    SocketWebSocketSession session = new SocketWebSocketSession(serverSideSocket,
+                            SocketServerObserver.WebSocketObserver.NOOP);
                     new WebSocketConnection(serverSideSocket, session, new WebSocketListener() {
                         @Override
                         public void onBinary(byte[] payload) {
@@ -40,7 +40,7 @@ class WebSocketConnectionTests {
                         public void onClose(int code, String reason) {
                             closeCode.complete(code);
                         }
-                    }, JdkServerObserver.WebSocketObserver.NOOP, 2_000).run();
+                    }, SocketServerObserver.WebSocketObserver.NOOP, 2_000).run();
                 } catch (Exception failure) {
                     binary.completeExceptionally(failure);
                     closeCode.completeExceptionally(failure);
@@ -67,8 +67,8 @@ class WebSocketConnectionTests {
              Socket serverSideSocket = serverSocket.accept()) {
             Thread.startVirtualThread(() -> {
                 try {
-                    JdkWebSocketSession session = new JdkWebSocketSession(serverSideSocket,
-                            JdkServerObserver.WebSocketObserver.NOOP);
+                    SocketWebSocketSession session = new SocketWebSocketSession(serverSideSocket,
+                            SocketServerObserver.WebSocketObserver.NOOP);
                     new WebSocketConnection(serverSideSocket, session, new WebSocketListener() {
                         @Override
                         public void onText(String message) throws WebSocketProtocolException {
@@ -79,7 +79,7 @@ class WebSocketConnectionTests {
                         public void onClose(int code, String reason) {
                             listenerCloseReason.complete(reason);
                         }
-                    }, JdkServerObserver.WebSocketObserver.NOOP, 2_000).run();
+                    }, SocketServerObserver.WebSocketObserver.NOOP, 2_000).run();
                 } catch (Exception failure) {
                     listenerCloseReason.completeExceptionally(failure);
                 }

@@ -17,7 +17,7 @@ import rsp.http.openapi.OpenApiOperation;
 import rsp.http.openapi.OpenApiSchema;
 import rsp.http.rest.RestRouteHandler;
 import rsp.http.routing.HttpRouter;
-import rsp.server.jdk.JdkWebServer;
+import rsp.server.socket.SocketWebServer;
 import rsp.util.json.Json;
 import rsp.util.json.JsonCodec;
 
@@ -40,7 +40,7 @@ public final class RestHello {
                 SecurityHeadersMiddleware.defaults(),
                 new CorsMiddleware(corsPolicy()),
                 ServerErrorMiddleware.systemLogger(System.getLogger(RestHello.class.getName())));
-        JdkWebServer server = new JdkWebServer(8080, production);
+        SocketWebServer server = new SocketWebServer(8080, production);
         server.start();
         server.join();
     }

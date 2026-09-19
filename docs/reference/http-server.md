@@ -1,9 +1,9 @@
 # HTTP Server
 
-Status: current as of `system/server-jdk` and `system/ui-http` in this repository
+Status: current as of `system/server-socket` and `system/ui-http` in this repository
 
-The `server-jdk` artifact owns the embedded JDK-socket and virtual-thread
-transport. `rsp.server.jdk.JdkWebServer` accepts any transport-neutral
+The `server-socket` artifact owns the embedded socket and virtual-thread
+transport. `rsp.server.socket.SocketWebServer` accepts any transport-neutral
 `HttpApplication` plus zero or more `WebSocketEndpoint`s. The `ui-http`
 artifact provides `rsp.http.WebServer`, a UI facade which supplies page
 rendering, static-resource, resumable-session, and RSP WebSocket adapters to
@@ -46,7 +46,7 @@ HttpRouter application = HttpRouter.builder()
                 HttpResponse.ok().text("Hello, " + route.requiredParameter("name")).build()))
         .build();
 
-JdkWebServer server = new JdkWebServer(8080, application);
+SocketWebServer server = new SocketWebServer(8080, application);
 server.start();
 server.join();
 ```
@@ -82,9 +82,9 @@ The lower-level APIs remain available separately. `JsonHttp.read(...)` and
 `HttpRouteHandler` continues to support non-JSON handlers with no REST error
 policy.
 
-`JdkWebServer` has equivalent `start()`, `join()`, `stop()`, ephemeral-port,
+`SocketWebServer` has equivalent `start()`, `join()`, `stop()`, ephemeral-port,
 and connection-limit behavior. Its most explicit constructor also accepts
-WebSocket endpoints, a WebSocket read timeout, and a `JdkServerObserver`.
+WebSocket endpoints, a WebSocket read timeout, and a `SocketServerObserver`.
 
 ## Cross-cutting HTTP policy
 
@@ -154,7 +154,7 @@ duplicate operation IDs, and documented `CONNECT` methods fail when the
 document is built.
 
 Both `HttpApplication` and `PageApplication` can carry an
-`ApplicationLifecycle`. The JDK server starts an HTTP application before it
+`ApplicationLifecycle`. The socket server starts an HTTP application before it
 accepts requests and stops it after connections drain. The UI facade closes
 live page sessions before stopping its page application. Use
 `HttpApplication.withLifecycle(...)` or `PageApplication.withLifecycle(...)`
@@ -294,7 +294,7 @@ The current server supports HTTP/1.0 and HTTP/1.1 request parsing for:
 Each non-WebSocket response closes its connection. Keep-alive, pipelining,
 chunked request or response bodies, multipart forms, and a general request-body
 decoder registry are not implemented. `HttpApplication` is the UI-neutral
-application contract and can be bound directly to `JdkWebServer`. `HttpRouter`
+application contract and can be bound directly to `SocketWebServer`. `HttpRouter`
 adds composable exact and literal-prefix routing, `HEAD` fallback, terminal
 application fallback, and `404`/`405` behavior;
 `JsonHttp` adds strict UTF-8 JSON request and response helpers; and
@@ -338,13 +338,13 @@ resume/disconnect boundaries). This avoids a WebSocket frame and acknowledgement
 round trip for every event-listener removal or other small command.
 
 Custom endpoints implement the contracts from `websocket-api` and are passed
-to `JdkWebServer`. Endpoint matching and handshake policy therefore remain
+to `SocketWebServer`. Endpoint matching and handshake policy therefore remain
 independent of UI code. The JavaScript client's long-polling routes are not
 implemented by this server.
 
 ## TLS And Deployment Limits
 
-TLS is not implemented by `server-jdk`. Although `ui-http` constructors accept
+TLS is not implemented by `server-socket`. Although `ui-http` constructors accept
 `SslConfiguration`, `start()` throws `UnsupportedOperationException` when one
 is supplied. Do not use the TLS constructor in current applications.
 
@@ -357,5 +357,5 @@ must be provided and validated by the deployment environment.
 Run the generic transport and UI-adapter tests with:
 
 ```bash
-mvn -pl system/server-jdk,system/ui-http -am test
+mvn -pl system/server-socket,system/ui-http -am test
 ```

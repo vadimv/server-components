@@ -10,8 +10,8 @@ import rsp.page.DefaultEventLoop;
 import rsp.page.EventLoop;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
-import rsp.server.jdk.JdkServerObserver;
-import rsp.server.jdk.JdkWebServer;
+import rsp.server.socket.SocketServerObserver;
+import rsp.server.socket.SocketWebServer;
 import rsp.http.routing.HttpPrefixHandler;
 import rsp.http.routing.HttpRouteHandler;
 import rsp.http.routing.HttpRouter;
@@ -29,11 +29,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/** UI page/session adapter backed by the UI-independent JDK HTTP/WebSocket transport. */
+/** UI page/session adapter backed by the UI-independent socket HTTP/WebSocket transport. */
 public class WebServer implements ApplicationLifecycle {
-    public static final int DEFAULT_CONNECTION_LIMIT = JdkWebServer.DEFAULT_CONNECTION_LIMIT;
+    public static final int DEFAULT_CONNECTION_LIMIT = SocketWebServer.DEFAULT_CONNECTION_LIMIT;
     public static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 10_000;
-    static final int WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS = JdkWebServer.WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS;
+    static final int WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS = SocketWebServer.WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS;
     static final String WEB_SOCKET_SERVER_STOP_REASON = "Server stopping";
 
     /** Rendered pages waiting for their first WebSocket session to bind. */
@@ -50,7 +50,7 @@ public class WebServer implements ApplicationLifecycle {
     private final Optional<StaticResourceHandler> staticResourceHandler;
     private final PageHttpHandler httpHandler;
     private final HttpApplication httpApplication;
-    private final JdkWebServer transport;
+    private final SocketWebServer transport;
 
     public WebServer(int port,
                      Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
@@ -124,7 +124,7 @@ public class WebServer implements ApplicationLifecycle {
                 .withFallback(uiRoutes(httpHandler, this.staticResources, this.staticResourceHandler));
         this.httpApplication = HttpMiddleware.pipeline(routes,
                 Objects.requireNonNull(middleware, "middleware"));
-        this.transport = new JdkWebServer(port, httpApplication,
+        this.transport = new SocketWebServer(port, httpApplication,
                 java.util.List.of(new RspWebSocketEndpoint(localSessionRegistry)), connectionLimit,
                 DEFAULT_HEARTBEAT_INTERVAL_MS * 3, transportObserver(this.metrics));
     }
@@ -187,7 +187,7 @@ public class WebServer implements ApplicationLifecycle {
 
     public synchronized void start() {
         if (sslConfiguration.isPresent()) {
-            throw new UnsupportedOperationException("TLS is not implemented in server-jdk yet");
+            throw new UnsupportedOperationException("TLS is not implemented in server-socket yet");
         }
         if (transport.isRunning()) {
             throw new IllegalStateException("WebServer is already running");
@@ -280,8 +280,8 @@ public class WebServer implements ApplicationLifecycle {
         return localSessionRegistry.size();
     }
 
-    private static JdkServerObserver transportObserver(Metrics metrics) {
-        return new JdkServerObserver() {
+    private static SocketServerObserver transportObserver(Metrics metrics) {
+        return new SocketServerObserver() {
             @Override
             public void requestReceived() {
                 metrics.incrementCounter(MetricNames.HTTP_REQUESTS);

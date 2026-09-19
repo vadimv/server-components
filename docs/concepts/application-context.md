@@ -59,7 +59,7 @@ HttpRouter routes = HttpRouter.builder()
         .build();
 
 HttpApplication application = HttpApplication.withLifecycle(context, routes);
-JdkWebServer server = new JdkWebServer(8080, application);
+SocketWebServer server = new SocketWebServer(8080, application);
 server.start();
 server.join();
 ```

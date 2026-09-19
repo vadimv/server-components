@@ -1,4 +1,4 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
 final class HttpProtocolException extends Exception {
     private final int status;

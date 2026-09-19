@@ -1,4 +1,4 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
 import org.junit.jupiter.api.Test;
 import rsp.websocket.WebSocketProtocolException;

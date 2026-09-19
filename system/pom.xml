@@ -31,6 +31,6 @@
         <module>compositions</module>
         <module>ui-http</module>
         <module>ui-http-auth</module>
-        <module>server-jdk</module>
+        <module>server-socket</module>
     </modules>
 </project>

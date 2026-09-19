@@ -1,4 +1,4 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
 import rsp.websocket.WebSocketSession;
 
@@ -9,13 +9,13 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-final class JdkWebSocketSession implements WebSocketSession {
+final class SocketWebSocketSession implements WebSocketSession {
     private final Socket socket;
-    private final JdkServerObserver.WebSocketObserver observer;
+    private final SocketServerObserver.WebSocketObserver observer;
     private final Object writeLock = new Object();
     private final AtomicBoolean closeSent = new AtomicBoolean();
 
-    JdkWebSocketSession(Socket socket, JdkServerObserver.WebSocketObserver observer) {
+    SocketWebSocketSession(Socket socket, SocketServerObserver.WebSocketObserver observer) {
         this.socket = Objects.requireNonNull(socket, "socket");
         this.observer = Objects.requireNonNull(observer, "observer");
     }

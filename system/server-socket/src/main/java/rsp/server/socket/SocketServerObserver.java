@@ -1,8 +1,8 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
-/** Optional lifecycle/traffic observer for the JDK transport. */
-public interface JdkServerObserver {
-    JdkServerObserver NOOP = new JdkServerObserver() {
+/** Optional lifecycle/traffic observer for the socket transport. */
+public interface SocketServerObserver {
+    SocketServerObserver NOOP = new SocketServerObserver() {
     };
 
     default void requestReceived() {

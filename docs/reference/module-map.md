@@ -23,9 +23,9 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `authorization` | ABAC policies, attributes, and delegation grants | none | Direct for custom policies |
 | `schema` | Field, validation, widget, and list-column metadata | none | Direct for schema-driven UI |
 | `compositions` | Blocks, layouts, application/identity context projection, and default list/form UI | `authentication-api`, `application-api`, `ui-core`, `url`, `authorization`, `schema` | Direct for routed admin applications |
-| `ui-http` | Initial-page and resumable RSP adapters over the generic JDK server | `application-api`, `ui-core`, `http-api`, `http-routing`, `websocket-api`, `server-jdk`; `js-client` at runtime | Direct for the built-in UI server |
+| `ui-http` | Initial-page and resumable RSP adapters over the generic socket server | `application-api`, `ui-core`, `http-api`, `http-routing`, `websocket-api`, `server-socket`; `js-client` at runtime | Direct for the built-in UI server |
 | `ui-http-auth` | Basic, cookie-session, and OAuth PKCE page adapters and endpoint routes | `authentication-api`, `application-api`, `ui-http`, `http-routing`, `json` | Direct when using the supplied authentication providers |
-| `server-jdk` | UI-neutral JDK HTTP/1.1 and RFC 6455 socket transport | `http-api`, `websocket-api` | Direct for embedded REST and custom WebSocket servers |
+| `server-socket` | UI-neutral socket HTTP/1.1 and RFC 6455 WebSocket transport | `http-api`, `websocket-api` | Direct for embedded REST and custom WebSocket servers |
 
 ## Optional Extensions
 
@@ -47,7 +47,7 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `examples` | Runnable demonstrations and browser integration tests | Not an application dependency |
 
 Start with `ui-http` for a live UI application. For a REST-only application,
-combine `server-jdk` with `http-rest`; it transitively provides routing and JSON
+combine `server-socket` with `http-rest`; it transitively provides routing and JSON
 conveniences without pulling in the UI runtime. Applications needing only one
 lower-level concern can use `http-routing` or `http-json` independently. Add
 `http-middleware` for shared production policy and `http-openapi` for a generated

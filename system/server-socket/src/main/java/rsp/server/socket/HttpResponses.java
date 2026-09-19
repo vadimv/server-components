@@ -1,4 +1,4 @@
-package rsp.server.jdk;
+package rsp.server.socket;
 
 import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
