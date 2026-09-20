@@ -1,7 +1,6 @@
 package rsp.http;
 
 import rsp.application.ApplicationLifecycle;
-import rsp.component.definitions.Component;
 import rsp.metrics.MetricNames;
 import rsp.metrics.MetricObject;
 import rsp.metrics.MetricObjectTypes;
@@ -26,7 +25,6 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** UI page/session adapter backed by the UI-independent socket HTTP/WebSocket transport. */
@@ -72,13 +70,13 @@ public class WebServer implements ApplicationLifecycle {
         return this;
     }
 
-    /** Sets a live UI component factory as the fallback page application. */
-    public synchronized WebServer page(
-            Function<HttpRequest, ? extends Component<?, ?>> componentFactory) {
+    /** Adds a live {@code GET} page to the shared method-aware route graph. */
+    public synchronized WebServer page(String template, PageHandler handler) {
         requireConfigurable();
-        Objects.requireNonNull(componentFactory, "componentFactory");
-        this.pageApplication = request -> PageResult.live(componentFactory.apply(request));
-        return this;
+        Objects.requireNonNull(handler, "handler");
+        return routes(HttpRouter.builder()
+                .get(template, (request, route) -> PageResult.live(handler.handle(request, route)))
+                .build());
     }
 
     /** Adds routes handled before framework assets and the UI page fallback. */

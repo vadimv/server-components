@@ -92,7 +92,7 @@ To run a page in an embedded server, use the `ui-http` module:
 import rsp.http.WebServer;
 
 final var server = new WebServer(8080)
-        .page(request -> new LocalStateComponent<>((_, _) -> new Counter(0), view,
+        .page("/", (request, route) -> new LocalStateComponent<>((_, _) -> new Counter(0), view,
                 (state, intent) -> new Counter(state.value() + 1)));
 server.start();
 server.join();
@@ -460,7 +460,8 @@ new WebServer(8080).routes(routes);
 All declarations share one method-aware graph and one ambiguity check. Attach
 a `PageApplication` with `WebServer.pageApplication(...)` when unknown server
 paths should intentionally fall through to page selection, as with client-side
-UI routing. `WebServer.page(...)` is the shorter live-component form.
+UI routing. `WebServer.page(template, handler)` registers an explicit live
+`GET` route; repeated calls are additive.
 
 ## Static Resources
 
@@ -479,7 +480,7 @@ Pass it to `WebServer`:
 
 ```java
 new WebServer(8080)
-        .page(app)
+        .page("/", (request, route) -> app.apply(request))
         .staticResources(staticResources);
 ```
 

@@ -147,7 +147,7 @@ public class Life {
         };
 
         final var s = new WebServer(8082)
-                .page(httpRequest -> componentDefinition)
+                .page("/", (_, _) -> componentDefinition)
                 .staticResources(new StaticResources(new File("src/main/java/rsp/app/gameoflife"), "/res/"));
         s.start();
         s.join();

@@ -13,7 +13,7 @@ that generic transport.
 
 ```java
 WebServer server = new WebServer(8080)
-        .page(request -> rootComponent(request));
+        .page("/", (request, route) -> rootComponent(request));
 server.start();
 server.join();
 ```
@@ -29,7 +29,7 @@ bound port:
 
 ```java
 WebServer server = new WebServer(0)
-        .page(request -> rootComponent(request));
+        .page("/", (request, route) -> rootComponent(request));
 server.start();
 int port = server.port();
 ```
@@ -268,7 +268,7 @@ Mount one directory at a context path ending in `/`:
 StaticResources resources =
         new StaticResources(new File("src/main/resources/public"), "/res/");
 WebServer server = new WebServer(8080)
-        .page(app)
+        .page("/", (request, route) -> app.apply(request))
         .staticResources(resources);
 ```
 

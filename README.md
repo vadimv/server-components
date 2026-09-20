@@ -34,7 +34,7 @@ public final class Counter {
                                text("Increment"))));
 
         WebServer server = new WebServer(8080)
-                .page(_ -> new LocalStateComponent<>((_, _) -> 0, view,
+                .page("/", (_, _) -> new LocalStateComponent<>((_, _) -> 0, view,
                         (state, intent) -> state + 1));
         server.start();
         server.join();

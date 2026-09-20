@@ -53,7 +53,7 @@ public final class Counter {
                 catalog,
                 MetricObjectTypes.frameworkCatalog().with(METRIC_OBJECT_TYPE))) {
             final var server = new WebServer(8080)
-                    .page(_ -> new CounterComponent(view, metricsRuntime.metrics()))
+                    .page("/", (_, _) -> new CounterComponent(view, metricsRuntime.metrics()))
                     .metrics(metricsRuntime.metrics());
             Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().unstarted(server::stop));
             System.out.println("http://localhost:8080");
