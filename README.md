@@ -1,18 +1,7 @@
 # Java UI for Admin Panels and Realtime Web Apps
 
 Welcome! This is a server-side Java UI toolkit for admin panels, internal tools, and live
-web applications. Components keep state and run event handlers on the server;
-the browser receives initial HTML and small DOM updates over WebSocket.
-
-[![Admin UI demo](https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f)](https://server-components.onrender.com)
-
-- plain Java with constructor injection and no annotation-driven lifecycle;
-- typed component state, intents, context, and events;
-- UI-independent REST routing, JSON helpers, and socket HTTP/WebSocket transport;
-- immutable typed application context with deterministic process lifecycle;
-- HTTP-bound authentication with immutable request/page identity;
-- no third-party runtime dependencies in the framework modules;
-- optional compositions, schema, authorization, telemetry, dashboard, and agent modules.
+web applications.
 
 ## Smallest Interactive Application
 
@@ -46,6 +35,7 @@ The server renders the first page, the browser opens a WebSocket, and subsequent
 events run Java handlers that produce targeted DOM patches. Application state
 does not need to be duplicated in a JavaScript frontend.
 
+
 ## Try The Repository
 
 Requirements: Java 25 and Maven 3.8.7 or newer.
@@ -54,8 +44,11 @@ Requirements: Java 25 and Maven 3.8.7 or newer.
 git clone https://github.com/vadimv/server-components.git
 cd server-components
 mvn clean install
+# Runs the CRUD example
 mvn exec:java -pl examples -Dexec.mainClass=rsp.app.posts.CrudApp
 ```
+
+[![Admin UI demo](https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f)](https://server-components.onrender.com)
 
 Open <http://localhost:8085> and select **Sign in**. The default agent is a
 deterministic local stub and requires no API key.
