@@ -15,7 +15,7 @@ import java.util.stream.IntStream;
 
 import static rsp.dsl.Html.*;
 
-public class JettyTodos {
+public class Todos {
 
     private sealed interface TodoIntent permits ToggleTodo, AddTodo {
     }

@@ -35,8 +35,8 @@ Or from your IDE, by running the `main` method of the entry-point class.
   interface state (`EmptyName` / `FullName`), and posting a classic HTML form
   whose URL-encoded fields drive the next render.
 
-### 3. JettyTodos — TODO tracker with form submit
-- Entry point: [JettyTodos.java](../examples/src/main/java/rsp/app/todos/JettyTodos.java)
+### 3. Todos — TODO tracker with form submit
+- Entry point: [Todos.java](../examples/src/main/java/rsp/app/todos/Todos.java)
 - URL: <http://localhost:8080>
 - Demonstrates: list rendering with `of(stream...)`, an `ElementRef` to read the text input's `value` on submit, `on("submit", true, ...)`, and updating immutable state arrays.
 
@@ -82,21 +82,21 @@ Or from your IDE, by running the `main` method of the entry-point class.
 
 ## Concept coverage
 
-| Concept                                                  | Counter | PlainForm | JettyTodos | Life | Counters | CrudApp |
-|----------------------------------------------------------|:-------:|:---------:|:----------:|:----:|:--------:|:-------:|
-| `InitialStateComponent`                                  |    +    |           |     +      |      |          |         |
-| Custom `Component<S>` subclass                           |         |     +     |            |  +   |    +     |    +    |
-| Sealed-interface state                                   |         |     +     |            |      |    +     |         |
-| `ElementRef` / form submit                               |         |           |     +      |      |          |    +    |
-| HTTP route + UI page on one server                      |         |     +     |            |      |          |    +    |
-| HTTP method / query-param branching                      |         |     +     |            |      |          |         |
-| Lifecycle hooks (`onUpdated` / `onUnmounted`)            |         |           |            |  +   |          |    +    |
-| URL ↔ state sync (`AddressBarSyncComponent`)             |         |           |            |      |    +     |         |
-| Persistent state across unmount (`StoredStateComponent`) |         |           |            |      |    +     |         |
-| Conditional rendering (`when(...)`)                      |         |           |     +      |  +   |    +     |    +    |
-| Static resources (`StaticResources`)                     |         |           |            |  +   |    +     |    +    |
-| Routing (`RouteTable` + blocks)                       |         |           |            |      |          |    +    |
-| Layout + composition + groups                            |         |           |            |      |          |    +    |
-| Schema-driven data grid                                  |         |           |            |      |          |    +    |
-| Auth composition                                         |         |           |            |      |          |    +    |
-| AI agent + ABAC + HITL approval                          |         |           |            |      |          |    +    |
+| Concept                                                  | Counter | PlainForm | Todos | Life | Counters | CrudApp |
+|----------------------------------------------------------|:-------:|:---------:|:-----:|:----:|:--------:|:-------:|
+| `InitialStateComponent`                                  |    +    |           |   +   |      |          |         |
+| Custom `Component<S>` subclass                           |         |     +     |       |  +   |    +     |    +    |
+| Sealed-interface state                                   |         |     +     |       |      |    +     |         |
+| `ElementRef` / form submit                               |         |           |   +   |      |          |    +    |
+| HTTP route + UI page on one server                       |         |     +     |       |      |          |    +    |
+| HTTP method / query-param branching                      |         |     +     |       |      |          |         |
+| Lifecycle hooks (`onUpdated` / `onUnmounted`)            |         |           |       |  +   |          |    +    |
+| URL ↔ state sync (`AddressBarSyncComponent`)             |         |           |       |      |    +     |         |
+| Persistent state across unmount (`StoredStateComponent`) |         |           |       |      |    +     |         |
+| Conditional rendering (`when(...)`)                      |         |           |   +   |  +   |    +     |    +    |
+| Static resources (`StaticResources`)                     |         |           |       |  +   |    +     |    +    |
+| Routing (`RouteTable` + blocks)                          |         |           |       |      |          |    +    |
+| Layout + composition + groups                            |         |           |       |      |          |    +    |
+| Schema-driven data grid                                  |         |           |       |      |          |    +    |
+| Auth composition                                         |         |           |       |      |          |    +    |
+| AI agent + ABAC + HITL approval                          |         |           |       |      |          |    +    |
