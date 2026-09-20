@@ -23,9 +23,10 @@ HTTP request
   -> ComponentView<S, I>
 ```
 
-`RoutingComponent` maps a path to a block key, then resolves that key through
-the composition's groups to a `BlockTarget` containing both the binding key and
-its `Block<?, ?>` class. `SceneComponent` keeps the current descriptors,
+`RoutingComponent` maps a path to a routed binding declared by a group. The
+composition derives an immutable `RouteTable<BlockTarget>` from those groups;
+each target contains both the binding identity and its `Block<?, ?>` class.
+`SceneComponent` keeps the current descriptors,
 placement, return target, and effective URL. It does not create a separate
 block runtime or hold a live block instance.
 `DirectBlockHost` supplies descriptor context and mounts the bound block
@@ -33,7 +34,7 @@ component directly in the tree.
 
 This gives one state owner per UI fragment:
 
-- **Group**: assembly, navigation hierarchy, and keyed factories for blocks.
+- **Group**: routes, assembly, navigation hierarchy, and factories for blocks.
 - **Block**: the state-owning component and behavior boundary.
 - **View**: rendering and typed intent dispatch.
 - **Scene**: descriptors, placement, and URL-level navigation state.
@@ -67,27 +68,32 @@ context; it never changes application lifecycle. Authentication happens before
 component creation; see [Authentication](authentication.md). See also
 [Application context and lifecycle](application-context.md).
 
-A `Composition` combines an immutable `RouteTable<BlockTarget>`, a `Layout`,
-and one or more `Group`s. Compositions are considered in order; the first route
-table that matches the path wins.
+A `Composition` combines a `Layout` and one or more `Group`s. Compositions are
+considered in order; the first derived route table that matches the path wins.
 
 ```java
-Object postsKey = new Object();
+Group posts = new Group("Posts")
+        .add("/posts", PostsListBlock.class,
+                () -> new PostsListBlock(postService, new DefaultListView()))
+        .route("/", PostsListBlock.class)
+        .add("/posts/new", PostCreateBlock.class,
+                () -> new PostCreateBlock(postService, new DefaultFormView()))
+        .add("/posts/{id}", PostEditBlock.class,
+                () -> new PostEditBlock(postService, new DefaultFormView()));
 
-RouteTable<BlockTarget> routes = BlockRoutes.builder()
-        .route("/posts", postsKey, PostsListBlock.class)
-        .route("/posts/new", PostCreateBlock.class)
-        .route("/posts/{id}", PostEditBlock.class)
-        .build();
+Composition composition = new Composition(layout, posts, supportBlocks);
 ```
 
-Every route target is a non-null object key. The class overload remains the
-compact form: `route(path, PostsListBlock.class)` uses `PostsListBlock.class`
-as both key and type identity. A custom key separates binding identity from
-Java type, so the same block class can be configured more than once. Reuse the
-same key (or an equal key) in the route table, group, layout, and block events. A
-plain `new Object()` is an identity token; enums, strings, or value objects can
-provide more readable diagnostics when appropriate.
+`add(path, class, factory)` binds and routes the block atomically, using the
+class as its default identity. `route(path, class)` adds an alias to an existing
+binding, as `/` does above. The class token is explicit because Java erases a
+`Supplier`'s result type; invoking the factory merely to discover it would
+construct application blocks during configuration.
+
+Custom keys remain an advanced escape hatch when the same block class must be
+configured more than once. Use `add(path, key, class, factory)` and reuse that
+key in layout and block events. Separate `BlockRoutes` can still contribute
+framework-generated or otherwise external routes to a `Composition`.
 
 `RouteTable.match(...)` returns the selected `BlockTarget`, matched
 `RouteTemplate`, and immutable named parameters. Literal segments take
@@ -198,30 +204,30 @@ intent handlers, and `lookup()` for context reads, events, and watches.
 
 ## Binding Blocks
 
-`Group` binds a key and block class to a supplier of a fresh component
-instance. The class is retained as the typed second parameter even when a
-custom key is used. Groups also form the navigation and agent structure tree.
+`Group` normally declares a route, block class, and supplier together. Groups
+also form the navigation and agent structure tree. Use `bind(...)` for support
+blocks that are not directly routable.
 
 ```java
-Object postsKey = new Object();
-
 Group main = new Group("Admin").description("Administration panel")
         .add(new Group("Posts").description("Blog posts")
-                .bind(postsKey, PostsListBlock.class,
+                .add("/posts", PostsListBlock.class,
                         () -> new PostsListBlock(postService, new DefaultListView()))
-                .bind(PostCreateBlock.class,
+                .add("/posts/new", PostCreateBlock.class,
                         () -> new PostCreateBlock(postService, new DefaultEditView()))
-                .bind(PostEditBlock.class,
+                .add("/posts/{id}", PostEditBlock.class,
                         () -> new PostEditBlock(postService, new DefaultEditView())));
 ```
 
-The two-parameter form is shorthand for the three-parameter form with
+The class-keyed forms are shorthand for the explicit-key forms with
 `blockKey == blockClass`:
 
 ```java
 group.bind(PostCreateBlock.class, factory);
-// Equivalent to:
 group.bind(PostCreateBlock.class, PostCreateBlock.class, factory);
+
+group.add("/posts/new", PostCreateBlock.class, factory);
+group.add("/posts/new", PostCreateBlock.class, PostCreateBlock.class, factory);
 ```
 
 Use `blockTargets()` when binding identity matters. It returns each
@@ -250,7 +256,7 @@ request is served:
 
 - Block keys must be unique across all nested and merged groups. Key equality
   follows normal `Map` semantics (`equals` and `hashCode`).
-- Every route key must have a group binding.
+- Every derived or externally supplied route key must have a group binding.
 - Every companion key required by the layout must have a group binding.
 
 After successful validation, the router and every group in the composition are

@@ -26,8 +26,9 @@ public class Composition {
     private final Layout layout;
 
     /**
-     * Create a Composition with its route table, layout, and groups.
-     * Multiple groups are merged into a single group for lookup.
+     * Create a Composition with additional explicit routes, its layout, and groups.
+     * Routes declared by the groups are combined with the explicit table. Multiple
+     * groups are merged into a single group for lookup.
      *
      * @param routes The immutable table for this composition's routes
      * @param layout The layout strategy for visual arrangement
@@ -39,7 +40,6 @@ public class Composition {
         if (groups == null || groups.length == 0) {
             throw new IllegalArgumentException("at least one group is required");
         }
-        this.routes = routes;
         this.layout = layout;
         if (groups.length == 1) {
             this.blocks = groups[0];
@@ -50,7 +50,13 @@ public class Composition {
             }
             this.blocks = merged;
         }
+        this.routes = combineRoutes(routes, this.blocks);
         validateAndSeal();
+    }
+
+    /** Create a composition whose route table is derived from its groups. */
+    public Composition(Layout layout, Group... groups) {
+        this(RouteTable.empty(), layout, groups);
     }
 
     public Composition(BlockRoutes.Builder routes, Layout layout, Group... groups) {
@@ -97,5 +103,13 @@ public class Composition {
             }
         }
         blocks.seal();
+    }
+
+    private static RouteTable<BlockTarget> combineRoutes(RouteTable<BlockTarget> explicit,
+                                                          Group blocks) {
+        RouteTable.Builder<BlockTarget> combined = RouteTable.builder();
+        explicit.routes().forEach(route -> combined.route(route.template(), route.target()));
+        blocks.contributeRoutes(combined);
+        return combined.build();
     }
 }

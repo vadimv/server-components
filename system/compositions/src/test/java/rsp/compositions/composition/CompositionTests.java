@@ -46,21 +46,39 @@ class CompositionTests {
     }
 
     @Test
-    void composition_keeps_routes_and_all_bound_block_classes() {
-        BlockRoutes.Builder routes = BlockRoutes.builder()
-                .route("/items", ListBlock.class)
-                .route("/items/{id}", EditBlock.class);
+    void routed_bindings_support_explicit_keys_for_repeated_block_classes() {
+        Object current = new Object();
+        Object archived = new Object();
+        Group group = new Group("Posts")
+                .add("/posts", current, KeyedBlock.class, () -> new KeyedBlock("Current"))
+                .add("/posts/archived", archived, KeyedBlock.class, () -> new KeyedBlock("Archived"));
+
+        Composition composition = new Composition(new DefaultLayout(), group);
+
+        assertSame(current, composition.routes().match(rsp.url.Path.of("/posts"))
+                .orElseThrow().target().key());
+        assertSame(archived, composition.routes().match(rsp.url.Path.of("/posts/archived"))
+                .orElseThrow().target().key());
+    }
+
+    @Test
+    void composition_derives_routes_from_groups_and_keeps_non_routed_blocks() {
         Group group = new Group()
-                .bind(ListBlock.class, ListBlock::new)
+                .add("/items", ListBlock.class, ListBlock::new)
+                .route("/", ListBlock.class)
                 .bind(CreateBlock.class, CreateBlock::new)
-                .bind(EditBlock.class, EditBlock::new);
+                .add("/items/{id}", EditBlock.class, EditBlock::new);
 
-        Composition composition = new Composition(routes, new DefaultLayout(), group);
+        Composition composition = new Composition(new DefaultLayout(), group);
 
-        assertEquals(2, composition.routes().routes().size());
+        assertEquals(3, composition.routes().routes().size());
         assertEquals(3, composition.blocks().blockClasses().size());
         assertTrue(composition.blocks().hasBinding(ListBlock.class));
         assertFalse(composition.blocks().hasBinding(UnknownBlock.class));
+        assertSame(ListBlock.class, composition.routes().match(rsp.url.Path.of("/"))
+                .orElseThrow().target().key());
+        assertSame(EditBlock.class, composition.routes().match(rsp.url.Path.of("/items/42"))
+                .orElseThrow().target().key());
         assertThrows(UnsupportedOperationException.class,
                 () -> composition.blocks().blockClasses().add(null));
     }
@@ -153,6 +171,20 @@ class CompositionTests {
     }
 
     @Test
+    void derived_routes_are_validated_across_the_complete_group_tree() {
+        Group first = new Group("First")
+                .add("/items/{id}", ListBlock.class, ListBlock::new);
+        Group second = new Group("Second")
+                .add("/items/{name}", EditBlock.class, EditBlock::new);
+        Group root = new Group("Root").add(first).add(second);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new Composition(new DefaultLayout(), root));
+
+        first.description("Still mutable after failed composition construction");
+    }
+
+    @Test
     void successful_composition_snapshots_routes_and_seals_all_groups() {
         Object postsKey = new Object();
         BlockRoutes.Builder routes = BlockRoutes.builder().route("/posts", postsKey, ListBlock.class);
@@ -169,6 +201,8 @@ class CompositionTests {
                 () -> child.description("Changed"));
         assertThrows(IllegalStateException.class,
                 () -> child.bind(new Object(), EditBlock.class, EditBlock::new));
+        assertThrows(IllegalStateException.class,
+                () -> child.route("/alias", ListBlock.class));
     }
 
     static class TestBlock extends Block<String, Object> {

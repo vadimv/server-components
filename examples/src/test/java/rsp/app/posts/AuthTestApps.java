@@ -14,7 +14,6 @@ import rsp.http.auth.SimpleAuthProvider;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.routing.BlockRoutes;
 import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
@@ -34,21 +33,19 @@ class AuthTestApps {
         final CommentService commentService = new CommentService(postService::exists);
         postService.onDelete(commentService::deleteByPostId);
 
-        final BlockRoutes.Builder routes = BlockRoutes.builder()
-                .route("/posts", PostsListBlock.class)
-                .route("/posts/{id}", PostEditBlock.class)
-                .route("/comments", CommentsListBlock.class)
-                .route("/comments/{id}", CommentEditBlock.class);
-
         final Group mainBlocks = new Group("Admin")
                 .add(new Group("Posts")
-                        .bind(PostsListBlock.class, () -> new PostsListBlock(postService, new DefaultListView()))
+                        .add("/posts", PostsListBlock.class,
+                                () -> new PostsListBlock(postService, new DefaultListView()))
                         .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultFormView()))
-                        .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultFormView())))
+                        .add("/posts/{id}", PostEditBlock.class,
+                                () -> new PostEditBlock(postService, new DefaultFormView())))
                 .add(new Group("Comments")
-                        .bind(CommentsListBlock.class, () -> new CommentsListBlock(commentService, new DefaultListView()))
+                        .add("/comments", CommentsListBlock.class,
+                                () -> new CommentsListBlock(commentService, new DefaultListView()))
                         .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, postService, new DefaultFormView()))
-                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, postService, new DefaultFormView())));
+                        .add("/comments/{id}", CommentEditBlock.class,
+                                () -> new CommentEditBlock(commentService, postService, new DefaultFormView())));
 
         final Group systemBlocks = new Group()
                 .bind(ExplorerBlock.class, () -> new ExplorerBlock(mainBlocks.structureTree()))
@@ -58,16 +55,16 @@ class AuthTestApps {
                 .leftSidebar(ExplorerBlock.class)
                 .header(HeaderBlock.class);
 
-        return new Composition(routes, layout, mainBlocks, systemBlocks);
+        return new Composition(layout, mainBlocks, systemBlocks);
     }
 
     static WebServer simpleAuth(int port) {
         final SimpleAuthProvider authProvider = new SimpleAuthProvider();
 
-        final BlockRoutes.Builder authRoutes = BlockRoutes.builder().route("/auth/login", LoginBlock.class);
         final Group authGroup = new Group()
-                .bind(LoginBlock.class, () -> new LoginBlock(authProvider.signInPath(), true));
-        final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
+                .add("/auth/login", LoginBlock.class,
+                        () -> new LoginBlock(authProvider.signInPath(), true));
+        final Composition authComposition = new Composition(new DefaultLayout(), authGroup);
 
         final App app = new App(context(), List.of(authComposition, postsComposition(authProvider.signOutPath())));
         final WebServer server = WebServer.builder(port, authProvider.pages(app,
@@ -108,11 +105,10 @@ class AuthTestApps {
         );
         final var authProvider = new OAuthPKCEProvider(oauthConfig);
 
-        final BlockRoutes.Builder authRoutes = BlockRoutes.builder()
-                .route(authProvider.loginPath(), LoginBlock.class);
         final Group authGroup = new Group()
-                .bind(LoginBlock.class, () -> new LoginBlock(authProvider.signInPath()));
-        final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
+                .add(authProvider.loginPath(), LoginBlock.class,
+                        () -> new LoginBlock(authProvider.signInPath()));
+        final Composition authComposition = new Composition(new DefaultLayout(), authGroup);
 
         final App app = new App(context(),
                 List.of(authComposition, postsComposition(authProvider.signOutPath())));

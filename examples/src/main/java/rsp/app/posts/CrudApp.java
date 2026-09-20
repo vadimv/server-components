@@ -19,10 +19,7 @@ import rsp.compositions.dashboard.DashboardBlock;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.GroupPlacementPolicy;
 import rsp.compositions.layout.Placement;
-import rsp.compositions.block.BlockTarget;
-import rsp.compositions.routing.BlockRoutes;
 import rsp.compositions.shell.ExplorerBlock;
-import rsp.url.routing.RouteTable;
 import rsp.compositions.shell.HeaderBlock;
 import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
@@ -58,7 +55,7 @@ public class CrudApp {
 
     /**
      * Assembles the application and starts the web server. The body is structured as a sequence of small stages so
-     * the wiring can be read top-to-bottom: routes, services, agent permissions, block groups,
+     * the wiring can be read top-to-bottom: services, agent permissions, routed block groups,
      * layout, then the login composition.
      *
      * @param blockCurrentThread when {@code true} the call blocks on {@code server.join()} so the
@@ -67,20 +64,6 @@ public class CrudApp {
     public WebServer run(final boolean blockCurrentThread) {
         final ApplicationConfig config = new ApplicationConfig()
                 .with(System.getProperties());
-
-        // URL to block mapping. Literal segments ("/posts/new") must precede parameter
-        // routes ("/posts/{id}") or "/posts/new" would be treated as id "new".
-        final Object postsKey = new Object();
-        final RouteTable<BlockTarget> routes = BlockRoutes.builder()
-                .route("/dashboard", DashboardBlock.class)
-                .route("/posts", postsKey, PostsListBlock.class)
-                .route("/", postsKey, PostsListBlock.class)
-                .route("/posts/new", PostCreateBlock.class)
-                .route("/posts/{id}", PostEditBlock.class)
-                .route("/comments", CommentsListBlock.class)
-                .route("/comments/new", CommentCreateBlock.class)
-                .route("/comments/{id}", CommentEditBlock.class)
-                .build();
 
         // Application services. They are passed into block constructors below so blocks
         // remain free of static singletons and easy to swap in tests.
@@ -110,17 +93,23 @@ public class CrudApp {
         // The nested group names become the sidebar menu.
         final Group mainBlocks = new Group("Admin").description("Administration panel")
                 .add(new Group("Dashboard").description("Live dashboard widgets for the admin overview")
-                        .bind(DashboardBlock.class,
+                        .add("/dashboard", DashboardBlock.class,
                                 () -> new DashboardBlock(dashboardDefinition, dashboardRuntime)))
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
-                        .bind(postsKey, PostsListBlock.class,
+                        .add("/posts", PostsListBlock.class,
                                 () -> new PostsListBlock(postService, new DefaultListView()))
-                        .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultFormView()))
-                        .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultFormView())))
+                        .route("/", PostsListBlock.class)
+                        .add("/posts/new", PostCreateBlock.class,
+                                () -> new PostCreateBlock(postService, new DefaultFormView()))
+                        .add("/posts/{id}", PostEditBlock.class,
+                                () -> new PostEditBlock(postService, new DefaultFormView())))
                 .add(new Group("Comments").description("User comments for the posts")
-                        .bind(CommentsListBlock.class, () -> new CommentsListBlock(commentService, new DefaultListView()))
-                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, postService, new DefaultFormView()))
-                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, postService, new DefaultFormView())));
+                        .add("/comments", CommentsListBlock.class,
+                                () -> new CommentsListBlock(commentService, new DefaultListView()))
+                        .add("/comments/new", CommentCreateBlock.class,
+                                () -> new CommentCreateBlock(commentService, postService, new DefaultFormView()))
+                        .add("/comments/{id}", CommentEditBlock.class,
+                                () -> new CommentEditBlock(commentService, postService, new DefaultFormView())));
 
         // These views support the page but are not menu items. Explorer builds the sidebar from
         // mainBlocks; Prompt lets the user talk to the agent; Header shows the session;
@@ -143,16 +132,14 @@ public class CrudApp {
 
         // This is the posts feature package: routes decide which page is active, layout decides
         // where it appears, and both user-facing and support block groups are available to the scene.
-        final Composition postsComposition = new Composition(routes, layout, mainBlocks, systemBlocks);
+        final Composition postsComposition = new Composition(layout, mainBlocks, systemBlocks);
 
         // Login lives in its own composition. The auth provider redirects anonymous users to
         // /auth/login, which keeps login code out of the posts composition.
-        final RouteTable<BlockTarget> authRoutes = BlockRoutes.builder()
-                .route("/auth/login", LoginBlock.class)
-                .build();
         final Group authGroup = new Group()
-                .bind(LoginBlock.class, () -> new LoginBlock(authProvider.signInPath(), true));
-        final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
+                .add("/auth/login", LoginBlock.class,
+                        () -> new LoginBlock(authProvider.signInPath(), true));
+        final Composition authComposition = new Composition(new DefaultLayout(), authGroup);
 
         // App-wide process services available to any block. Request authentication is
         // deliberately absent: it is resolved by the HTTP adapter before page creation.

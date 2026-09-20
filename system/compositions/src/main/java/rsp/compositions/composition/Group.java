@@ -2,6 +2,8 @@ package rsp.compositions.composition;
 
 import rsp.compositions.block.Block;
 import rsp.compositions.block.BlockTarget;
+import rsp.url.routing.RouteTable;
+import rsp.url.routing.RouteTemplate;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -9,7 +11,8 @@ import java.util.function.Supplier;
 /**
  * Group - Binding of block component types to their factories and navigation structure.
  * <p>
- * Each {@link #bind} call declares the block component and its constructor.
+ * Each {@link #add(String, Class, Supplier)} call declares a routed block and its constructor.
+ * {@link #bind} declares supporting or otherwise non-routed blocks.
  * Groups can be nested via {@link #add} to create a tree structure
  * for navigation and other metadata consumers.
  * <p>
@@ -22,6 +25,7 @@ public class Group {
     private String description;
     private final List<Group> children;
     private final Map<Object, Binding<?>> blocks;
+    private final List<RoutedTarget> routes;
     private boolean sealed;
 
     /**
@@ -40,6 +44,7 @@ public class Group {
         this.label = label;
         this.children = new ArrayList<>();
         this.blocks = new LinkedHashMap<>();
+        this.routes = new ArrayList<>();
     }
 
     /**
@@ -99,6 +104,50 @@ public class Group {
                     + ": " + blockKey);
         }
         blocks.put(blockKey, new Binding<>(new BlockTarget(blockKey, blockClass), blockClass, blockFactory));
+        return this;
+    }
+
+    /**
+     * Add a routed block using its class as both binding identity and runtime type.
+     *
+     * @param routeTemplate route template selecting the block
+     * @param blockClass concrete block component class
+     * @param blockFactory factory producing a fresh block component
+     * @return this for chaining
+     */
+    public <S, I, B extends Block<S, I>> Group add(String routeTemplate,
+                                                   Class<B> blockClass,
+                                                   Supplier<? extends B> blockFactory) {
+        return add(routeTemplate, blockClass, blockClass, blockFactory);
+    }
+
+    /**
+     * Add a routed block under an explicit binding identity.
+     *
+     * <p>This is the advanced form for configuring the same block class more
+     * than once. Most applications should use the class-keyed overload.</p>
+     */
+    public <S, I, B extends Block<S, I>> Group add(String routeTemplate,
+                                                   Object blockKey,
+                                                   Class<B> blockClass,
+                                                   Supplier<? extends B> blockFactory) {
+        ensureMutable();
+        RouteTemplate route = RouteTemplate.parse(Objects.requireNonNull(routeTemplate, "template"));
+        bind(blockKey, blockClass, blockFactory);
+        routes.add(new RoutedTarget(route, new BlockTarget(blockKey, blockClass)));
+        return this;
+    }
+
+    /** Add another route for an already bound class-keyed block. */
+    public Group route(String routeTemplate, Class<? extends Block<?, ?>> blockClass) {
+        return route(routeTemplate, (Object) blockClass);
+    }
+
+    /** Add another route for an already bound block identity. */
+    public Group route(String routeTemplate, Object blockKey) {
+        ensureMutable();
+        RouteTemplate route = RouteTemplate.parse(Objects.requireNonNull(routeTemplate, "template"));
+        routes.add(new RoutedTarget(route, target(blockKey)));
         return this;
     }
 
@@ -242,6 +291,11 @@ public class Group {
         collectTargets(new LinkedHashMap<>(), new ArrayList<>());
     }
 
+    void contributeRoutes(RouteTable.Builder<BlockTarget> target) {
+        routes.forEach(route -> target.route(route.template(), route.target()));
+        children.forEach(child -> child.contributeRoutes(target));
+    }
+
     void seal() {
         sealRecursively();
     }
@@ -357,6 +411,13 @@ public class Group {
                 throw new IllegalStateException("Block factory returned null for key: " + target.key());
             }
             return blockClass.cast(block);
+        }
+    }
+
+    private record RoutedTarget(RouteTemplate template, BlockTarget target) {
+        private RoutedTarget {
+            Objects.requireNonNull(template, "template");
+            Objects.requireNonNull(target, "target");
         }
     }
 }
