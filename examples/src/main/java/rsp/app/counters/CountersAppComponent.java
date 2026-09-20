@@ -8,7 +8,7 @@ import rsp.http.HttpMethod;
 import rsp.http.HttpRequest;
 import rsp.http.HttpStatus;
 import rsp.http.PageResult;
-import rsp.http.Pages;
+import rsp.http.PageResult;
 
 import static rsp.dsl.Html.*;
 import static rsp.dsl.Html.attr;
@@ -30,8 +30,8 @@ public class CountersAppComponent extends Component<CountersAppComponent.AppStat
 
     public static PageResult initialPage(HttpRequest request) {
         return isValid(request)
-                ? Pages.live(new CountersAppComponent(request))
-                : Pages.staticHtml(new CountersAppComponent(request)).status(HttpStatus.NOT_FOUND);
+                ? PageResult.live(new CountersAppComponent(request))
+                : PageResult.staticHtml(new CountersAppComponent(request)).status(HttpStatus.NOT_FOUND);
     }
 
     @Override

@@ -24,10 +24,9 @@ public final class Counters {
     }
 
     public static Counters run(final boolean blockCurrentThread) {
-        final Counters s = new Counters(WebServer.pages(PORT,
-                                                        CountersAppComponent::initialPage,
-                                                        new StaticResources(new File("src/main/java/rsp/app/counters"),
-                                                                "/res/")));
+        final Counters s = new Counters(new WebServer(PORT)
+                .pageApplication(CountersAppComponent::initialPage)
+                .staticResources(new StaticResources(new File("src/main/java/rsp/app/counters"), "/res/")));
         s.webServer.start();
         if (blockCurrentThread) {
             s.webServer.join();

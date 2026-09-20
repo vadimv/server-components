@@ -6,7 +6,7 @@ import rsp.http.HttpRequest;
 import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
 import rsp.http.PageApplication;
-import rsp.http.Pages;
+import rsp.http.PageResult;
 import rsp.http.SetCookie;
 import rsp.http.routing.HttpRouteHandler;
 import rsp.http.routing.HttpRouter;
@@ -76,7 +76,7 @@ public class SimpleAuthProvider implements HttpAuthenticator {
             if (authentication.isAuthenticated() || currentPath.equals(LOGIN_PATH)) {
                 return pages.handle(request, authentication);
             }
-            return Pages.redirect(AuthenticationSupport.loginRedirect(
+            return PageResult.redirect(AuthenticationSupport.loginRedirect(
                     LOGIN_PATH, request.relativeUrl().toString()));
         });
     }

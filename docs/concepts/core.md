@@ -90,11 +90,10 @@ To run a page in an embedded server, use the `ui-http` module:
 
 ```java
 import rsp.http.WebServer;
-import rsp.http.Pages;
 
-final var server = WebServer.pages(8080, Pages.live(request ->
-        new LocalStateComponent<>((_, _) -> new Counter(0), view,
-                (state, intent) -> new Counter(state.value() + 1))));
+final var server = new WebServer(8080)
+        .page(request -> new LocalStateComponent<>((_, _) -> new Counter(0), view,
+                (state, intent) -> new Counter(state.value() + 1)));
 server.start();
 server.join();
 ```
@@ -168,8 +167,8 @@ html(
 scripts. The `ui-http` adapter explicitly selects live or static rendering:
 
 ```java
-PageResult live = Pages.live(component);
-PageResult detached = Pages.staticHtml(component);
+PageResult live = PageResult.live(component);
+PageResult detached = PageResult.staticHtml(component);
 ```
 
 Only the live mode injects page configuration and the WebSocket client.
@@ -424,7 +423,7 @@ tradeoff.
 can attach initial response metadata without coupling components to HTTP:
 
 ```java
-Pages.staticHtml(notFoundComponent)
+PageResult.staticHtml(notFoundComponent)
         .status(HttpStatus.NOT_FOUND)
         .header("Cache-Control", "no-store");
 ```
@@ -432,15 +431,15 @@ Pages.staticHtml(notFoundComponent)
 For redirects:
 
 ```java
-Pages.redirect("/login");
+PageResult.redirect("/login");
 ```
 
 The transport-neutral request and response types live in `http-api` under
 `rsp.http`. A `PageApplication` receives `HttpRequest` before rendering and
-returns `PageResult`, which is how initial GUI logic reads request data, adds
-headers, sets cookies, returns a direct response, or redirects. Once the live
-page response has been sent, browser navigation uses component commands such
-as `setHref`; it cannot modify that completed HTTP response.
+returns `HttpResult`, which is how initial GUI logic reads request data, adds
+headers, sets cookies, returns a direct `HttpResponse`, or redirects. Once the
+live page response has been sent, browser navigation uses component commands
+such as `setHref`; it cannot modify that completed HTTP response.
 
 Use the UI-facing `Router` when pages belong to specific server-side paths and
 methods. It can declare page and ordinary HTTP endpoints together:
@@ -448,19 +447,20 @@ methods. It can declare page and ordinary HTTP endpoints together:
 ```java
 Router routes = HttpRouter.builder()
         .get("/orders/{id}", (request, route) ->
-                Pages.live(orderPage(route.requiredParameter("id"))))
+                PageResult.live(orderPage(route.requiredParameter("id"))))
         .post("/orders/{id}", (request, route) ->
-                Pages.staticHtml(orderSubmitted(request, route.requiredParameter("id"))))
+                PageResult.staticHtml(orderSubmitted(request, route.requiredParameter("id"))))
         .get("/api/health", (request, route) ->
                 HttpResponse.ok().text("ok").build())
         .build();
 
-WebServer.builder(8080).routes(routes).build();
+new WebServer(8080).routes(routes);
 ```
 
-All declarations share one method-aware graph and one ambiguity check. Use a
-`PageApplication` directly when unknown server paths should intentionally fall
-through to page selection, as with client-side UI routing.
+All declarations share one method-aware graph and one ambiguity check. Attach
+a `PageApplication` with `WebServer.pageApplication(...)` when unknown server
+paths should intentionally fall through to page selection, as with client-side
+UI routing. `WebServer.page(...)` is the shorter live-component form.
 
 ## Static Resources
 
@@ -478,9 +478,9 @@ final var staticResources =
 Pass it to `WebServer`:
 
 ```java
-WebServer.builder(8080, Pages.live(app))
-        .staticResources(staticResources)
-        .build();
+new WebServer(8080)
+        .page(app)
+        .staticResources(staticResources);
 ```
 
 Use a trailing slash for static resource context paths such as `"/res/"`.

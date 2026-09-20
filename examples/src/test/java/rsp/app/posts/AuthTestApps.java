@@ -17,7 +17,7 @@ import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
-import rsp.http.Pages;
+import rsp.http.PageResult;
 import rsp.http.StaticResources;
 
 import java.io.File;
@@ -67,11 +67,11 @@ class AuthTestApps {
         final Composition authComposition = new Composition(new DefaultLayout(), authGroup);
 
         final App app = new App(context(), List.of(authComposition, postsComposition(authProvider.signOutPath())));
-        final WebServer server = WebServer.builder(port, authProvider.pages(app,
-                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))))
+        final WebServer server = new WebServer(port)
+                .pageApplication(authProvider.pages(app,
+                        (request, authentication) -> PageResult.live(app.apply(request.relativeUrl(), authentication))))
                 .routes(authProvider.routes())
-                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"))
-                .build();
+                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
     }
@@ -81,10 +81,10 @@ class AuthTestApps {
                 .user("admin", "pass123", "admin");
 
         final App app = new App(context(), List.of(postsComposition(null)));
-        final WebServer server = WebServer.builder(port, authProvider.pages(app,
-                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))))
-                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"))
-                .build();
+        final WebServer server = new WebServer(port)
+                .pageApplication(authProvider.pages(app,
+                        (request, authentication) -> PageResult.live(app.apply(request.relativeUrl(), authentication))))
+                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
     }
@@ -112,11 +112,11 @@ class AuthTestApps {
 
         final App app = new App(context(),
                 List.of(authComposition, postsComposition(authProvider.signOutPath())));
-        final WebServer server = WebServer.builder(port, authProvider.pages(app,
-                        (request, authentication) -> Pages.live(app.apply(request.relativeUrl(), authentication))))
+        final WebServer server = new WebServer(port)
+                .pageApplication(authProvider.pages(app,
+                        (request, authentication) -> PageResult.live(app.apply(request.relativeUrl(), authentication))))
                 .routes(authProvider.routes())
-                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"))
-                .build();
+                .staticResources(new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
     }

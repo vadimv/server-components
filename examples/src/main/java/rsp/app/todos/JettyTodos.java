@@ -64,7 +64,7 @@ public class JettyTodos {
                                                             });
                                                 })))));
 
-        final var server = new WebServer(8080, _ -> new LocalStateComponent<>(
+        final var server = new WebServer(8080).page(_ -> new LocalStateComponent<>(
                 (_, _) -> initialState(), view, (state, intent) -> switch (intent) {
                     case ToggleTodo toggle -> state.toggleDone(toggle.index());
                     case AddTodo add -> state.addTodo(add.text());

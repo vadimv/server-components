@@ -5,8 +5,8 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
-import rsp.http.WebServer;
 import rsp.http.StaticResources;
+import rsp.http.WebServer;
 
 import java.io.File;
 import java.util.HashMap;
@@ -146,10 +146,9 @@ public class Life {
             }
         };
 
-        final var s = new WebServer(8082,
-                                      httpRequest -> componentDefinition,
-                                      new StaticResources(new File("src/main/java/rsp/app/gameoflife"),
-                                                         "/res/"));
+        final var s = new WebServer(8082)
+                .page(httpRequest -> componentDefinition)
+                .staticResources(new StaticResources(new File("src/main/java/rsp/app/gameoflife"), "/res/"));
         s.start();
         s.join();
     }

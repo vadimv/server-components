@@ -6,7 +6,6 @@ import rsp.http.HttpRequest;
 import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
 import rsp.http.PageApplication;
-import rsp.http.Pages;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -83,9 +82,9 @@ public class BasicAuthProvider implements HttpAuthenticator {
             if (authentication.isAuthenticated()) {
                 return pages.handle(request, authentication);
             }
-            return Pages.response(HttpResponse.status(HttpStatus.UNAUTHORIZED)
+            return HttpResponse.status(HttpStatus.UNAUTHORIZED)
                     .header("WWW-Authenticate", "Basic realm=\"" + realm + "\"")
-                    .build());
+                    .build();
         });
     }
 

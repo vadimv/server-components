@@ -12,7 +12,8 @@ that generic transport.
 ## Start And Stop
 
 ```java
-WebServer server = WebServer.pages(8080, Pages.live(request -> rootComponent(request)));
+WebServer server = new WebServer(8080)
+        .page(request -> rootComponent(request));
 server.start();
 server.join();
 ```
@@ -27,15 +28,16 @@ Use port `0` in integration tests. After `start()`, `port()` returns the actual
 bound port:
 
 ```java
-WebServer server = WebServer.pages(0, Pages.live(request -> rootComponent(request)));
+WebServer server = new WebServer(0)
+        .page(request -> rootComponent(request));
 server.start();
 int port = server.port();
 ```
 
 The default connection limit is `WebServer.DEFAULT_CONNECTION_LIMIT` (`50`).
-Use `WebServer.builder(...)` to set a positive custom limit, an `EventLoop`
-supplier for deterministic tests, metrics, static resources, or generic HTTP
-routes.
+Use the fluent `WebServer` configuration to set a positive custom limit, an
+`EventLoop` supplier for deterministic tests, metrics, static resources, or
+generic HTTP routes.
 
 REST-only applications can use the transport directly and do not need a UI
 dependency:
@@ -116,7 +118,7 @@ specific CSP and HSTS choices. `ServerErrorMiddleware` creates a body-free
 `500` before the transport boundary and reports the failure class without its
 message; putting it last lets outer middleware decorate that response.
 
-`WebServer.Builder.middleware(...)` applies middleware around application
+`WebServer.middleware(...)` applies middleware around application
 routes, framework assets, static resources, and the page fallback.
 
 ## OpenAPI route metadata
@@ -170,18 +172,16 @@ route is an HTTP endpoint or a page endpoint:
 ```java
 Router routes = HttpRouter.builder()
         .get("/items/{id}", (request, route) ->
-                Pages.staticHtml(itemPage(route.requiredParameter("id"))))
+                PageResult.staticHtml(itemPage(route.requiredParameter("id"))))
         .post("/items/{id}", (request, route) ->
-                Pages.staticHtml(updatedItemPage(request, route.requiredParameter("id"))))
+                PageResult.staticHtml(updatedItemPage(request, route.requiredParameter("id"))))
         .get("/api/items/{id}", (request, route) ->
                 HttpResponse.ok()
                         .text("item=" + route.requiredParameter("id"))
                         .build())
         .build();
 
-WebServer server = WebServer.builder(8080)
-        .routes(routes)
-        .build();
+WebServer server = new WebServer(8080).routes(routes);
 ```
 
 Asynchronous `HttpRouteHandler` and `RestRouteHandler` values use the same
@@ -196,15 +196,15 @@ different methods on the same path. A method owned by neither returns `405`
 with the complete `Allow` value. An unknown path falls through to framework
 assets and mounted static resources, then returns `404` for a route-only
 server. Route sets compose with `HttpRouter.Builder.include(...)` or repeated
-`WebServer.Builder.routes(...)` calls. UI-independent libraries may continue
+`WebServer.routes(...)` calls. UI-independent libraries may continue
 to expose `rsp.http.routing.HttpRouter`; the UI-facing builder and `WebServer`
 accept those route sets without making the lower routing module depend on UI
 components.
 
-`WebServer.builder(port, pageApplication)` remains the terminal-page form for
-client-side routing and other applications that intentionally select a page
-for otherwise unknown paths. Its `PageApplication` runs after exact generic
-and page routes, framework assets, and static resources.
+`new WebServer(port).pageApplication(pageApplication)` configures the terminal page
+application for client-side routing and other applications that intentionally
+select a page for otherwise unknown paths. Its `PageApplication` runs after
+exact generic and page routes, framework assets, and static resources.
 
 `HttpRouter` also supports literal prefix handlers such as
 `getPrefix("/assets", ...)`. Exact route templates win over prefix handlers;
@@ -239,12 +239,12 @@ var resume = new LocalSessionResumeConfig(
         8_192,
         8L * 1024L * 1024L);
 
-var server = WebServer.builder(8080, pageApplication)
+var server = new WebServer(8080)
+        .pageApplication(pageApplication)
         .connectionLimit(WebServer.DEFAULT_CONNECTION_LIMIT)
         .eventLoops(DefaultEventLoop::new)
         .localSessionResume(resume)
-        .metrics(Metrics.noop())
-        .build();
+        .metrics(Metrics.noop());
 ```
 
 Expiry is measured from a confirmed detachment. Failed reconnect attempts do
@@ -267,9 +267,9 @@ Mount one directory at a context path ending in `/`:
 ```java
 StaticResources resources =
         new StaticResources(new File("src/main/resources/public"), "/res/");
-WebServer server = WebServer.builder(8080, Pages.live(app))
-        .staticResources(resources)
-        .build();
+WebServer server = new WebServer(8080)
+        .page(app)
+        .staticResources(resources);
 ```
 
 The bundled browser client is served automatically from
@@ -283,17 +283,17 @@ appropriate place to inspect HTTP data and choose a page response:
 ```java
 PageApplication pages = request -> {
     if (request.header("Authorization") == null) {
-        return Pages.redirect("/login");
+        return PageResult.redirect("/login");
     }
-    return Pages.live(rootComponent(request.relativeUrl()))
+    return PageResult.live(rootComponent(request.relativeUrl()))
             .header("X-Frame-Options", "DENY");
 };
 
-WebServer server = WebServer.pages(8080, pages);
+WebServer server = new WebServer(8080).pageApplication(pages);
 ```
 
-Use `Pages.staticHtml(component)` for detached server-rendered HTML and
-`Pages.response(httpResponse)` when no UI rendering is required. `HtmlDocument`
+Use `PageResult.staticHtml(component)` for detached server-rendered HTML and
+return `HttpResponse` directly when no UI rendering is required. `HtmlDocument`
 does not contain HTTP status, header, cookie, or redirect state.
 
 The supplied `ui-http-auth` providers apply this boundary consistently and

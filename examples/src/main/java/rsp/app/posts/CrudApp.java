@@ -24,7 +24,7 @@ import rsp.compositions.shell.HeaderBlock;
 import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
-import rsp.http.Pages;
+import rsp.http.PageResult;
 import rsp.http.StaticResources;
 
 import java.io.File;
@@ -153,13 +153,12 @@ public class CrudApp {
         // Compositions are tried in order; the login route is checked before the posts routes.
         final App app = new App(applicationContext, List.of(authComposition, postsComposition));
 
-        final WebServer server = WebServer.builder(8085,
-                        authProvider.pages(app,
-                                (request, authentication) -> Pages.live(
-                                        app.apply(request.relativeUrl(), authentication))))
+        final WebServer server = new WebServer(8085)
+                .pageApplication(authProvider.pages(app,
+                        (request, authentication) -> PageResult.live(
+                                app.apply(request.relativeUrl(), authentication))))
                 .routes(authProvider.routes())
-                .staticResources(new StaticResources(resolvePostsResourceDir(), "/res/"))
-                .build();
+                .staticResources(new StaticResources(resolvePostsResourceDir(), "/res/"));
         server.start();
         if (blockCurrentThread) {
             server.join();

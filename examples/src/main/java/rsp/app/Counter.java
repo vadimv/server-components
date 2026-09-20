@@ -52,10 +52,9 @@ public final class Counter {
         try (MetricsRuntime metricsRuntime = MetricsRuntime.withPlatformJmx(
                 catalog,
                 MetricObjectTypes.frameworkCatalog().with(METRIC_OBJECT_TYPE))) {
-            final var server = new WebServer(
-                    8080,
-                    _ -> new CounterComponent(view, metricsRuntime.metrics()),
-                    metricsRuntime.metrics());
+            final var server = new WebServer(8080)
+                    .page(_ -> new CounterComponent(view, metricsRuntime.metrics()))
+                    .metrics(metricsRuntime.metrics());
             Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().unstarted(server::stop));
             System.out.println("http://localhost:8080");
             System.out.println("JMX: rsp.metrics / Framework (local attach; no JMX port opened)");

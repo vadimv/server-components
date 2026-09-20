@@ -20,7 +20,6 @@ the browser receives initial HTML and small DOM updates over WebSocket.
 import rsp.component.ComponentView;
 import rsp.component.definitions.LocalStateComponent;
 import rsp.http.WebServer;
-import rsp.http.Pages;
 
 import static rsp.dsl.Html.*;
 
@@ -34,9 +33,9 @@ public final class Counter {
                         button(on("click", _ -> intents.dispatch(CounterIntent.INCREMENT)),
                                text("Increment"))));
 
-        WebServer server = WebServer.pages(8080, Pages.live(_ ->
-                new LocalStateComponent<>((_, _) -> 0, view,
-                        (state, intent) -> state + 1)));
+        WebServer server = new WebServer(8080)
+                .page(_ -> new LocalStateComponent<>((_, _) -> 0, view,
+                        (state, intent) -> state + 1));
         server.start();
         server.join();
     }

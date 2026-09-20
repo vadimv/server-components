@@ -46,11 +46,11 @@ App app = new App(context, List.of(loginComposition, postsComposition));
 PageApplication pages = auth.pages(
         app,
         (request, authentication) ->
-                Pages.live(app.apply(request.relativeUrl(), authentication)));
+                PageResult.live(app.apply(request.relativeUrl(), authentication)));
 
-WebServer server = WebServer.builder(8080, pages)
-        .routes(auth.routes())
-        .build();
+WebServer server = new WebServer(8080)
+        .pageApplication(pages)
+        .routes(auth.routes());
 ```
 
 This explicit adapter keeps `ui-http-auth` independent from `compositions`.
@@ -70,7 +70,7 @@ result as `Authentication.class` in component context.
   exchange, user-info lookup, server-side session expiry, and sign-out.
 
 Session and OAuth endpoint paths are exposed by `auth.routes()` as ordinary,
-method-aware `HttpRouter` routes. Add them to `WebServer.Builder`; they run
+method-aware `HttpRouter` routes. Add them to `WebServer`; they run
 before UI page fallback and never create a component tree. Basic authentication
 has no owned endpoints, so its route set is empty. Authentication endpoint paths
 are matched exactly.

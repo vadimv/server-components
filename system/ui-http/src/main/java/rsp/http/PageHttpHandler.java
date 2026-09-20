@@ -60,13 +60,13 @@ public final class PageHttpHandler implements HttpApplication {
     public CompletableFuture<HttpResponse> handle(final HttpRequest request) {
         Objects.requireNonNull(request, "request");
         try {
-            return handle(request, Objects.requireNonNull(pageApplication.handle(request), "page result"));
+            return handle(request, Objects.requireNonNull(pageApplication.handle(request), "application result"));
         } catch (final Exception failure) {
             return CompletableFuture.failedFuture(failure);
         }
     }
 
-    CompletableFuture<HttpResponse> handle(final HttpRequest request, final PageResult result) {
+    CompletableFuture<HttpResponse> handle(final HttpRequest request, final HttpResult result) {
         Objects.requireNonNull(request);
         Objects.requireNonNull(result);
         try {
@@ -76,10 +76,13 @@ public final class PageHttpHandler implements HttpApplication {
                 redirect.headers().forEach(header -> response.header(header.name(), header.value()));
                 return CompletableFuture.completedFuture(response.build());
             }
-            if (result instanceof PageResult.Response response) {
-                return CompletableFuture.completedFuture(response.response());
+            if (result instanceof HttpResponse response) {
+                return CompletableFuture.completedFuture(response);
             }
-            PageResult.Render render = (PageResult.Render) result;
+            if (!(result instanceof PageResult.Render render)) {
+                return CompletableFuture.failedFuture(new IllegalStateException(
+                        "Unsupported page application result: " + result.getClass().getName()));
+            }
             final String deviceId = request.cookies(DEVICE_ID_COOKIE_NAME).stream().findFirst()
                     .orElse(randomStringGenerator.newString());
             final String sessionId = randomStringGenerator.newString();

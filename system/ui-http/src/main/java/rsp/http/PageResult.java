@@ -8,7 +8,23 @@ import java.util.List;
 import java.util.Objects;
 
 /** Initial-page outcome: render a component with response metadata, or redirect. */
-public sealed interface PageResult extends HttpResult permits PageResult.Render, PageResult.Redirect, PageResult.Response {
+public sealed interface PageResult extends HttpResult permits PageResult.Render, PageResult.Redirect {
+    static Render live(Component<?, ?> component) {
+        return new Render(component, true, HttpStatus.OK, List.of(), List.of());
+    }
+
+    static Render staticHtml(Component<?, ?> component) {
+        return new Render(component, false, HttpStatus.OK, List.of(), List.of());
+    }
+
+    static Redirect redirect(String location) {
+        return redirect(URI.create(location));
+    }
+
+    static Redirect redirect(URI location) {
+        return new Redirect(HttpStatus.FOUND, location, HttpHeaders.EMPTY);
+    }
+
     record Render(Component<?, ?> component,
                   boolean live,
                   HttpStatus status,
@@ -51,12 +67,6 @@ public sealed interface PageResult extends HttpResult permits PageResult.Render,
         public Redirect header(String name, String value) {
             return new Redirect(status, location,
                     HttpHeaders.builder().addAll(headers).add(name, value).build());
-        }
-    }
-
-    record Response(HttpResponse response) implements PageResult {
-        public Response {
-            Objects.requireNonNull(response, "response");
         }
     }
 }

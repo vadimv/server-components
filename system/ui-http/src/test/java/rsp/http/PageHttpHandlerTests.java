@@ -26,7 +26,7 @@ class PageHttpHandlerTests {
     @Test
     void static_pages_can_set_http_status_and_headers_without_live_bootstrap() throws Exception {
         Map<QualifiedSessionId, RenderedPage> sessions = new ConcurrentHashMap<>();
-        PageHttpHandler handler = handler(sessions, request -> Pages.staticHtml(page())
+        PageHttpHandler handler = handler(sessions, request -> PageResult.staticHtml(page())
                 .status(HttpStatus.NOT_FOUND)
                 .header("X-Page", "static"));
 
@@ -42,7 +42,7 @@ class PageHttpHandlerTests {
     @Test
     void live_pages_receive_bootstrap_and_are_registered_for_websocket_binding() throws Exception {
         Map<QualifiedSessionId, RenderedPage> sessions = new ConcurrentHashMap<>();
-        PageHttpHandler handler = handler(sessions, request -> Pages.live(page()));
+        PageHttpHandler handler = handler(sessions, request -> PageResult.live(page()));
 
         HttpResponse response = handler.handle(request("/")).join();
         String html = new String(response.body().openStream().readAllBytes(), StandardCharsets.UTF_8);
@@ -56,7 +56,7 @@ class PageHttpHandlerTests {
     @Test
     void redirects_and_direct_responses_bypass_component_rendering() {
         PageHttpHandler redirectHandler = handler(new ConcurrentHashMap<>(),
-                request -> Pages.redirect("/login").header("X-Reason", "auth"));
+                request -> PageResult.redirect("/login").header("X-Reason", "auth"));
         HttpResponse redirect = redirectHandler.handle(request("/private")).join();
 
         assertEquals(HttpStatus.FOUND, redirect.status());
@@ -64,7 +64,7 @@ class PageHttpHandlerTests {
         assertEquals("auth", redirect.headers().first("X-Reason").orElseThrow());
 
         PageHttpHandler responseHandler = handler(new ConcurrentHashMap<>(),
-                request -> Pages.response(HttpResponse.status(HttpStatus.FORBIDDEN).text("no").build()));
+                request -> HttpResponse.status(HttpStatus.FORBIDDEN).text("no").build());
         assertEquals(HttpStatus.FORBIDDEN, responseHandler.handle(request("/private")).join().status());
     }
 

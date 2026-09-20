@@ -7,9 +7,9 @@ import rsp.http.HttpHeader;
 import rsp.http.HttpHeaders;
 import rsp.http.HttpMethod;
 import rsp.http.HttpRequest;
+import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
 import rsp.http.PageResult;
-import rsp.http.Pages;
 import rsp.http.RequestBody;
 import rsp.url.Path;
 import rsp.url.Query;
@@ -30,19 +30,19 @@ class AuthPageAdaptersTests {
         AtomicReference<Authentication> seen = new AtomicReference<>();
         var pages = provider.pages(ApplicationContext.builder().build(), (request, authentication) -> {
             seen.set(authentication);
-            return Pages.response(rsp.http.HttpResponse.ok().build());
+            return HttpResponse.ok().build();
         });
 
-        PageResult.Response challenge = assertInstanceOf(PageResult.Response.class,
+        HttpResponse challenge = assertInstanceOf(HttpResponse.class,
                 pages.handle(request("/private")));
-        assertEquals(HttpStatus.of(401), challenge.response().status());
+        assertEquals(HttpStatus.of(401), challenge.status());
         assertEquals("Basic realm=\"admin-area\"",
-                challenge.response().headers().first("WWW-Authenticate").orElseThrow());
+                challenge.headers().first("WWW-Authenticate").orElseThrow());
 
         String credentials = Base64.getEncoder().encodeToString("alice:secret".getBytes(StandardCharsets.UTF_8));
-        PageResult.Response authenticated = assertInstanceOf(PageResult.Response.class,
+        HttpResponse authenticated = assertInstanceOf(HttpResponse.class,
                 pages.handle(request("/private", new HttpHeader("Authorization", "Basic " + credentials))));
-        assertEquals(HttpStatus.OK, authenticated.response().status());
+        assertEquals(HttpStatus.OK, authenticated.status());
         assertEquals("alice", seen.get().principal());
         assertTrue(seen.get().hasRole("admin"));
     }
@@ -51,12 +51,12 @@ class AuthPageAdaptersTests {
     void session_auth_redirects_private_requests_but_allows_the_login_page() {
         SimpleAuthProvider provider = new SimpleAuthProvider();
         var pages = provider.pages(ApplicationContext.builder().build(),
-                (request, authentication) -> Pages.response(rsp.http.HttpResponse.ok().build()));
+                (request, authentication) -> HttpResponse.ok().build());
 
         PageResult.Redirect redirect = assertInstanceOf(PageResult.Redirect.class,
                 pages.handle(request("/private")));
         assertEquals("/auth/login?redirect=%2Fprivate", redirect.location().toString());
-        assertInstanceOf(PageResult.Response.class, pages.handle(request("/auth/login")));
+        assertInstanceOf(HttpResponse.class, pages.handle(request("/auth/login")));
     }
 
     @Test
@@ -65,7 +65,7 @@ class AuthPageAdaptersTests {
         AtomicReference<Authentication> seen = new AtomicReference<>();
         var pages = provider.pages(ApplicationContext.builder().build(), (request, authentication) -> {
             seen.set(authentication);
-            return Pages.response(rsp.http.HttpResponse.ok().build());
+            return HttpResponse.ok().build();
         });
 
         var signIn = provider.routes().handle(request("/auth/signin?redirect=%2Fprivate"))
@@ -77,7 +77,7 @@ class AuthPageAdaptersTests {
         assertTrue(setCookie.contains("SameSite=Lax"));
         String cookie = setCookie.substring(0, setCookie.indexOf(';'));
 
-        assertInstanceOf(PageResult.Response.class,
+        assertInstanceOf(HttpResponse.class,
                 pages.handle(request("/private", new HttpHeader("Cookie", cookie))));
         assertEquals("alice", seen.get().principal());
 
@@ -91,7 +91,7 @@ class AuthPageAdaptersTests {
     void authentication_adapter_preserves_application_lifecycle() {
         ApplicationContext context = ApplicationContext.builder().build();
         var pages = new SimpleAuthProvider().pages(context,
-                (request, authentication) -> Pages.response(rsp.http.HttpResponse.ok().build()));
+                (request, authentication) -> HttpResponse.ok().build());
 
         pages.start();
         assertEquals(ApplicationContext.State.RUNNING, context.state());

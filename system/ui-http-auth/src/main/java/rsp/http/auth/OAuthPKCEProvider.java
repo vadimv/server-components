@@ -3,9 +3,9 @@ package rsp.http.auth;
 import rsp.application.ApplicationLifecycle;
 import rsp.authentication.Authentication;
 import rsp.http.HttpRequest;
+import rsp.http.HttpResult;
 import rsp.http.PageApplication;
 import rsp.http.PageResult;
-import rsp.http.Pages;
 import rsp.http.routing.HttpRouteHandler;
 import rsp.http.routing.HttpRouter;
 import rsp.util.json.JsonDataType;
@@ -124,7 +124,7 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
         return PageApplication.withLifecycle(lifecycle, request -> selectPage(pages, request));
     }
 
-    private PageResult selectPage(AuthenticatedPageHandler pages, HttpRequest request) {
+    private HttpResult selectPage(AuthenticatedPageHandler pages, HttpRequest request) {
         Authentication authentication = authenticate(request);
         String currentPath = request.path().toString();
 
@@ -138,7 +138,7 @@ public class OAuthPKCEProvider implements HttpAuthenticator {
         }
 
         // Protected path: redirect to login page
-        return Pages.redirect(AuthenticationSupport.loginRedirect(
+        return PageResult.redirect(AuthenticationSupport.loginRedirect(
                 config.loginPath(), request.relativeUrl().toString()));
     }
 

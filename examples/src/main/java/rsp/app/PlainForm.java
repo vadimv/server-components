@@ -10,7 +10,7 @@ import rsp.http.PageResult;
 import rsp.http.HttpRouter;
 import rsp.http.Router;
 import rsp.http.WebServer;
-import rsp.http.Pages;
+import rsp.http.PageResult;
 import rsp.http.HttpResponse;
 
 import java.net.URI;
@@ -34,18 +34,16 @@ public class PlainForm {
                 .post(FORM_PATH, (request, _) -> page(new FullName(
                         Objects.requireNonNull(request.query().parameterValue("firstname")),
                         Objects.requireNonNull(request.query().parameterValue("lastname")))))
-                .get("/", (_, _) -> Pages.redirect(URI.create(FORM_PATH)))
+                .get("/", (_, _) -> PageResult.redirect(URI.create(FORM_PATH)))
                 .get("/api/health", (_, _) -> HttpResponse.ok().text("ok").build())
                 .build();
-        final var server = WebServer.builder(8080)
-                .routes(routes)
-                .build();
+        final var server = new WebServer(8080).routes(routes);
         server.start();
         server.join();
     }
 
     private static PageResult page(Name initialState) {
-        return Pages.staticHtml(new Component<Name, Object>() {
+        return PageResult.staticHtml(new Component<Name, Object>() {
             @Override
             public ComponentStateSupplier<Name> initStateSupplier() {
                 return (_, _) -> initialState;

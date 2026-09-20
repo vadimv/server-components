@@ -4,10 +4,10 @@ import rsp.application.ApplicationLifecycle;
 
 import java.util.Objects;
 
-/** Selects the initial UI outcome for an HTTP request. */
+/** Selects an initial UI page or ordinary HTTP response for a request. */
 @FunctionalInterface
 public interface PageApplication extends ApplicationLifecycle {
-    PageResult handle(HttpRequest request);
+    HttpResult handle(HttpRequest request);
 
     /** Associates process lifecycle with a page-selection function. */
     static PageApplication withLifecycle(ApplicationLifecycle lifecycle, PageApplication application) {
@@ -15,7 +15,7 @@ public interface PageApplication extends ApplicationLifecycle {
         Objects.requireNonNull(application, "application");
         return new PageApplication() {
             @Override
-            public PageResult handle(HttpRequest request) {
+            public HttpResult handle(HttpRequest request) {
                 return application.handle(request);
             }
 

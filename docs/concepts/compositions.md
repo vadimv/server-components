@@ -54,10 +54,10 @@ ApplicationContext context = ApplicationContext.builder()
 App app = new App(context, List.of(postsComposition));
 PageApplication pages = authProvider.pages(app,
         (request, authentication) ->
-                Pages.live(app.apply(request.relativeUrl(), authentication)));
-WebServer.builder(8080, pages)
+                PageResult.live(app.apply(request.relativeUrl(), authentication)));
+new WebServer(8080)
+        .pageApplication(pages)
         .routes(authProvider.routes())
-        .build()
         .start();
 ```
 

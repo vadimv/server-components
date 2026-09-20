@@ -24,7 +24,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +52,7 @@ class WebServerTests {
 
     @Test
     void serves_rendered_page_on_random_port() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("Hello from http")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("Hello from http")));
         try {
             assertTrue(server.port() > 0);
 
@@ -73,7 +72,7 @@ class WebServerTests {
         AtomicInteger pageRequests = new AtomicInteger();
         PageApplication pages = request -> {
             pageRequests.incrementAndGet();
-            return Pages.staticHtml(page("dashboard"));
+            return PageResult.staticHtml(page("dashboard"));
         };
         Router routes = HttpRouter.builder()
                 .get("/api/items/{id}", (_, route) -> rsp.http.HttpResponse.ok()
@@ -81,7 +80,7 @@ class WebServerTests {
                         .text("api")
                         .build())
                 .build();
-        WebServer server = started(WebServer.builder(0, pages).routes(routes).build());
+        WebServer server = started(new WebServer(0).pageApplication(pages).routes(routes));
         try {
             HttpResponse<String> api = client.send(get(server, "/api/items/42"), BodyHandlers.ofString());
             HttpResponse<String> page = client.send(get(server, "/dashboard"), BodyHandlers.ofString());
@@ -108,11 +107,11 @@ class WebServerTests {
     void serves_exact_method_aware_page_routes_with_path_parameters() throws Exception {
         Router routes = HttpRouter.builder()
                 .get("/forms/{name}", (_, route) ->
-                        Pages.staticHtml(page("form " + route.requiredParameter("name"))))
+                        PageResult.staticHtml(page("form " + route.requiredParameter("name"))))
                 .post("/forms/{name}", (_, route) ->
-                        Pages.staticHtml(page("submitted " + route.requiredParameter("name"))))
+                        PageResult.staticHtml(page("submitted " + route.requiredParameter("name"))))
                 .build();
-        WebServer server = started(WebServer.builder(0).routes(routes).build());
+        WebServer server = started(new WebServer(0).routes(routes));
         try {
             HttpResponse<String> get = client.send(get(server, "/forms/Ada"), BodyHandlers.ofString());
             java.net.http.HttpRequest post = java.net.http.HttpRequest.newBuilder(uri(server, "/forms/Ada"))
@@ -141,9 +140,9 @@ class WebServerTests {
     void combines_page_and_generic_handlers_for_different_methods_on_one_path() throws Exception {
         Router routes = HttpRouter.builder()
                 .get("/mixed", (_, _) -> rsp.http.HttpResponse.ok().text("generic").build())
-                .post("/mixed", (_, _) -> Pages.staticHtml(page("page")))
+                .post("/mixed", (_, _) -> PageResult.staticHtml(page("page")))
                 .build();
-        WebServer server = started(WebServer.builder(0).routes(routes).build());
+        WebServer server = started(new WebServer(0).routes(routes));
         try {
             HttpResponse<String> get = client.send(get(server, "/mixed"), BodyHandlers.ofString());
             java.net.http.HttpRequest post = java.net.http.HttpRequest.newBuilder(uri(server, "/mixed"))
@@ -163,23 +162,23 @@ class WebServerTests {
     @Test
     void router_rejects_ambiguous_templates_across_handler_kinds() {
         HttpRouter.Builder routes = HttpRouter.builder()
-                .get("/users/{id}", (_, _) -> Pages.staticHtml(page("id")))
+                .get("/users/{id}", (_, _) -> PageResult.staticHtml(page("id")))
                 .get("/users/{name}", (_, _) -> rsp.http.HttpResponse.ok().build());
 
         assertThrows(IllegalArgumentException.class, routes::build);
     }
 
     @Test
-    void builder_middleware_wraps_the_complete_http_route_graph() {
+    void middleware_wraps_the_complete_http_route_graph() {
         Router routes = HttpRouter.builder()
                 .getAsync("/api", HttpRouteHandler.sync((_, _) -> rsp.http.HttpResponse.ok().build()))
                 .build();
         HttpMiddleware marker = (request, next) -> next.handle(request)
                 .thenApply(response -> response.withHeader("X-Middleware", "applied"));
-        WebServer server = WebServer.builder(0, _ -> Pages.staticHtml(page("fallback")))
+        WebServer server = new WebServer(0)
+                .pageApplication(_ -> PageResult.staticHtml(page("fallback")))
                 .routes(routes)
-                .middleware(marker)
-                .build();
+                .middleware(marker);
         rsp.http.HttpRequest request = new rsp.http.HttpRequest(HttpMethod.GET, "/api", "/api",
                 URI.create("http://localhost/api"), "http://localhost/api",
                 rsp.url.Path.parse("/api"), rsp.url.Query.EMPTY, HttpHeaders.EMPTY, RequestBody.EMPTY);
@@ -187,6 +186,19 @@ class WebServerTests {
         rsp.http.HttpResponse response = server.httpApplication().handle(request).toCompletableFuture().join();
 
         assertEquals("applied", response.header("X-Middleware"));
+    }
+
+    @Test
+    void freezes_fluent_configuration_when_the_runtime_is_created() {
+        WebServer server = new WebServer(0)
+                .pageApplication(_ -> PageResult.staticHtml(page("configured")));
+
+        server.httpApplication();
+
+        assertThrows(IllegalStateException.class,
+                () -> server.pageApplication(_ -> PageResult.staticHtml(page("too late"))));
+        assertThrows(IllegalStateException.class,
+                () -> server.routes(HttpRouter.builder().build()));
     }
 
     @Test
@@ -207,9 +219,9 @@ class WebServerTests {
         };
         PageApplication pages = PageApplication.withLifecycle(lifecycle, _ -> {
             requests.incrementAndGet();
-            return Pages.staticHtml(page("lifecycle"));
+            return PageResult.staticHtml(page("lifecycle"));
         });
-        WebServer server = started(WebServer.pages(0, pages));
+        WebServer server = started(new WebServer(0).pageApplication(pages));
         try {
             assertThrows(IllegalStateException.class, server::start);
             client.send(get(server, "/one"), BodyHandlers.discarding());
@@ -227,7 +239,9 @@ class WebServerTests {
     @Test
     void records_http_and_component_metrics_in_the_injected_process_registry() throws Exception {
         final MetricRegistry metrics = new MetricRegistry(MetricNames.frameworkCatalog());
-        final WebServer server = started(new WebServer(0, _ -> page("instrumented"), metrics));
+        final WebServer server = started(new WebServer(0)
+                .page(_ -> page("instrumented"))
+                .metrics(metrics));
         try {
             final HttpResponse<String> response = client.send(get(server, "/instrumented"),
                                                               BodyHandlers.ofString());
@@ -244,9 +258,9 @@ class WebServerTests {
     @Test
     void records_failed_http_responses_without_exposing_failure_details() throws Exception {
         final MetricRegistry metrics = new MetricRegistry(MetricNames.frameworkCatalog());
-        final WebServer server = started(new WebServer(0,
-                                                       _ -> failingPage(new RuntimeException(DIAGNOSTIC_CANARY)),
-                                                       metrics));
+        final WebServer server = started(new WebServer(0)
+                .page(_ -> failingPage(new RuntimeException(DIAGNOSTIC_CANARY)))
+                .metrics(metrics));
         try {
             final HttpResponse<String> response = client.send(get(server, "/failure"),
                                                               BodyHandlers.ofString());
@@ -262,7 +276,7 @@ class WebServerTests {
 
     @Test
     void merges_urlencoded_post_body_into_query_parameters() throws Exception {
-        final WebServer server = started(new WebServer(0, request ->
+        final WebServer server = started(new WebServer(0).page(request ->
                 page(request.query().parameterValue("firstname") + " "
                      + request.query().parameterValue("lastname"))));
         try {
@@ -283,9 +297,9 @@ class WebServerTests {
     @Test
     void serves_static_resources() throws Exception {
         Files.writeString(tempDir.resolve("style.css"), "body { color: red; }");
-        final WebServer server = started(new WebServer(0,
-                                                       _ -> page("not static"),
-                                                       new StaticResources(tempDir.toFile(), "/res/")));
+        final WebServer server = started(new WebServer(0)
+                .page(_ -> page("not static"))
+                .staticResources(new StaticResources(tempDir.toFile(), "/res/")));
         try {
             final HttpResponse<String> response = client.send(get(server, "/res/style.css"),
                                                               BodyHandlers.ofString());
@@ -300,7 +314,7 @@ class WebServerTests {
 
     @Test
     void serves_js_client_bundle_from_runtime_dependency() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("bundle")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("bundle")));
         try {
             final HttpResponse<String> response = client.send(get(server, "/static/js-client.min.js"),
                                                               BodyHandlers.ofString());
@@ -315,7 +329,7 @@ class WebServerTests {
 
     @Test
     void head_request_omits_response_body() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("head body")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("head body")));
         try {
             final java.net.http.HttpRequest head = java.net.http.HttpRequest.newBuilder(uri(server, "/head"))
                     .method("HEAD", BodyPublishers.noBody())
@@ -332,7 +346,7 @@ class WebServerTests {
 
     @Test
     void all_parsed_methods_reach_the_page_application() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("delete")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("delete")));
         try {
             final java.net.http.HttpRequest delete = java.net.http.HttpRequest.newBuilder(uri(server, "/delete"))
                     .DELETE()
@@ -356,16 +370,14 @@ class WebServerTests {
     @Test
     void rejects_non_positive_connection_limit() {
         assertThrows(IllegalArgumentException.class,
-                     () -> new WebServer(0,
-                                         _ -> page("limit"),
-                                         Optional.empty(),
-                                         Optional.empty(),
-                                         0));
+                () -> new WebServer(0)
+                        .page(_ -> page("limit"))
+                        .connectionLimit(0));
     }
 
     @Test
     void upgrades_to_websocket_and_binds_live_page_session() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("live")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("live")));
         try {
             client.send(get(server, "/live"), BodyHandlers.ofString());
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
@@ -386,7 +398,9 @@ class WebServerTests {
     @Test
     void tracks_live_websocket_and_resumable_session_gauges() throws Exception {
         final MetricRegistry metrics = new MetricRegistry(MetricNames.frameworkCatalog());
-        final WebServer server = started(new WebServer(0, _ -> page("gauges"), metrics));
+        final WebServer server = started(new WebServer(0)
+                .page(_ -> page("gauges"))
+                .metrics(metrics));
         try {
             client.send(get(server, "/gauges"), BodyHandlers.ofString());
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
@@ -428,7 +442,7 @@ class WebServerTests {
 
     @Test
     void responds_to_websocket_ping_with_pong_payload() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("ping")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("ping")));
         try {
             client.send(get(server, "/ping"), BodyHandlers.ofString());
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
@@ -450,7 +464,7 @@ class WebServerTests {
 
     @Test
     void stop_sends_going_away_close_to_active_websocket() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("stop")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("stop")));
         try (Socket socket = new Socket("localhost", server.port())) {
             client.send(get(server, "/stop"), BodyHandlers.ofString());
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
@@ -477,7 +491,7 @@ class WebServerTests {
 
     @Test
     void stop_force_closes_websocket_that_does_not_reply_to_close() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("force stop")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("force stop")));
         try (Socket socket = new Socket("localhost", server.port())) {
             socket.setSoTimeout(3_000);
             client.send(get(server, "/force-stop"), BodyHandlers.ofString());
@@ -503,7 +517,7 @@ class WebServerTests {
 
     @Test
     void client_close_deregisters_active_websocket() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("client close")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("client close")));
         try (Socket socket = new Socket("localhost", server.port())) {
             client.send(get(server, "/client-close"), BodyHandlers.ofString());
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
@@ -526,7 +540,7 @@ class WebServerTests {
 
     @Test
     void stop_clears_pending_rendered_pages() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("pending")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("pending")));
         try {
             client.send(get(server, "/pending"), BodyHandlers.ofString());
             assertFalse(server.pagesStorage.isEmpty());
@@ -541,7 +555,7 @@ class WebServerTests {
 
     @Test
     void reconnect_resumes_the_same_local_page_session() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("resume")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("resume")));
         try {
             client.send(get(server, "/resume"), BodyHandlers.ofString());
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
@@ -589,7 +603,7 @@ class WebServerTests {
 
     @Test
     void websocket_handshake_returns_rfc_accept_key() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("handshake")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("handshake")));
         try (Socket socket = new Socket("localhost", server.port())) {
             writeHandshake(socket, server.port(), "device", "session", "dGhlIHNhbXBsZSBub25jZQ==");
 
@@ -604,7 +618,7 @@ class WebServerTests {
 
     @Test
     void invalid_websocket_key_returns_http_400() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("bad key")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("bad key")));
         try (Socket socket = new Socket("localhost", server.port())) {
             writeHandshake(socket, server.port(), "device", "session", "not-base64");
 
@@ -618,7 +632,7 @@ class WebServerTests {
 
     @Test
     void websocket_upgrade_to_unknown_endpoint_returns_404() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("unknown ws")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("unknown ws")));
         try (Socket socket = new Socket("localhost", server.port())) {
             socket.getOutputStream().write(("GET /other-web-socket HTTP/1.1\r\n"
                                             + "Host: localhost:" + server.port() + "\r\n"
@@ -637,7 +651,7 @@ class WebServerTests {
 
     @Test
     void rsp_websocket_endpoint_without_standard_upgrade_headers_returns_400() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("missing headers")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("missing headers")));
         try (Socket socket = new Socket("localhost", server.port())) {
             socket.getOutputStream().write(("GET /bridge/web-socket/device/session HTTP/1.1\r\n"
                                             + "Host: localhost:" + server.port() + "\r\n"
@@ -652,7 +666,7 @@ class WebServerTests {
 
     @Test
     void unmasked_client_websocket_frame_closes_with_protocol_error() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("unmasked")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("unmasked")));
         try (Socket socket = new Socket("localhost", server.port())) {
             writeHandshake(socket, server.port(), "device-unmasked", "session-unmasked", "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
@@ -668,7 +682,7 @@ class WebServerTests {
 
     @Test
     void invalid_utf8_websocket_text_closes_with_invalid_payload() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("utf8")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("utf8")));
         try (Socket socket = new Socket("localhost", server.port())) {
             writeHandshake(socket, server.port(), "device-utf8", "session-utf8", "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
@@ -684,7 +698,7 @@ class WebServerTests {
 
     @Test
     void fragmented_websocket_text_message_is_reassembled() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("fragmented")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("fragmented")));
         try (Socket socket = new Socket("localhost", server.port())) {
             client.send(get(server, "/fragmented"), BodyHandlers.ofString());
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
@@ -707,7 +721,7 @@ class WebServerTests {
 
     @Test
     void binary_websocket_message_closes_with_unsupported_data() throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> page("binary")));
+        final WebServer server = started(new WebServer(0).page(_ -> page("binary")));
         try (Socket socket = new Socket("localhost", server.port())) {
             writeHandshake(socket, server.port(), "device-binary", "session-binary", "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
@@ -729,7 +743,7 @@ class WebServerTests {
     private void assertSanitizedRenderFailure(final int expectedStatus,
                                               final String expectedBody,
                                               final RuntimeException failure) throws Exception {
-        final WebServer server = started(new WebServer(0, _ -> failingPage(failure)));
+        final WebServer server = started(new WebServer(0).page(_ -> failingPage(failure)));
         try {
             final HttpResponse<String> response = client.send(get(server, "/failure"), BodyHandlers.ofString());
 
