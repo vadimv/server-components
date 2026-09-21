@@ -48,11 +48,19 @@ Stop the system after producers have stopped.
 `drainAndStop()` rejects new external messages while draining already admitted
 work and immediate actor-to-actor messages. It cancels delayed messages; `stop()`
 also applies a bounded shutdown timeout.
-Stopping one actor cancels timers scheduled by that actor.
+Stopping one actor cancels timers scheduled by that actor. An actor can return
+`effect.passivating()` to stop and release its local cell after accepted work
+settles. Existing references remain bound to the stopped incarnation and reject
+new messages; a newly obtained reference to the same key can activate a fresh
+incarnation. Applications must retire external routes/references before
+passivating a short-lived actor.
 `ActorSystemObserver` receives lifecycle, activation, rejection, processing, and
 failure events. Observer failures are isolated from actor delivery. This SPI lets
 applications attach metrics or tracing without making the runtime depend on UI
 or transport modules.
+Local references bind a cell when obtained; actor state still initializes on
+the first admitted message. Avoid obtaining references for unbounded unused
+keys, and passivate short-lived actors when their owners close.
 
 ## Delivery contract
 
@@ -69,9 +77,9 @@ rejections. A failed behavior stops that actor key and fails its pending tracked
 deliveries; other keys continue. An ask timeout does not cancel its command, and
 unanswered asks fail when the system stops. Avoid blocking a behavior while
 waiting for another actor; send a message and handle its later reply instead.
-Activated keys remain in memory (including stopped keys); passivation and
-bounded actor-count policies are future runtime work, so use finite key spaces
-for this first implementation.
+Ordinary stopped and failed actor keys remain in memory. Only explicit
+passivation releases a key; bounded actor-count policies and durable state are
+still application concerns.
 
 `MessageId` and `ActorEnvelope` carry stable message identity and optional
 correlation/causation IDs for future durable or remote adapters. They do **not**
@@ -134,13 +142,14 @@ and reports `STOPPED` to the sender without failing the actor. The actor remains
 authoritative, while component state is only its rendered projection.
 
 The [Life example](../../examples/src/main/java/rsp/app/gameoflife/Life.java)
-uses one fixed, shared `life-demo` actor. It exposes a public game ID and
-`READY`/`RUNNING`/`PAUSED` status through ordinary HTTP routes, while the live
-component receives board snapshots. `PAUSED` is a game state, not an actor
-runtime stop. The actor uses an epoch on delayed ticks so a pause/reset makes
-already-scheduled ticks harmless. Discovery is an explicit fixed catalog, not a
-scan of runtime actor cells. Dynamic game creation still needs a lifecycle and
-passivation policy because activated actor keys are retained in memory.
+creates one actor per logical page session, with a numeric ID in an explicit
+active-game catalog. Two pages have independent boards; a WebSocket reconnect
+keeps the same actor, while page closure removes the catalog entry and
+passivates its actor. HTTP routes expose `READY`/`RUNNING`/`PAUSED` status and
+controls; the live component receives board snapshots. `PAUSED` is a game
+state, not an actor runtime stop. An epoch makes ticks scheduled before
+pause/reset harmless. This catalog is public demo behavior, not an
+authorization model for private games.
 
 ## Testing
 

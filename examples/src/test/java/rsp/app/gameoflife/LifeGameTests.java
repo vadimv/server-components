@@ -52,7 +52,7 @@ class LifeGameTests {
         fixture.game.tell(new LifeGame.Subscribe(second));
         fixture.kit.runAll();
         assertEquals(LifeGame.Phase.READY, first.messages().getFirst().summary().status());
-        assertEquals(LifeGame.ID, first.messages().getFirst().summary().id());
+        assertEquals(fixture.sessionGame.id(), first.messages().getFirst().summary().id());
         assertEquals(1, second.messages().size());
 
         fixture.game.tell(new LifeGame.ToggleCell(2, 3));
@@ -102,37 +102,49 @@ class LifeGameTests {
     }
 
     @Test
-    void statusAndControlRoutesUsePublicGameIdAndDoNotCreateUnknownActors() {
+    void statusAndControlRoutesUseNumericActiveGameIdsAndDoNotCreateUnknownActors() {
         Fixture fixture = new Fixture();
-        var router = LifeRoutes.router(fixture.actors);
+        var router = LifeRoutes.router(fixture.actors, fixture.games);
         var catalog = router.handle(request(HttpMethod.GET, "/api/games"));
         fixture.kit.runAll();
         HttpResponse listed = catalog.toCompletableFuture().join();
         JsonDataType.Array games = (JsonDataType.Array) Json.parse(read(listed));
         assertEquals(1, games.elements().length);
-        assertEquals(LifeGame.ID, Json.requireObject(games.elements()[0]).requiredString("id"));
+        assertEquals(fixture.sessionGame.id(), Json.requireObject(games.elements()[0])
+                .requiredNumber("id").asLong());
 
         HttpResponse unknown = router.handle(request(HttpMethod.GET, "/api/games/missing"))
                 .toCompletableFuture().join();
         assertEquals(HttpStatus.NOT_FOUND, unknown.status());
+        assertEquals(HttpStatus.NOT_FOUND, router.handle(request(HttpMethod.GET,
+                "/api/games/999999999999999999999"))
+                .toCompletableFuture().join().status());
 
-        var started = router.handle(request(HttpMethod.POST, "/api/games/life-demo/start"));
+        var started = router.handle(request(HttpMethod.POST,
+                "/api/games/" + fixture.sessionGame.id() + "/start"));
         fixture.kit.runAll();
         assertEquals("RUNNING", Json.requireObject(Json.parse(read(started.toCompletableFuture().join())))
                 .requiredString("status"));
-        var paused = router.handle(request(HttpMethod.POST, "/api/games/life-demo/pause"));
+        var paused = router.handle(request(HttpMethod.POST,
+                "/api/games/" + fixture.sessionGame.id() + "/pause"));
         fixture.kit.runAll();
         assertEquals("PAUSED", Json.requireObject(Json.parse(read(paused.toCompletableFuture().join())))
                 .requiredString("status"));
+        fixture.games.close(Fixture.SESSION);
+        fixture.kit.runAll();
+        assertEquals(HttpStatus.NOT_FOUND, router.handle(request(HttpMethod.GET,
+                "/api/games/" + fixture.sessionGame.id())).toCompletableFuture().join().status());
+        var empty = router.handle(request(HttpMethod.GET, "/api/games"));
+        assertEquals(0, ((JsonDataType.Array) Json.parse(read(empty.toCompletableFuture().join()))).elements().length);
         fixture.actors.stop();
     }
 
     @Test
     void componentMountProjectsActorSnapshotsAndUnmountStopsDelivery() {
         Fixture fixture = new Fixture();
-        LifeComponent component = new LifeComponent(fixture.game);
+        LifeComponent component = new LifeComponent(fixture.games);
         ComponentCompositeKey componentId = new ComponentCompositeKey(
-                new QualifiedSessionId("device", "one"), LifeComponent.class, TreePositionPath.of("1"));
+                Fixture.SESSION, LifeComponent.class, TreePositionPath.of("1"));
         RecordingUpdater updater = new RecordingUpdater();
 
         component.onMounted(componentId, updater.state, updater);
@@ -147,10 +159,38 @@ class LifeGameTests {
 
         component.onUnmounted(componentId, updater.state);
         fixture.kit.runAll();
-        fixture.game.tell(new LifeGame.ToggleCell(4, 5));
+        assertEquals(rsp.actor.SendResult.STOPPED,
+                fixture.game.tell(new LifeGame.ToggleCell(4, 5)));
         fixture.kit.runAll();
         updater.runAll();
         assertFalse(updater.state.snapshot().orElseThrow().board().isAlive(5 * Board.WIDTH + 4));
+        fixture.actors.stop();
+    }
+
+    @Test
+    void separatePageSessionsReceiveSeparateGameActors() {
+        Fixture fixture = new Fixture();
+        assertEquals(fixture.sessionGame.id(), fixture.games.open(Fixture.SESSION).id());
+        LifeGames.Game other = fixture.games.open(new QualifiedSessionId("device", "two"));
+        assertNotEquals(fixture.sessionGame.id(), other.id());
+        ActorProbe<LifeGame.Snapshot> first = fixture.kit.probe();
+        ActorProbe<LifeGame.Snapshot> second = fixture.kit.probe();
+        fixture.game.tell(new LifeGame.Subscribe(first));
+        other.ref().tell(new LifeGame.Subscribe(second));
+        fixture.kit.runAll();
+
+        fixture.game.tell(new LifeGame.ToggleCell(2, 3));
+        fixture.kit.runAll();
+        assertTrue(first.messages().getLast().board().isAlive(3 * Board.WIDTH + 2));
+        assertFalse(second.messages().getLast().board().isAlive(3 * Board.WIDTH + 2));
+
+        fixture.games.close(Fixture.SESSION);
+        fixture.kit.runAll();
+        assertEquals(rsp.actor.SendResult.STOPPED, fixture.game.tell(new LifeGame.ToggleCell(1, 1)));
+        assertNotEquals(fixture.sessionGame.id(), fixture.games.open(Fixture.SESSION).id());
+        assertEquals(rsp.actor.SendResult.ACCEPTED, other.ref().tell(new LifeGame.ToggleCell(1, 1)));
+        fixture.kit.runAll();
+        assertTrue(second.messages().getLast().board().isAlive(1 + Board.WIDTH));
         fixture.actors.stop();
     }
 
@@ -169,12 +209,15 @@ class LifeGameTests {
     }
 
     private static final class Fixture {
+        private static final QualifiedSessionId SESSION = new QualifiedSessionId("device", "one");
         private final ActorTestKit kit = new ActorTestKit();
         private final LocalActorSystem actors = LocalActorSystem.builder()
                 .executor(kit.executor()).scheduler(kit.scheduler())
                 .register(LifeGame.definition(new Random(42)))
                 .build();
-        private final ActorRef<LifeGame.Command> game = actors.ref(LifeGame.TYPE, LifeGame.ID);
+        private final LifeGames games = new LifeGames(actors);
+        private final LifeGames.Game sessionGame = games.open(SESSION);
+        private final ActorRef<LifeGame.Command> game = sessionGame.ref();
 
         private Fixture() {
             actors.start();

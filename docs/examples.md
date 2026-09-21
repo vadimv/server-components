@@ -43,13 +43,13 @@ Or from your IDE, by running the `main` method of the entry-point class.
 ### 4. Life — Conway's Game of Life
 - Entry point: [Life.java](../examples/src/main/java/rsp/app/gameoflife/Life.java)
 - URL: <http://localhost:8082>
-- Demonstrates: one shared `life-demo` actor owning the board, game status,
-  and self-scheduled ticks; a live component sends commands and receives
-  coalesced snapshots through `ui-actor`. Mount/unmount subscribe and close the
-  UI sink. Ordinary HTTP routes discover the game (`GET /api/games`), read its
-  status (`GET /api/games/life-demo`), and start, pause, or reset it with POST
-  routes. CSS is served with `StaticResources`. The smaller 40×25 board and
-  150 ms tick keep this actor/UI example responsive.
+- Demonstrates: one actor per resumable page session owning an independent board,
+  game status, and self-scheduled ticks. A live component sends commands and
+  receives coalesced snapshots through `ui-actor`; page teardown closes its
+  actor. Ordinary HTTP routes discover active numeric game IDs
+  (`GET /api/games`), read status (`GET /api/games/{id}`), and start, pause, or
+  reset a game with POST routes. CSS is served with `StaticResources`. The
+  40×25 board and 150 ms tick keep this actor/UI example responsive.
 
 ### 5. Counters — multiple components synced to the URL
 - Entry point: [Counters.java](../examples/src/main/java/rsp/app/counters/Counters.java)

@@ -98,7 +98,16 @@ public final class LocalActorSystem implements ActorSystem {
 
     @Override
     public <M> ActorRef<M> ref(ActorId<M> id) {
-        return new LocalRef<>(Objects.requireNonNull(id, "id"));
+        Objects.requireNonNull(id, "id");
+        ActorDefinition<?, ?> definition = definitions.get(id.type().name());
+        if (definition == null || !definition.type().equals(id.type())
+                || state == State.STOPPING || state == State.STOPPED) {
+            return new LocalRef<>(id, null);
+        }
+        @SuppressWarnings("unchecked")
+        Cell<?, M> cell = (Cell<?, M>) cells.computeIfAbsent(id,
+                ignored -> newCell(id, definition));
+        return new LocalRef<>(id, cell);
     }
 
     @Override
@@ -214,7 +223,8 @@ public final class LocalActorSystem implements ActorSystem {
         }
     }
 
-    private <M> ProcessingReceipt offer(ActorId<M> id, ActorEnvelope<M> envelope, boolean internal) {
+    private <M> ProcessingReceipt offer(ActorId<M> id, Cell<?, M> cell,
+                                        ActorEnvelope<M> envelope, boolean internal) {
         Objects.requireNonNull(envelope, "envelope");
         if (!id.type().messageClass().isInstance(envelope.message())) {
             throw new IllegalArgumentException("Message is not a " + id.type().messageClass().getName());
@@ -227,9 +237,9 @@ public final class LocalActorSystem implements ActorSystem {
         if (definition == null || !definition.type().equals(id.type())) {
             return rejected(id, SendResult.UNKNOWN_ACTOR);
         }
-        @SuppressWarnings("unchecked")
-        Cell<?, M> cell = (Cell<?, M>) cells.computeIfAbsent(id,
-                ignored -> newCell(id, definition));
+        if (cell == null) {
+            return rejected(id, SendResult.UNKNOWN_ACTOR);
+        }
         return cell.offer(envelope, internal);
     }
 
@@ -293,7 +303,7 @@ public final class LocalActorSystem implements ActorSystem {
         if (recipient instanceof LocalActorSystem.LocalRef<?> raw && raw.owner() == this) {
             @SuppressWarnings("unchecked")
             LocalRef<M> local = (LocalRef<M>) raw;
-            result = offer(local.id, delivery.envelope(), internal).admission();
+            result = local.offer(delivery.envelope(), internal).admission();
         } else {
             result = recipient.tell(delivery.envelope());
         }
@@ -380,9 +390,11 @@ public final class LocalActorSystem implements ActorSystem {
 
     private final class LocalRef<M> implements ActorRef<M> {
         private final ActorId<M> id;
+        private final Cell<?, M> cell;
 
-        private LocalRef(ActorId<M> id) {
+        private LocalRef(ActorId<M> id, Cell<?, M> cell) {
             this.id = id;
+            this.cell = cell;
         }
 
         private LocalActorSystem owner() {
@@ -391,12 +403,16 @@ public final class LocalActorSystem implements ActorSystem {
 
         @Override
         public SendResult tell(ActorEnvelope<M> envelope) {
-            return offer(id, envelope, false).admission();
+            return offer(envelope, false).admission();
         }
 
         @Override
         public ProcessingReceipt track(ActorEnvelope<M> envelope) {
-            return offer(id, envelope, false);
+            return offer(envelope, false);
+        }
+
+        private ProcessingReceipt offer(ActorEnvelope<M> envelope, boolean internal) {
+            return LocalActorSystem.this.offer(id, cell, envelope, internal);
         }
 
         @Override
@@ -485,7 +501,7 @@ public final class LocalActorSystem implements ActorSystem {
                 }
                 ActorBehavior<S, M> behavior = definition.behavior();
                 CompletionStage<ActorEffect<S>> stage = Objects.requireNonNull(behavior.receive(
-                        new ActorContext<>(id, ref(id), pending.envelope()), snapshot,
+                        new ActorContext<>(id, new LocalRef<>(id, this), pending.envelope()), snapshot,
                         pending.envelope().message()), "behavior completion stage");
                 stage.whenComplete((effect, failure) -> complete(pending, effect, failure));
             } catch (Throwable failure) {
@@ -515,12 +531,19 @@ public final class LocalActorSystem implements ActorSystem {
                 for (ActorEffect.Delivery<?> delivery : effect.deliveries()) {
                     dispatch(id, delivery);
                 }
-                observe(() -> observer.messageProcessed(id));
-                settle(pending, null);
             } catch (Throwable deliveryFailure) {
                 fail(deliveryFailure);
                 return;
             }
+            if (stopped) {
+                cancelActorTimers(id);
+                failPending(new IllegalStateException("Actor stopped"));
+                if (effect.passivatesActor()) {
+                    cells.remove(id, this);
+                }
+            }
+            observe(() -> observer.messageProcessed(id));
+            settle(pending, null);
             boolean enqueueRunner;
             synchronized (this) {
                 current = null;
@@ -530,10 +553,7 @@ public final class LocalActorSystem implements ActorSystem {
                     scheduled = true;
                 }
             }
-            if (stopped) {
-                cancelActorTimers(id);
-                failPending(new IllegalStateException("Actor stopped"));
-            } else if (enqueueRunner) {
+            if (enqueueRunner) {
                 executeNext();
             }
         }

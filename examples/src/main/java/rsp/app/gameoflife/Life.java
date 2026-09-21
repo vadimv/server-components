@@ -12,7 +12,7 @@ import rsp.http.WebServer;
 import java.io.File;
 import java.util.random.RandomGenerator;
 
-/** A shared Game of Life actor viewed by live UI pages and ordinary HTTP routes. */
+/** A Game of Life actor per live page session, with HTTP routes for active games. */
 public final class Life {
     private Life() {
     }
@@ -33,14 +33,15 @@ public final class Life {
                 .register(LifeGame.definition(random))
                 .build();
         ApplicationContext application = ApplicationContext.builder()
-                   .service(ActorSystem.class, actors)
+                .service(ActorSystem.class, actors)
                 .build();
-        LifeComponent component = new LifeComponent(actors.ref(LifeGame.TYPE, LifeGame.ID));
+        LifeGames games = new LifeGames(actors);
+        LifeComponent component = new LifeComponent(games);
         return new WebServer(port)
                 .pageApplication(PageApplication.withLifecycle(application,
                         _ -> HttpResponse.status(HttpStatus.NOT_FOUND).build()))
                 .page("/", (_, _) -> component)
-                .routes(LifeRoutes.router(actors))
+                .routes(LifeRoutes.router(actors, games))
                 .staticResources(new StaticResources(
                         new File("src/main/java/rsp/app/gameoflife"), "/res/"));
     }

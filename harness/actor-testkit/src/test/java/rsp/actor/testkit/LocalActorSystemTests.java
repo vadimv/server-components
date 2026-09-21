@@ -288,6 +288,34 @@ class LocalActorSystemTests {
     }
 
     @Test
+    void passivatedActorReleasesItsKeyButOldReferencesCannotReactivateIt() {
+        ActorTestKit kit = new ActorTestKit();
+        ActorProbe<Integer> events = kit.probe();
+        LocalActorSystem system = kit.register(ActorDefinition.<Integer, Integer>builder(COUNTER)
+                .initialState(_ -> 0)
+                .behavior(ActorBehavior.sync((context, state, message) -> message < 0
+                        ? ActorEffect.<Integer>same().passivating()
+                        : ActorEffect.<Integer>state(state + message)
+                                .send(events, state + message)
+                                .schedule(context.self(), 1, Duration.ofSeconds(1))))
+                .build()).start();
+        ActorRef<Integer> old = system.ref(COUNTER, "one");
+        old.tell(2);
+        kit.runAll();
+        assertEquals(1, kit.scheduler().pendingCount());
+        old.tell(-1);
+        kit.runAll();
+        assertEquals(0, kit.scheduler().pendingCount());
+        assertEquals(SendResult.STOPPED, old.tell(3));
+
+        ActorRef<Integer> fresh = system.ref(COUNTER, "one");
+        fresh.tell(4);
+        kit.runAll();
+        assertEquals(List.of(2, 4), events.messages());
+        system.stop();
+    }
+
+    @Test
     void actorStopRejectsPendingWorkAndOutboundRejectionIsObservable() {
         ActorTestKit kit = new ActorTestKit();
         ActorProbe<Integer> closed = kit.probe();

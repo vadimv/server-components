@@ -15,18 +15,21 @@ import java.util.stream.IntStream;
 
 import static rsp.dsl.Html.*;
 
-/** Shared component definition; each mount owns only a UI event sink. */
+/** Shared component definition; each page mount owns one game subscription. */
 final class LifeComponent extends Component<State, LifeComponent.Intent> {
     sealed interface Intent permits Toggle, Control { }
     record Toggle(int x, int y) implements Intent { }
     record Control(LifeGame.Action action) implements Intent { }
 
-    private final ActorRef<LifeGame.Command> game;
-    private final Map<ComponentCompositeKey, UiActorSink<LifeGame.Snapshot, State>> subscriptions =
+    private record Subscription(ActorRef<LifeGame.Command> game,
+                                UiActorSink<LifeGame.Snapshot, State> sink) { }
+
+    private final LifeGames games;
+    private final Map<ComponentCompositeKey, Subscription> subscriptions =
             new ConcurrentHashMap<>();
 
-    LifeComponent(ActorRef<LifeGame.Command> game) {
-        this.game = game;
+    LifeComponent(LifeGames games) {
+        this.games = games;
     }
 
     @Override
@@ -83,7 +86,10 @@ final class LifeComponent extends Component<State, LifeComponent.Intent> {
             case Toggle toggle -> new LifeGame.ToggleCell(toggle.x(), toggle.y());
             case Control control -> LifeGame.Control.of(control.action());
         };
-        SendResult result = game.tell(command);
+        SendResult result = state.snapshot()
+                .flatMap(snapshot -> games.find(snapshot.summary().id()))
+                .map(active -> active.ref().tell(command))
+                .orElse(SendResult.STOPPED);
         if (result != SendResult.ACCEPTED) {
             updater.applyStateTransformation(current -> current.withError("Game unavailable: " + result));
         }
@@ -91,22 +97,25 @@ final class LifeComponent extends Component<State, LifeComponent.Intent> {
 
     @Override
     public void onMounted(ComponentCompositeKey componentId, State state, StateUpdater<State> updater) {
+        LifeGames.Game game = games.open(componentId.sessionId());
         UiActorSink<LifeGame.Snapshot, State> sink = UiActorSink.latest(updater, State::withSnapshot);
-        subscriptions.put(componentId, sink);
-        SendResult result = game.tell(new LifeGame.Subscribe(sink));
+        subscriptions.put(componentId, new Subscription(game.ref(), sink));
+        SendResult result = game.ref().tell(new LifeGame.Subscribe(sink));
         if (result != SendResult.ACCEPTED) {
             sink.close();
-            subscriptions.remove(componentId, sink);
+            subscriptions.remove(componentId);
+            games.close(componentId.sessionId());
             updater.applyStateTransformation(current -> current.withError("Game unavailable: " + result));
         }
     }
 
     @Override
     public void onUnmounted(ComponentCompositeKey componentId, State state) {
-        UiActorSink<LifeGame.Snapshot, State> sink = subscriptions.remove(componentId);
-        if (sink != null) {
-            sink.close();
-            game.tell(new LifeGame.Unsubscribe(sink));
+        Subscription subscription = subscriptions.remove(componentId);
+        if (subscription != null) {
+            subscription.sink().close();
+            subscription.game().tell(new LifeGame.Unsubscribe(subscription.sink()));
+            games.close(componentId.sessionId());
         }
     }
 }

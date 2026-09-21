@@ -13,11 +13,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.random.RandomGenerator;
 
-/** One shared, in-memory Game of Life room with a UI-independent message protocol. */
+/** One in-memory Game of Life actor per page session, with a UI-independent message protocol. */
 public final class LifeGame {
-    public static final String ID = "life-demo";
-    public static final ActorType<String, Command> TYPE =
-            ActorType.named("life-game", Command.class, key -> key);
+    public static final ActorType<Long, Command> TYPE =
+            ActorType.named("life-game", Command.class, String::valueOf);
     public static final Duration TICK_INTERVAL = Duration.ofMillis(150);
 
     private LifeGame() {
@@ -27,12 +26,12 @@ public final class LifeGame {
 
     public enum Action { START, PAUSE, RESET, RANDOM }
 
-    public record GameSummary(String id, String kind, Phase status, long generation) { }
+    public record GameSummary(long id, String kind, Phase status, long generation) { }
 
     /** Full, immutable projection suitable for coalescing by slow UI subscribers. */
     public record Snapshot(GameSummary summary, Board board) { }
 
-    public sealed interface Command permits Control, ToggleCell, Subscribe, Unsubscribe, Status, Tick { }
+    public sealed interface Command permits Control, ToggleCell, Subscribe, Unsubscribe, Status, Tick, Close { }
 
     public record Control(Action action, Optional<ActorRef<GameSummary>> replyTo) implements Command {
         public Control {
@@ -72,17 +71,20 @@ public final class LifeGame {
     /** Epoch invalidates ticks already scheduled before pause or reset. */
     public record Tick(long epoch) implements Command { }
 
+    /** The owning page has closed; release this actor and its scheduled ticks. */
+    public record Close() implements Command { }
+
     private record GameState(Board board, Phase phase, long generation, long epoch,
                              Set<ActorRef<Snapshot>> subscribers) {
         private GameState {
             subscribers = Set.copyOf(subscribers);
         }
 
-        private GameSummary summary(String id) {
+        private GameSummary summary(long id) {
             return new GameSummary(id, "life", phase, generation);
         }
 
-        private Snapshot snapshot(String id) {
+        private Snapshot snapshot(long id) {
             return new Snapshot(summary(id), board);
         }
     }
@@ -92,8 +94,9 @@ public final class LifeGame {
         return ActorDefinition.<GameState, Command>builder(TYPE)
                 .initialState(_ -> new GameState(Board.empty(), Phase.READY, 0, 0, Set.of()))
                 .behavior(ActorBehavior.sync((context, state, command) -> {
-                    String id = context.id().key();
+                    long id = Long.parseLong(context.id().key());
                     return switch (command) {
+                        case Close _ -> ActorEffect.<GameState>same().passivating();
                         case Subscribe subscribe -> {
                             Set<ActorRef<Snapshot>> subscribers = new HashSet<>(state.subscribers());
                             subscribers.add(subscribe.subscriber());
@@ -133,7 +136,7 @@ public final class LifeGame {
     }
 
     private static ActorEffect<GameState> control(ActorRef<Command> self, GameState state,
-                                                   Control control, String id, RandomGenerator random) {
+                                                   Control control, long id, RandomGenerator random) {
         GameState next = switch (control.action()) {
             case START -> state.phase() == Phase.RUNNING ? state
                     : new GameState(state.board(), Phase.RUNNING, state.generation(),
@@ -156,7 +159,7 @@ public final class LifeGame {
         return effect;
     }
 
-    private static ActorEffect<GameState> publish(GameState next, String id) {
+    private static ActorEffect<GameState> publish(GameState next, long id) {
         ActorEffect<GameState> effect = ActorEffect.state(next);
         Snapshot snapshot = next.snapshot(id);
         for (ActorRef<Snapshot> subscriber : next.subscribers()) {

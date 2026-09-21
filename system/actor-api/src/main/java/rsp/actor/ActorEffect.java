@@ -11,24 +11,27 @@ public final class ActorEffect<S> {
     private final S state;
     private final List<Delivery<?>> deliveries;
     private final boolean stop;
+    private final boolean passivate;
 
-    private ActorEffect(boolean stateChanged, S state, List<Delivery<?>> deliveries, boolean stop) {
+    private ActorEffect(boolean stateChanged, S state, List<Delivery<?>> deliveries,
+                        boolean stop, boolean passivate) {
         this.stateChanged = stateChanged;
         this.state = state;
         this.deliveries = List.copyOf(deliveries);
         this.stop = stop;
+        this.passivate = passivate;
     }
 
     public static <S> ActorEffect<S> same() {
-        return new ActorEffect<>(false, null, List.of(), false);
+        return new ActorEffect<>(false, null, List.of(), false, false);
     }
 
     public static <S> ActorEffect<S> state(S state) {
-        return new ActorEffect<>(true, Objects.requireNonNull(state, "state"), List.of(), false);
+        return new ActorEffect<>(true, Objects.requireNonNull(state, "state"), List.of(), false, false);
     }
 
     public ActorEffect<S> withState(S value) {
-        return new ActorEffect<>(true, Objects.requireNonNull(value, "state"), deliveries, stop);
+        return new ActorEffect<>(true, Objects.requireNonNull(value, "state"), deliveries, stop, passivate);
     }
 
     public <M> ActorEffect<S> send(ActorRef<M> recipient, M message) {
@@ -53,11 +56,16 @@ public final class ActorEffect<S> {
         Delivery<M> delivery = new Delivery<>(recipient, envelope, delay);
         List<Delivery<?>> copy = new ArrayList<>(deliveries);
         copy.add(delivery);
-        return new ActorEffect<>(stateChanged, state, copy, stop);
+        return new ActorEffect<>(stateChanged, state, copy, stop, passivate);
     }
 
     public ActorEffect<S> stopping() {
-        return new ActorEffect<>(stateChanged, state, deliveries, true);
+        return new ActorEffect<>(stateChanged, state, deliveries, true, false);
+    }
+
+    /** Stops and releases this local actor incarnation after its accepted work is settled. */
+    public ActorEffect<S> passivating() {
+        return new ActorEffect<>(stateChanged, state, deliveries, true, true);
     }
 
     public boolean stateChanged() {
@@ -77,6 +85,10 @@ public final class ActorEffect<S> {
 
     public boolean stopsActor() {
         return stop;
+    }
+
+    public boolean passivatesActor() {
+        return passivate;
     }
 
     /** A local, best-effort send after state replacement; delay zero means immediate. */

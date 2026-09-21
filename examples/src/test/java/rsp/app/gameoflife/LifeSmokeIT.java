@@ -2,6 +2,7 @@ package rsp.app.gameoflife;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import org.junit.jupiter.api.Test;
 
@@ -13,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /** Optional browser check for the actor-to-component event bridge. */
 class LifeSmokeIT {
     @Test
-    void twoPagesObserveTheSameGameAndControls() {
+    void twoPagesHaveIndependentGamesAndControls() {
         try (var server = Life.server(0, new Random(42));
              Playwright playwright = Playwright.create();
              Browser browser = playwright.chromium().launch();
@@ -29,12 +30,21 @@ class LifeSmokeIT {
 
             first.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON,
                     new com.microsoft.playwright.Page.GetByRoleOptions().setName("Start")).click();
-            assertThat(second.locator(".game > p").first()).containsText("RUNNING");
-            second.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON,
+            assertThat(first.locator(".game > p").first()).containsText("RUNNING");
+            assertThat(second.locator(".game > p").first()).containsText("READY");
+            first.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON,
                     new com.microsoft.playwright.Page.GetByRoleOptions().setName("Pause")).click();
             assertThat(first.locator(".game > p").first()).containsText("PAUSED");
             first.locator(".board > div").first().click();
-            assertThat(second.locator(".board > div").first()).hasClass("c1");
+            assertThat(first.locator(".board > div").first()).hasClass("c1");
+            assertThat(second.locator(".board > div").first()).hasClass("c0");
+
+            long firstId = Long.parseLong(first.locator(".game > p").first()
+                    .innerText().split(" ")[1]);
+            first.evaluate("() => window.RSP.disconnect()");
+            first.waitForFunction("id => fetch('/api/games/' + id).then(response => response.status === 404)",
+                    Long.toString(firstId), new Page.WaitForFunctionOptions().setTimeout(5000));
+            assertThat(second.locator(".game > p").first()).containsText("READY");
         }
     }
 }
