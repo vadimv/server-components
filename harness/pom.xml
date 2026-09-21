@@ -15,5 +15,6 @@
     <modules>
         <module>pbt</module>
         <module>mutate</module>
+        <module>actor-testkit</module>
     </modules>
 </project>

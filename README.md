@@ -59,6 +59,7 @@ deterministic local stub and requires no API key.
 - [Getting started](docs/getting-started.md)
 - [Examples](docs/examples.md)
 - [HTTP and WebSocket server](docs/reference/http-server.md)
+- [Local actors](docs/reference/actors.md)
 - [Core runtime and component concepts](docs/concepts/core.md)
 - [Application context and lifecycle](docs/concepts/application-context.md)
 - [Authentication](docs/concepts/authentication.md)

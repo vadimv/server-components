@@ -35,4 +35,5 @@ are short signposts for people browsing the source tree.
 
 - [Module map](reference/module-map.md)
 - [HTTP server](reference/http-server.md)
+- [Local actors](reference/actors.md)
 - [API and Javadocs](reference/api.md)

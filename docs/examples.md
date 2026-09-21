@@ -43,7 +43,13 @@ Or from your IDE, by running the `main` method of the entry-point class.
 ### 4. Life — Conway's Game of Life
 - Entry point: [Life.java](../examples/src/main/java/rsp/app/gameoflife/Life.java)
 - URL: <http://localhost:8082>
-- Demonstrates: large grid rendering, click-to-toggle cells, control buttons (Start / Stop / Clear / Random), and the `onUpdated` / `onUnmounted` lifecycle hooks driving a `ScheduledExecutorService` to advance generations. Also shows serving CSS via `StaticResources`.
+- Demonstrates: one shared `life-demo` actor owning the board, game status,
+  and self-scheduled ticks; a live component sends commands and receives
+  coalesced snapshots through `ui-actor`. Mount/unmount subscribe and close the
+  UI sink. Ordinary HTTP routes discover the game (`GET /api/games`), read its
+  status (`GET /api/games/life-demo`), and start, pause, or reset it with POST
+  routes. CSS is served with `StaticResources`. The smaller 40×25 board and
+  150 ms tick keep this actor/UI example responsive.
 
 ### 5. Counters — multiple components synced to the URL
 - Entry point: [Counters.java](../examples/src/main/java/rsp/app/counters/Counters.java)
@@ -88,9 +94,10 @@ Or from your IDE, by running the `main` method of the entry-point class.
 | Custom `Component<S>` subclass                           |         |     +     |       |  +   |    +     |    +    |
 | Sealed-interface state                                   |         |     +     |       |      |    +     |         |
 | `ElementRef` / form submit                               |         |           |   +   |      |          |    +    |
-| HTTP route + UI page on one server                       |         |     +     |       |      |          |    +    |
+| HTTP route + UI page on one server                       |         |     +     |       |  +   |          |    +    |
 | HTTP method / query-param branching                      |         |     +     |       |      |          |         |
-| Lifecycle hooks (`onUpdated` / `onUnmounted`)            |         |           |       |  +   |          |    +    |
+| Lifecycle hooks (mount / update / unmount)                |         |           |       |  +   |          |    +    |
+| Actor commands + lifecycle-bound snapshot subscription  |         |           |       |  +   |          |         |
 | URL ↔ state sync (`AddressBarSyncComponent`)             |         |           |       |      |    +     |         |
 | Persistent state across unmount (`StoredStateComponent`) |         |           |       |      |    +     |         |
 | Conditional rendering (`when(...)`)                      |         |           |   +   |  +   |    +     |    +    |

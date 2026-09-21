@@ -1,31 +1,44 @@
 package rsp.app.gameoflife;
 
-import java.util.Random;
+import java.util.Objects;
+import java.util.random.RandomGenerator;
 
-public class Board {
-    public static final int HEIGHT = 50;
-    public static final int WIDTH = 100;
+/** Immutable Conway board; its backing array never escapes the actor. */
+public final class Board {
+    public static final int HEIGHT = 25;
+    public static final int WIDTH = 40;
     private static final int LENGTH = HEIGHT * WIDTH;
-
     private static final float RANDOM_FILL_RATIO = 0.2f;
 
-    public final boolean[] cells;
+    private final boolean[] cells;
 
     private Board(boolean[] cells) {
         this.cells = cells;
     }
 
-    public static Board create(boolean random) {
-        return new Board(random ? randomFilled(LENGTH) : new boolean[LENGTH]);
+    public static Board empty() {
+        return new Board(new boolean[LENGTH]);
     }
 
-    private static boolean[] randomFilled(int size) {
-        final boolean[] b = new boolean[size];
-        final Random random = new Random();
-        for (int i = 0; i < size; i++) {
-            b[i] = random.nextFloat() < RANDOM_FILL_RATIO;
+    public static Board random(RandomGenerator random) {
+        Objects.requireNonNull(random, "random");
+        boolean[] cells = new boolean[LENGTH];
+        for (int index = 0; index < cells.length; index++) {
+            cells[index] = random.nextFloat() < RANDOM_FILL_RATIO;
         }
-        return b;
+        return new Board(cells);
+    }
+
+    public int size() {
+        return cells.length;
+    }
+
+    public boolean isAlive(int index) {
+        return cells[index];
+    }
+
+    public boolean contains(int x, int y) {
+        return x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT;
     }
 
     public static int x(int index) {
@@ -36,56 +49,43 @@ public class Board {
         return index / WIDTH;
     }
 
-    public static int index(int y, int x) {
-        return (y * WIDTH) + (x % WIDTH);
-    }
-
-    public Board setActive(int x, int y, boolean a) {
-        final boolean[] copy = cells.clone();
-        copy[index(y, x)] = a;
-        return new Board(copy);
+    private static int index(int y, int x) {
+        return y * WIDTH + x;
     }
 
     public Board toggle(int x, int y) {
-        return setActive(x, y, !cells[index(y, x)]);
-    }
-
-    public Board advance() {
-        final boolean[] copy = new boolean[cells.length];
-        for(int y = 0; y < HEIGHT; y++) {
-            for(int x = 0; x < WIDTH; x++) {
-                final int n = neighbours(x, y);
-                final int i = index(y, x);
-                if (cells[index(y, x)]) {
-                    if (n < 2 || n > 3) copy[i] = false; // the cell dies
-                        else copy[i] = cells[i];
-                } else {
-                    if (n == 3) copy[i] = true; // becomes a live cell
-                        else copy[i] = cells[i];
-                }
-            }
+        if (!contains(x, y)) {
+            throw new IllegalArgumentException("Cell is outside the board");
         }
+        boolean[] copy = cells.clone();
+        int index = index(y, x);
+        copy[index] = !copy[index];
         return new Board(copy);
     }
 
-    private int neighbours(int x, int y) {
-        // If the cell is at the edge use as its neighbours the cells on the opposite edge
-        final int topY = y - 1 < 0 ? (HEIGHT - 1) : y - 1;
-        final int bottomY = (y + 1 == HEIGHT) ? 0 : y + 1;
-        final int leftX = x - 1 < 0 ? (WIDTH - 1) : x - 1;
-        final int rightX = (x + 1 == WIDTH) ? 0 : x + 1;
-
-        return b2i(cells[index(topY, leftX)])
-                + b2i(cells[index(topY, x)])
-                + b2i(cells[index(topY, rightX)])
-                + b2i(cells[index(y, leftX)])
-                + b2i(cells[index(y, rightX)])
-                + b2i(cells[index(bottomY, leftX)])
-                + b2i(cells[index(bottomY, x)])
-                + b2i(cells[index(bottomY, rightX)]);
+    public Board advance() {
+        boolean[] next = new boolean[cells.length];
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
+                int neighbours = neighbours(x, y);
+                int index = index(y, x);
+                next[index] = neighbours == 3 || cells[index] && neighbours == 2;
+            }
+        }
+        return new Board(next);
     }
 
-    private static int b2i(boolean value) {
-        return value ? 1 : 0;
+    private int neighbours(int x, int y) {
+        int top = (y + HEIGHT - 1) % HEIGHT;
+        int bottom = (y + 1) % HEIGHT;
+        int left = (x + WIDTH - 1) % WIDTH;
+        int right = (x + 1) % WIDTH;
+        return alive(top, left) + alive(top, x) + alive(top, right)
+                + alive(y, left) + alive(y, right)
+                + alive(bottom, left) + alive(bottom, x) + alive(bottom, right);
+    }
+
+    private int alive(int y, int x) {
+        return cells[index(y, x)] ? 1 : 0;
     }
 }

@@ -9,6 +9,8 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | --- | --- | --- | --- |
 | `authentication-api` | Immutable request/page identity and roles | none | Direct for authentication integrations or identity-aware UI |
 | `application-api` | Immutable configuration, typed application services, and process lifecycle | none | Direct for shared REST or UI application resources |
+| `actor-api` | Typed logical actor identities, references, immutable effects, and actor-system lifecycle | `application-api` | Direct for message-driven domain protocols |
+| `actor-runtime` | In-JVM keyed actors, bounded mailboxes, scheduling, and local ask/reply | `actor-api` | Direct when running local actors |
 | `json` | JSON value model, parser, limits, writer, domain codecs, and immutable object-building/access helpers | none | Usually transitive |
 | `url` | Immutable URL values and generic route templates/tables | none | Direct for framework-neutral routing |
 | `http-api` | Transport-neutral HTTP request, response/result, headers, cookies, bodies, and lifecycle-aware applications | `application-api`, `url` | Direct for REST applications and server adapters |
@@ -16,9 +18,11 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `http-routing` | Immutable, composable, method-aware HTTP-response router and shared route-metadata catalog over generic URL route tables | `http-api` | Direct for routed REST applications |
 | `http-json` | JSON request validation, tree/domain-codec decoding, responses, and error envelopes | `http-api`, `json` | Direct for JSON HTTP APIs without routing policy |
 | `http-rest` | REST route adapters for JSON bodies and expected JSON error mapping | `http-api`, `http-routing`, `http-json`, `json` | Direct for routed JSON REST applications |
+| `http-actor` | Optional actor ask/reply handlers for ordinary HTTP and JSON routes | `actor-api`, `http-rest` | Direct for actor-backed REST endpoints |
 | `http-openapi` | OpenAPI 3.1 operation/schema metadata and deterministic documents from exact routes | `http-api`, `http-routing`, `http-json`, `json` | Direct when publishing an OpenAPI description |
 | `websocket-api` | UI-independent endpoint, session, listener, error, and close-code contracts | `http-api` | Direct for custom WebSocket endpoints |
 | `ui-core` | HTML DSL, components, DOM diffing, and live page sessions | `url`, `json` | Direct for custom UI adapters or low-level runtime use |
+| `ui-actor` | Mount-owned actor snapshot sink for component event loops | `actor-api`, `ui-core` | Direct for actor-backed live components |
 | `js-client` | Browser bridge sources and packaged client bundle | none | Usually transitive through `ui-http` |
 | `authorization` | ABAC policies, attributes, and delegation grants | none | Direct for custom policies |
 | `schema` | Field, validation, widget, and list-column metadata | none | Direct for schema-driven UI |
@@ -44,6 +48,7 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | --- | --- | --- |
 | `pbt` | In-house property-based generators, shrinking, classification, and runner | Test dependency |
 | `mutate` | Mutation engine and forked JUnit runner | Test dependency |
+| `actor-testkit` | Manual actor executor and clock, probes, and local-runtime fixtures | Test dependency |
 | `examples` | Runnable demonstrations and browser integration tests | Not an application dependency |
 
 Start with `ui-http` for a live UI application. For a REST-only application,
@@ -51,6 +56,9 @@ combine `server-socket` with `http-rest`; it transitively provides routing and J
 conveniences without pulling in the UI runtime. Applications needing only one
 lower-level concern can use `http-routing` or `http-json` independently. Add
 `http-middleware` for shared production policy and `http-openapi` for a generated
-OpenAPI 3.1 document. Add `compositions` for routed admin UI, then opt into
+OpenAPI 3.1 document. Use `actor-runtime` with `actor-api` for local message-driven
+services, adding `http-actor` only for actor-backed routes and `ui-actor` only
+for actor-backed components; see the
+[actor reference](actors.md). Add `compositions` for routed admin UI, then opt into
 extensions individually. See
 [getting started](../getting-started.md) for dependency examples.

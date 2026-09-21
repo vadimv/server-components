@@ -22,6 +22,8 @@ public record HttpStatus(int code, String reasonPhrase) {
             new HttpStatus(431, "Request Header Fields Too Large");
     public static final HttpStatus INTERNAL_SERVER_ERROR = new HttpStatus(500, "Internal Server Error");
     public static final HttpStatus NOT_IMPLEMENTED = new HttpStatus(501, "Not Implemented");
+    public static final HttpStatus SERVICE_UNAVAILABLE = new HttpStatus(503, "Service Unavailable");
+    public static final HttpStatus GATEWAY_TIMEOUT = new HttpStatus(504, "Gateway Timeout");
 
     public HttpStatus {
         if (code < 100 || code > 999) {
@@ -52,6 +54,8 @@ public record HttpStatus(int code, String reasonPhrase) {
             case 431 -> REQUEST_HEADER_FIELDS_TOO_LARGE;
             case 500 -> INTERNAL_SERVER_ERROR;
             case 501 -> NOT_IMPLEMENTED;
+            case 503 -> SERVICE_UNAVAILABLE;
+            case 504 -> GATEWAY_TIMEOUT;
             default -> new HttpStatus(code, "");
         };
     }

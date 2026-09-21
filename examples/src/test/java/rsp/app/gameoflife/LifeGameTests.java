@@ -1,0 +1,209 @@
+package rsp.app.gameoflife;
+
+import org.junit.jupiter.api.Test;
+import rsp.actor.ActorRef;
+import rsp.actor.runtime.LocalActorSystem;
+import rsp.actor.testkit.ActorProbe;
+import rsp.actor.testkit.ActorTestKit;
+import rsp.component.ComponentCompositeKey;
+import rsp.component.StateUpdater;
+import rsp.dom.TreePositionPath;
+import rsp.http.HttpHeaders;
+import rsp.http.HttpMethod;
+import rsp.http.HttpRequest;
+import rsp.http.HttpResponse;
+import rsp.http.HttpStatus;
+import rsp.http.RequestBody;
+import rsp.page.QualifiedSessionId;
+import rsp.url.Path;
+import rsp.url.Query;
+import rsp.util.json.Json;
+import rsp.util.json.JsonDataType;
+
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Random;
+import java.util.ArrayDeque;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class LifeGameTests {
+    @Test
+    void boardAdvancesWithoutMutatingPublishedSnapshots() {
+        Board before = Board.empty().toggle(1, 1).toggle(2, 1).toggle(3, 1);
+        Board after = before.advance();
+        assertTrue(before.isAlive(1 + Board.WIDTH));
+        assertFalse(after.isAlive(1 + Board.WIDTH));
+        assertTrue(after.isAlive(2));
+        assertTrue(after.isAlive(2 + Board.WIDTH));
+        assertTrue(after.isAlive(2 + Board.WIDTH * 2));
+    }
+
+    @Test
+    void subscribersReceiveInitialSnapshotAndOnlyLiveSubscribersReceiveChanges() {
+        Fixture fixture = new Fixture();
+        ActorProbe<LifeGame.Snapshot> first = fixture.kit.probe();
+        ActorProbe<LifeGame.Snapshot> second = fixture.kit.probe();
+        fixture.game.tell(new LifeGame.Subscribe(first));
+        fixture.game.tell(new LifeGame.Subscribe(second));
+        fixture.kit.runAll();
+        assertEquals(LifeGame.Phase.READY, first.messages().getFirst().summary().status());
+        assertEquals(LifeGame.ID, first.messages().getFirst().summary().id());
+        assertEquals(1, second.messages().size());
+
+        fixture.game.tell(new LifeGame.ToggleCell(2, 3));
+        fixture.kit.runAll();
+        assertTrue(first.messages().getLast().board().isAlive(3 * Board.WIDTH + 2));
+        assertFalse(first.messages().getFirst().board().isAlive(3 * Board.WIDTH + 2));
+        assertEquals(2, second.messages().size());
+
+        fixture.game.tell(new LifeGame.Unsubscribe(first));
+        fixture.game.tell(LifeGame.Control.of(LifeGame.Action.RESET));
+        fixture.kit.runAll();
+        assertEquals(2, first.messages().size());
+        assertEquals(3, second.messages().size());
+        assertFalse(second.messages().getLast().board().isAlive(3 * Board.WIDTH + 2));
+        fixture.actors.stop();
+    }
+
+    @Test
+    void pauseAndResetInvalidateOldTicksAndControlsAreIdempotent() {
+        Fixture fixture = new Fixture();
+        ActorProbe<LifeGame.GameSummary> replies = fixture.kit.probe();
+        fixture.game.tell(LifeGame.Control.replying(LifeGame.Action.START, replies));
+        fixture.kit.runAll();
+        assertEquals(LifeGame.Phase.RUNNING, replies.messages().getLast().status());
+        assertEquals(1, fixture.kit.scheduler().pendingCount());
+        fixture.game.tell(LifeGame.Control.of(LifeGame.Action.START));
+        fixture.kit.runAll();
+        assertEquals(1, fixture.kit.scheduler().pendingCount());
+
+        fixture.game.tell(LifeGame.Control.of(LifeGame.Action.PAUSE));
+        fixture.game.tell(LifeGame.Control.of(LifeGame.Action.START));
+        fixture.kit.runAll();
+        fixture.kit.advance(LifeGame.TICK_INTERVAL);
+        fixture.game.tell(new LifeGame.Status(replies));
+        fixture.kit.runAll();
+        assertEquals(1, replies.messages().getLast().generation());
+
+        fixture.game.tell(LifeGame.Control.of(LifeGame.Action.RESET));
+        fixture.kit.runAll();
+        fixture.kit.advance(LifeGame.TICK_INTERVAL.multipliedBy(3));
+        fixture.game.tell(new LifeGame.Status(replies));
+        fixture.kit.runAll();
+        assertEquals(LifeGame.Phase.READY, replies.messages().getLast().status());
+        assertEquals(0, replies.messages().getLast().generation());
+        assertEquals(0, fixture.kit.scheduler().pendingCount());
+        fixture.actors.stop();
+    }
+
+    @Test
+    void statusAndControlRoutesUsePublicGameIdAndDoNotCreateUnknownActors() {
+        Fixture fixture = new Fixture();
+        var router = LifeRoutes.router(fixture.actors);
+        var catalog = router.handle(request(HttpMethod.GET, "/api/games"));
+        fixture.kit.runAll();
+        HttpResponse listed = catalog.toCompletableFuture().join();
+        JsonDataType.Array games = (JsonDataType.Array) Json.parse(read(listed));
+        assertEquals(1, games.elements().length);
+        assertEquals(LifeGame.ID, Json.requireObject(games.elements()[0]).requiredString("id"));
+
+        HttpResponse unknown = router.handle(request(HttpMethod.GET, "/api/games/missing"))
+                .toCompletableFuture().join();
+        assertEquals(HttpStatus.NOT_FOUND, unknown.status());
+
+        var started = router.handle(request(HttpMethod.POST, "/api/games/life-demo/start"));
+        fixture.kit.runAll();
+        assertEquals("RUNNING", Json.requireObject(Json.parse(read(started.toCompletableFuture().join())))
+                .requiredString("status"));
+        var paused = router.handle(request(HttpMethod.POST, "/api/games/life-demo/pause"));
+        fixture.kit.runAll();
+        assertEquals("PAUSED", Json.requireObject(Json.parse(read(paused.toCompletableFuture().join())))
+                .requiredString("status"));
+        fixture.actors.stop();
+    }
+
+    @Test
+    void componentMountProjectsActorSnapshotsAndUnmountStopsDelivery() {
+        Fixture fixture = new Fixture();
+        LifeComponent component = new LifeComponent(fixture.game);
+        ComponentCompositeKey componentId = new ComponentCompositeKey(
+                new QualifiedSessionId("device", "one"), LifeComponent.class, TreePositionPath.of("1"));
+        RecordingUpdater updater = new RecordingUpdater();
+
+        component.onMounted(componentId, updater.state, updater);
+        fixture.kit.runAll();
+        updater.runAll();
+        assertEquals(LifeGame.Phase.READY, updater.state.snapshot().orElseThrow().summary().status());
+
+        component.onIntentDispatched(new LifeComponent.Toggle(2, 3), updater.state, updater);
+        fixture.kit.runAll();
+        updater.runAll();
+        assertTrue(updater.state.snapshot().orElseThrow().board().isAlive(3 * Board.WIDTH + 2));
+
+        component.onUnmounted(componentId, updater.state);
+        fixture.kit.runAll();
+        fixture.game.tell(new LifeGame.ToggleCell(4, 5));
+        fixture.kit.runAll();
+        updater.runAll();
+        assertFalse(updater.state.snapshot().orElseThrow().board().isAlive(5 * Board.WIDTH + 4));
+        fixture.actors.stop();
+    }
+
+    private static HttpRequest request(HttpMethod method, String path) {
+        return new HttpRequest(method, path, path, URI.create("http://localhost" + path),
+                "http://localhost" + path, Path.parse(path), Query.EMPTY,
+                HttpHeaders.EMPTY, RequestBody.EMPTY);
+    }
+
+    private static String read(HttpResponse response) {
+        try (var stream = response.body().openStream()) {
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (java.io.IOException failure) {
+            throw new AssertionError(failure);
+        }
+    }
+
+    private static final class Fixture {
+        private final ActorTestKit kit = new ActorTestKit();
+        private final LocalActorSystem actors = LocalActorSystem.builder()
+                .executor(kit.executor()).scheduler(kit.scheduler())
+                .register(LifeGame.definition(new Random(42)))
+                .build();
+        private final ActorRef<LifeGame.Command> game = actors.ref(LifeGame.TYPE, LifeGame.ID);
+
+        private Fixture() {
+            actors.start();
+        }
+    }
+
+    private static final class RecordingUpdater implements StateUpdater<State> {
+        private final Queue<UnaryOperator<State>> work = new ArrayDeque<>();
+        private State state = State.loading();
+
+        @Override
+        public void setState(State next) {
+            work.add(_ -> next);
+        }
+
+        @Override
+        public void applyStateTransformation(UnaryOperator<State> transformation) {
+            work.add(transformation);
+        }
+
+        @Override
+        public void applyStateTransformationIfPresent(Function<State, Optional<State>> transformation) {
+            work.add(current -> transformation.apply(current).orElse(current));
+        }
+
+        void runAll() {
+            while (!work.isEmpty()) {
+                state = work.remove().apply(state);
+            }
+        }
+    }
+}
