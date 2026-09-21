@@ -105,6 +105,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
     private final List<Node> rootNodes = new ArrayList<>();
     private final Map<MetricObjectType, MetricObject> metricObjects = new LinkedHashMap<>();
     private final Set<ContextScope.Controller> contextMirrors = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Deque<AutoCloseable> ownedResources = new ArrayDeque<>();
 
     /**
      * The context propagated from ancestors. Mutable: the framework's reconciliation path
@@ -327,6 +328,17 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
      */
     public ContextScope contextScope() {
         return contextScope;
+    }
+
+    /** Owns a mount-scoped resource and closes it after {@code onUnmounted}. */
+    public <T extends AutoCloseable> T own(final T resource) {
+        Objects.requireNonNull(resource, "resource");
+        if (isUnmounted) {
+            closeOwnedResource(resource);
+            throw new IllegalStateException("Component is unmounted");
+        }
+        ownedResources.push(resource);
+        return resource;
     }
 
     /**
@@ -801,12 +813,23 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
             recursiveChildren().forEach(ComponentSegment::unmount);
             withCallbackOwner(this, () -> callbacks.onUnmounted(componentId, state));
         } finally {
+            while (!ownedResources.isEmpty()) {
+                closeOwnedResource(ownedResources.pop());
+            }
             closeMetricObjects();
             componentEventOwners.clear();
             componentEventEntries.clear();
             contextScope.clear();
             contextMirrors.clear();
             metrics.incrementCounter(MetricNames.SEGMENT_UNMOUNTED);
+        }
+    }
+
+    private void closeOwnedResource(final AutoCloseable resource) {
+        try {
+            resource.close();
+        } catch (Exception failure) {
+            logger.log(WARNING, () -> failure("Component resource cleanup failed", failure));
         }
     }
 

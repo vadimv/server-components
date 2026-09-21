@@ -17,6 +17,8 @@
         <module>application-api</module>
         <module>actor-api</module>
         <module>actor-runtime</module>
+        <module>stream-api</module>
+        <module>actor-stream</module>
         <module>json</module>
         <module>url</module>
         <module>http-api</module>

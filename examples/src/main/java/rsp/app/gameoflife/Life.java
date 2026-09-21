@@ -2,6 +2,7 @@ package rsp.app.gameoflife;
 
 import rsp.actor.ActorSystem;
 import rsp.actor.runtime.LocalActorSystem;
+import rsp.actor.ui.PageActorDirectory;
 import rsp.application.ApplicationContext;
 import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
@@ -35,7 +36,8 @@ public final class Life {
         ApplicationContext application = ApplicationContext.builder()
                 .service(ActorSystem.class, actors)
                 .build();
-        LifeGames games = new LifeGames(actors);
+        PageActorDirectory<Long, LifeGame.Command> games = PageActorDirectory.numbered(
+                actors, LifeGame.TYPE, LifeGame.Close::new);
         LifeComponent component = new LifeComponent(games);
         return new WebServer(port)
                 .pageApplication(PageApplication.withLifecycle(application,

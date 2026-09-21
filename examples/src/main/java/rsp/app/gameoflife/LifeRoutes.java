@@ -6,6 +6,7 @@ import rsp.actor.ActorRef;
 import rsp.actor.ActorSystem;
 import rsp.actor.SendResult;
 import rsp.actor.http.ActorRouteHandler;
+import rsp.actor.ui.PageActorDirectory;
 import rsp.http.HttpStatus;
 import rsp.http.json.JsonHttp;
 import rsp.http.rest.RestException;
@@ -28,7 +29,7 @@ final class LifeRoutes {
     private LifeRoutes() {
     }
 
-    static HttpRouter router(ActorSystem actors, LifeGames games) {
+    static HttpRouter router(ActorSystem actors, PageActorDirectory<Long, LifeGame.Command> games) {
         return HttpRouter.builder()
                 .get("/api/games", RestRouteHandler.async((_, _) -> {
                     List<CompletableFuture<Optional<LifeGame.GameSummary>>> summaries = games.all().stream()
@@ -51,7 +52,8 @@ final class LifeRoutes {
     }
 
     private static CompletableFuture<Optional<LifeGame.GameSummary>> summary(
-            ActorSystem actors, LifeGames games, LifeGames.Game game) {
+            ActorSystem actors, PageActorDirectory<Long, LifeGame.Command> games,
+            PageActorDirectory.Entry<Long, LifeGame.Command> game) {
         return actors.<LifeGame.Command, LifeGame.GameSummary>ask(
                 game.ref(), LifeGame.Status::new, DEADLINE).handle((value, failure) -> {
                     if (failure == null) {
@@ -79,14 +81,17 @@ final class LifeRoutes {
                 }).toCompletableFuture();
     }
 
-    private static RestRouteHandler control(ActorSystem actors, LifeGames games, LifeGame.Action action) {
+    private static RestRouteHandler control(ActorSystem actors,
+                                            PageActorDirectory<Long, LifeGame.Command> games,
+                                            LifeGame.Action action) {
         return ActorRouteHandler.<LifeGame.Command, LifeGame.GameSummary>ask(
                 actors, (_, route) -> game(games, route),
                 (_, _, replyTo) -> LifeGame.Control.replying(action, replyTo),
                 DEADLINE, summary -> JsonHttp.response(json(summary)));
     }
 
-    private static ActorRef<LifeGame.Command> game(LifeGames games, HttpRouteContext route) {
+    private static ActorRef<LifeGame.Command> game(PageActorDirectory<Long, LifeGame.Command> games,
+                                                    HttpRouteContext route) {
         String rawId = route.requiredParameter("id");
         long id;
         try {

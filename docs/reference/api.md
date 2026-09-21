@@ -15,6 +15,8 @@ and attaches a `*-javadoc.jar`. For example:
 - `system/application-api/target/apidocs/index.html`
 - `system/actor-api/target/apidocs/index.html`
 - `system/actor-runtime/target/apidocs/index.html`
+- `system/stream-api/target/apidocs/index.html`
+- `system/actor-stream/target/apidocs/index.html`
 - `system/http-api/target/apidocs/index.html`
 - `system/http-middleware/target/apidocs/index.html`
 - `system/http-routing/target/apidocs/index.html`

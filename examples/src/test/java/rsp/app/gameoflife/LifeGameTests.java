@@ -3,9 +3,12 @@ package rsp.app.gameoflife;
 import org.junit.jupiter.api.Test;
 import rsp.actor.ActorRef;
 import rsp.actor.runtime.LocalActorSystem;
+import rsp.actor.ui.PageActorDirectory;
 import rsp.actor.testkit.ActorProbe;
 import rsp.actor.testkit.ActorTestKit;
 import rsp.component.ComponentCompositeKey;
+import rsp.component.ComponentContext;
+import rsp.component.ContextKey;
 import rsp.component.StateUpdater;
 import rsp.dom.TreePositionPath;
 import rsp.http.HttpHeaders;
@@ -15,6 +18,9 @@ import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
 import rsp.http.RequestBody;
 import rsp.page.QualifiedSessionId;
+import rsp.page.PageBuilder;
+import rsp.page.PageScope;
+import rsp.page.RedirectableEventsConsumer;
 import rsp.url.Path;
 import rsp.url.Query;
 import rsp.util.json.Json;
@@ -146,8 +152,14 @@ class LifeGameTests {
         ComponentCompositeKey componentId = new ComponentCompositeKey(
                 Fixture.SESSION, LifeComponent.class, TreePositionPath.of("1"));
         RecordingUpdater updater = new RecordingUpdater();
+        PageBuilder builder = new PageBuilder(Fixture.SESSION, Optional.empty(),
+                new ComponentContext().with(new ContextKey.ClassKey<>(PageScope.class), fixture.scope),
+                new RedirectableEventsConsumer());
+        var segment = component.createComponentSegment(Fixture.SESSION, TreePositionPath.of("1"),
+                builder, new ComponentContext().with(new ContextKey.ClassKey<>(PageScope.class), fixture.scope),
+                new RedirectableEventsConsumer());
 
-        component.onMounted(componentId, updater.state, updater);
+        component.onMounted(segment, componentId, updater.state, new RedirectableEventsConsumer(), updater);
         fixture.kit.runAll();
         updater.runAll();
         assertEquals(LifeGame.Phase.READY, updater.state.snapshot().orElseThrow().summary().status());
@@ -157,10 +169,14 @@ class LifeGameTests {
         updater.runAll();
         assertTrue(updater.state.snapshot().orElseThrow().board().isAlive(3 * Board.WIDTH + 2));
 
-        component.onUnmounted(componentId, updater.state);
+        segment.unmount();
+        fixture.kit.runAll();
+        assertEquals(rsp.actor.SendResult.ACCEPTED,
+                fixture.game.tell(new LifeGame.ToggleCell(4, 5)));
+        fixture.scope.close();
         fixture.kit.runAll();
         assertEquals(rsp.actor.SendResult.STOPPED,
-                fixture.game.tell(new LifeGame.ToggleCell(4, 5)));
+                fixture.game.tell(new LifeGame.ToggleCell(5, 5)));
         fixture.kit.runAll();
         updater.runAll();
         assertFalse(updater.state.snapshot().orElseThrow().board().isAlive(5 * Board.WIDTH + 4));
@@ -170,8 +186,9 @@ class LifeGameTests {
     @Test
     void separatePageSessionsReceiveSeparateGameActors() {
         Fixture fixture = new Fixture();
-        assertEquals(fixture.sessionGame.id(), fixture.games.open(Fixture.SESSION).id());
-        LifeGames.Game other = fixture.games.open(new QualifiedSessionId("device", "two"));
+        assertEquals(fixture.sessionGame.id(), fixture.games.forPage(Fixture.SESSION, fixture.scope).id());
+        PageActorDirectory.Entry<Long, LifeGame.Command> other = fixture.games.forPage(
+                new QualifiedSessionId("device", "two"), new PageScope());
         assertNotEquals(fixture.sessionGame.id(), other.id());
         ActorProbe<LifeGame.Snapshot> first = fixture.kit.probe();
         ActorProbe<LifeGame.Snapshot> second = fixture.kit.probe();
@@ -187,7 +204,7 @@ class LifeGameTests {
         fixture.games.close(Fixture.SESSION);
         fixture.kit.runAll();
         assertEquals(rsp.actor.SendResult.STOPPED, fixture.game.tell(new LifeGame.ToggleCell(1, 1)));
-        assertNotEquals(fixture.sessionGame.id(), fixture.games.open(Fixture.SESSION).id());
+        assertNotEquals(fixture.sessionGame.id(), fixture.games.forPage(Fixture.SESSION, fixture.scope).id());
         assertEquals(rsp.actor.SendResult.ACCEPTED, other.ref().tell(new LifeGame.ToggleCell(1, 1)));
         fixture.kit.runAll();
         assertTrue(second.messages().getLast().board().isAlive(1 + Board.WIDTH));
@@ -215,8 +232,10 @@ class LifeGameTests {
                 .executor(kit.executor()).scheduler(kit.scheduler())
                 .register(LifeGame.definition(new Random(42)))
                 .build();
-        private final LifeGames games = new LifeGames(actors);
-        private final LifeGames.Game sessionGame = games.open(SESSION);
+        private final PageActorDirectory<Long, LifeGame.Command> games = PageActorDirectory.numbered(
+                actors, LifeGame.TYPE, LifeGame.Close::new);
+        private final PageScope scope = new PageScope();
+        private final PageActorDirectory.Entry<Long, LifeGame.Command> sessionGame = games.forPage(SESSION, scope);
         private final ActorRef<LifeGame.Command> game = sessionGame.ref();
 
         private Fixture() {

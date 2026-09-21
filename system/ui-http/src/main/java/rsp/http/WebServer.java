@@ -174,7 +174,6 @@ public class WebServer implements ApplicationLifecycle {
         if (transport == null) {
             return;
         }
-        pagesStorage.clear();
         try {
             transport.stop();
         } finally {
@@ -256,7 +255,7 @@ public class WebServer implements ApplicationLifecycle {
         staticResourceHandler = staticResources.map(resources ->
                 new StaticResourceHandler(resources.resourcesBaseDir(), resources.contextPath()));
         httpHandler = new PageHttpHandler(pagesStorage, pageApplication,
-                DEFAULT_HEARTBEAT_INTERVAL_MS, metrics);
+                DEFAULT_HEARTBEAT_INTERVAL_MS, metrics, localSessionRegistry::register);
         rsp.http.routing.HttpRouter.Builder routesBuilder = rsp.http.routing.HttpRouter.builder()
                 .include(applicationRoutes.build());
         addResultRoutes(routesBuilder, resultRoutes, httpHandler);

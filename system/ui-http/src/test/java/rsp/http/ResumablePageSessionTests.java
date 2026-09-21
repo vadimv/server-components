@@ -245,7 +245,7 @@ class ResumablePageSessionTests {
                                                             new ComponentContext(),
                                                             commands);
             session = new ResumablePageSession(SESSION_ID,
-                                               new RenderedPage(pageBuilder, commands),
+                                               new RenderedPage(pageBuilder, commands, new rsp.page.PageScope()),
                                                eventLoop,
                                                config,
                                                scheduler,

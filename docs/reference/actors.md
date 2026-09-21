@@ -1,8 +1,8 @@
 # Local Actors
 
 The local actor runtime provides typed, in-JVM message passing. Its core remains
-independent of HTTP, UI components, streams, and persistence; `http-actor` is an
-optional adapter over the ordinary HTTP router.
+independent of HTTP, UI components, streams, and persistence; `http-actor` and
+`actor-stream` are optional adapters over ordinary HTTP and stream contracts.
 
 An `ActorType<K, M>` defines a stable logical name, a message class, and a key
 encoder. `ActorId<M>` identifies one keyed instance; `ActorRef<M>` exposes only
@@ -136,14 +136,22 @@ like other routes.
 `StateUpdater`, keeping actor threads out of rendering. When several snapshots
 arrive before the UI processes them, only the latest pending snapshot is used.
 The sink is unsuitable for deltas or events that must each be observed.
-Close it in `onUnmounted` before sending an unsubscribe command; queued or late
-events then become no-ops. A page queue that rejects an update closes the sink
-and reports `STOPPED` to the sender without failing the actor. The actor remains
+Close it before sending an unsubscribe command; queued or late events then
+become no-ops. `UiActorBinding` manages this ordering, and the optional
+`UiActors.observe(segment, updater, actor, projector, subscribe, unsubscribe)`
+facade owns an accepted binding on the component mount. A page queue that
+rejects an update closes the sink and reports `STOPPED` to the sender without
+failing the actor. The actor remains
 authoritative, while component state is only its rendered projection.
 
+`PageActorDirectory` is an optional application-scoped catalog for one actor
+of a chosen type per page. `numbered(...)` supplies numeric IDs for REST
+routes; `forPage(...)` reuses the actor across remounts, and the page scope
+removes its catalog entry and sends a close message on teardown. It is not a
+durable actor store, authorization layer, or delivery guarantee.
+
 The [Life example](../../examples/src/main/java/rsp/app/gameoflife/Life.java)
-creates one actor per logical page session, with a numeric ID in an explicit
-active-game catalog. Two pages have independent boards; a WebSocket reconnect
+uses this directory for one actor per logical page session. Two pages have independent boards; a WebSocket reconnect
 keeps the same actor, while page closure removes the catalog entry and
 passivates its actor. HTTP routes expose `READY`/`RUNNING`/`PAUSED` status and
 controls; the live component receives board snapshots. `PAUSED` is a game
@@ -162,7 +170,9 @@ delayed messages and ask timeouts without sleeping.
 mvn -pl harness/actor-testkit -am test
 ```
 
-Stream, PostgreSQL, and distributed actor adapters are not part of
-these increments. Database-backed actors can use `Unit.INSTANCE` as local
+`actor-stream` provides broker-neutral stream ingress; it does not include a
+Kafka/Pulsar connector or exactly-once delivery. See the
+[stream reference](streams.md). PostgreSQL and distributed actor adapters are
+not part of these increments. Database-backed actors can use `Unit.INSTANCE` as local
 state and transact directly against business tables; no generic snapshot store
 is required.

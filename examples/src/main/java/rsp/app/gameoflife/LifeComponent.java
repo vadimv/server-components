@@ -1,16 +1,16 @@
 package rsp.app.gameoflife;
 
-import rsp.actor.ActorRef;
 import rsp.actor.SendResult;
-import rsp.actor.ui.UiActorSink;
+import rsp.actor.ui.PageActorDirectory;
+import rsp.actor.ui.UiActors;
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentCompositeKey;
+import rsp.component.ComponentSegment;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 
 import static rsp.dsl.Html.*;
@@ -21,14 +21,9 @@ final class LifeComponent extends Component<State, LifeComponent.Intent> {
     record Toggle(int x, int y) implements Intent { }
     record Control(LifeGame.Action action) implements Intent { }
 
-    private record Subscription(ActorRef<LifeGame.Command> game,
-                                UiActorSink<LifeGame.Snapshot, State> sink) { }
+    private final PageActorDirectory<Long, LifeGame.Command> games;
 
-    private final LifeGames games;
-    private final Map<ComponentCompositeKey, Subscription> subscriptions =
-            new ConcurrentHashMap<>();
-
-    LifeComponent(LifeGames games) {
+    LifeComponent(PageActorDirectory<Long, LifeGame.Command> games) {
         this.games = games;
     }
 
@@ -96,26 +91,14 @@ final class LifeComponent extends Component<State, LifeComponent.Intent> {
     }
 
     @Override
-    public void onMounted(ComponentCompositeKey componentId, State state, StateUpdater<State> updater) {
-        LifeGames.Game game = games.open(componentId.sessionId());
-        UiActorSink<LifeGame.Snapshot, State> sink = UiActorSink.latest(updater, State::withSnapshot);
-        subscriptions.put(componentId, new Subscription(game.ref(), sink));
-        SendResult result = game.ref().tell(new LifeGame.Subscribe(sink));
+    public void onMounted(ComponentSegment<State> segment, ComponentCompositeKey componentId,
+                          State state, CommandsEnqueue commandsEnqueue, StateUpdater<State> updater) {
+        var game = games.forPage(componentId.sessionId(), segment);
+        SendResult result = UiActors.observe(segment, updater, game.ref(), State::withSnapshot,
+                LifeGame.Subscribe::new, LifeGame.Unsubscribe::new);
         if (result != SendResult.ACCEPTED) {
-            sink.close();
-            subscriptions.remove(componentId);
-            games.close(componentId.sessionId());
-            updater.applyStateTransformation(current -> current.withError("Game unavailable: " + result));
-        }
-    }
-
-    @Override
-    public void onUnmounted(ComponentCompositeKey componentId, State state) {
-        Subscription subscription = subscriptions.remove(componentId);
-        if (subscription != null) {
-            subscription.sink().close();
-            subscription.game().tell(new LifeGame.Unsubscribe(subscription.sink()));
-            games.close(componentId.sessionId());
+            updater.applyStateTransformation(current -> current.withError(
+                    "Game unavailable: " + result));
         }
     }
 }

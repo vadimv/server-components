@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Test;
 import rsp.component.definitions.Component;
 import rsp.component.definitions.StatelessComponent;
 import rsp.component.View;
+import rsp.component.CommandsEnqueue;
+import rsp.component.ComponentCompositeKey;
+import rsp.component.ComponentSegment;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
+import rsp.component.ContextKey;
+import rsp.component.StateUpdater;
+import rsp.page.PageScope;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.url.Path;
@@ -13,6 +21,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -66,6 +75,54 @@ class PageHttpHandlerTests {
         PageHttpHandler responseHandler = handler(new ConcurrentHashMap<>(),
                 request -> HttpResponse.status(HttpStatus.FORBIDDEN).text("no").build());
         assertEquals(HttpStatus.FORBIDDEN, responseHandler.handle(request("/private")).join().status());
+    }
+
+    @Test
+    void staticPageClosesScopeAfterRendering() {
+        AtomicInteger closed = new AtomicInteger();
+        PageHttpHandler handler = handler(new ConcurrentHashMap<>(),
+                _ -> PageResult.staticHtml(scopedPage(closed, false)));
+
+        assertEquals(HttpStatus.OK, handler.handle(request("/")).join().status());
+        assertEquals(1, closed.get());
+    }
+
+    @Test
+    void failedRenderUnwindsMountedResources() {
+        AtomicInteger closed = new AtomicInteger();
+        Map<QualifiedSessionId, RenderedPage> pending = new ConcurrentHashMap<>();
+        PageHttpHandler handler = handler(pending,
+                _ -> PageResult.live(scopedPage(closed, true)));
+
+        assertTrue(handler.handle(request("/")).isCompletedExceptionally());
+        assertEquals(1, closed.get());
+        assertTrue(pending.isEmpty());
+    }
+
+    private static Component<?, ?> scopedPage(AtomicInteger closed, boolean failOnMount) {
+        return new Component<Integer, String>() {
+            @Override
+            public ComponentStateSupplier<Integer> initStateSupplier() {
+                return (_, _) -> 0;
+            }
+
+            @Override
+            public ComponentView<Integer, String> componentView() {
+                return _ -> _ -> html(head(title("scoped")), body());
+            }
+
+            @Override
+            public void onMounted(ComponentSegment<Integer> segment, ComponentCompositeKey id,
+                                  Integer state, CommandsEnqueue commands,
+                                  StateUpdater<Integer> updater) {
+                segment.contextScope().current()
+                        .getRequired(new ContextKey.ClassKey<>(PageScope.class))
+                        .own(() -> { closed.incrementAndGet(); });
+                if (failOnMount) {
+                    throw new IllegalStateException("render failed");
+                }
+            }
+        };
     }
 
     private static PageHttpHandler handler(Map<QualifiedSessionId, RenderedPage> sessions,

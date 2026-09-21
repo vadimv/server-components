@@ -7,11 +7,23 @@ import java.util.Objects;
  * @param pageBuilder contains rendered UI tree with components and DOM
  * @param commandsEnqueue an object containing initial commands, e.g. events subscriptions
  */
-public record RenderedPage(PageBuilder pageBuilder, RedirectableEventsConsumer commandsEnqueue) {
+public record RenderedPage(PageBuilder pageBuilder, RedirectableEventsConsumer commandsEnqueue,
+                           PageScope scope) {
     public RenderedPage(final PageBuilder pageBuilder,
-                        final RedirectableEventsConsumer commandsEnqueue) {
+                        final RedirectableEventsConsumer commandsEnqueue,
+                        final PageScope scope) {
 
         this.pageBuilder = Objects.requireNonNull(pageBuilder);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
+        this.scope = Objects.requireNonNull(scope);
+    }
+
+    /** Closes a page that never became a live session. */
+    public void close() {
+        try {
+            pageBuilder.shutdown();
+        } finally {
+            scope.close();
+        }
     }
 }

@@ -16,7 +16,8 @@ import java.util.function.BiFunction;
 /**
  * Mount-owned local actor reference that projects the latest full snapshot onto
  * a component's event loop. Intermediate snapshots may be dropped under load.
- * Close it before sending an unsubscribe command from {@code onUnmounted}.
+ * Close it before sending an unsubscribe command; {@link UiActorBinding} manages
+ * this ordering for mount-owned subscriptions.
  */
 public final class UiActorSink<E, S> implements ActorRef<E>, AutoCloseable {
     private final StateUpdater<S> updater;

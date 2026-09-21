@@ -28,6 +28,7 @@ public class LivePageSessionTests {
     private LivePageSession session;
     private TestCollectingRemoteOut remoteOut;
     private RedirectableEventsConsumer commandsEnqueue;
+    private PageScope pageScope;
 
     @BeforeEach
     void setUp() {
@@ -35,6 +36,7 @@ public class LivePageSessionTests {
         session = new LivePageSession(eventLoop);
         remoteOut = new TestCollectingRemoteOut();
         commandsEnqueue = new RedirectableEventsConsumer();
+        pageScope = new PageScope();
     }
 
     private PageBuilder createPageBuilder() {
@@ -45,13 +47,27 @@ public class LivePageSessionTests {
 
     private void initSession(final PageBuilder pageBuilder) {
         session.start();
-        session.eventsConsumer().accept(new InitSessionCommand(pageBuilder, commandsEnqueue, remoteOut));
+        session.eventsConsumer().accept(new InitSessionCommand(pageBuilder, commandsEnqueue, remoteOut,
+                pageScope));
         eventLoop.runOneStep();
     }
 
     private void processEvent(final Command event) {
         session.eventsConsumer().accept(event);
         eventLoop.runOneStep();
+    }
+
+    @Test
+    void shutdownClosesPageScopeAfterUnmount() {
+        final List<String> closed = new ArrayList<>();
+        PageBuilder pageBuilder = createPageBuilder();
+        pageScope.own(() -> closed.add("page"));
+        initSession(pageBuilder);
+
+        processEvent(new ShutdownSessionCommand());
+
+        assertEquals(List.of("page"), closed);
+        assertTrue(eventLoop.isStopped());
     }
 
     /**

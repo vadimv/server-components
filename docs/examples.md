@@ -45,8 +45,9 @@ Or from your IDE, by running the `main` method of the entry-point class.
 - URL: <http://localhost:8082>
 - Demonstrates: one actor per resumable page session owning an independent board,
   game status, and self-scheduled ticks. A live component sends commands and
-  receives coalesced snapshots through `ui-actor`; page teardown closes its
-  actor. Ordinary HTTP routes discover active numeric game IDs
+  receives coalesced snapshots through the optional `ui-actor` facade; page
+  teardown closes its actor. Its generic page-actor directory also supports
+  ordinary HTTP routes that discover active numeric game IDs
   (`GET /api/games`), read status (`GET /api/games/{id}`), and start, pause, or
   reset a game with POST routes. CSS is served with `StaticResources`. The
   40×25 board and 150 ms tick keep this actor/UI example responsive.

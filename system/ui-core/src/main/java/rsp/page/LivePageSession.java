@@ -31,6 +31,7 @@ public final class LivePageSession implements Consumer<Command> {
     private final Reactor<Command> reactor;
 
     private PageBuilder pageRenderContext;
+    private PageScope pageScope;
     private RemoteOut remoteOut;
     private int descriptorsCounter;
 
@@ -64,6 +65,7 @@ public final class LivePageSession implements Consumer<Command> {
 
     private void init(final InitSessionCommand initSessionEvent) {
         this.pageRenderContext = Objects.requireNonNull(initSessionEvent.pageRenderContext());
+        this.pageScope = Objects.requireNonNull(initSessionEvent.scope());
         this.remoteOut = Objects.requireNonNull(initSessionEvent.remoteOut());
         initSessionEvent.commandsEnqueue().redirect(reactor);
         this.accept(new RemoteCommand.ListenEvent(pageRenderContext.recursiveEvents()
@@ -73,8 +75,15 @@ public final class LivePageSession implements Consumer<Command> {
 
     private void shutdown() {
         logger.log(DEBUG, () -> "Live page shutdown");
-        pageRenderContext.shutdown();
-        reactor.stop();
+        try {
+            pageRenderContext.shutdown();
+        } finally {
+            try {
+                pageScope.close();
+            } finally {
+                reactor.stop();
+            }
+        }
     }
 
     private void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {

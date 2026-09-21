@@ -73,7 +73,8 @@ final class ResumablePageSession {
         this.decoder = new RemotePageMessageDecoder(JsonUtils.createParser(), livePage.eventsConsumer());
         livePage.eventsConsumer().accept(new InitSessionCommand(renderedPage.pageBuilder(),
                                                                 renderedPage.commandsEnqueue(),
-                                                                remoteOut));
+                                                                remoteOut,
+                                                                renderedPage.scope()));
         remoteOut.setRenderNum(0);
         livePage.start();
         scheduleExpiry();
