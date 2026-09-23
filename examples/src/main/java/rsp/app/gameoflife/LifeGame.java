@@ -7,10 +7,8 @@ import rsp.actor.ActorRef;
 import rsp.actor.ActorType;
 
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.random.RandomGenerator;
 
 /** One in-memory Game of Life actor per page session, with a UI-independent message protocol. */
@@ -28,10 +26,15 @@ public final class LifeGame {
 
     public record GameSummary(long id, String kind, Phase status, long generation) { }
 
-    /** Full, immutable projection suitable for coalescing by slow UI subscribers. */
-    public record Snapshot(GameSummary summary, Board board) { }
+    /** Authoritative state rendered directly by an actor component. */
+    public record State(GameSummary summary, Board board, long epoch) {
+        public State {
+            Objects.requireNonNull(summary, "summary");
+            Objects.requireNonNull(board, "board");
+        }
+    }
 
-    public sealed interface Command permits Control, ToggleCell, Subscribe, Unsubscribe, Status, Tick, Close { }
+    public sealed interface Command permits Control, ToggleCell, Status, Tick { }
 
     public record Control(Action action, Optional<ActorRef<GameSummary>> replyTo) implements Command {
         public Control {
@@ -50,18 +53,6 @@ public final class LifeGame {
 
     public record ToggleCell(int x, int y) implements Command { }
 
-    public record Subscribe(ActorRef<Snapshot> subscriber) implements Command {
-        public Subscribe {
-            Objects.requireNonNull(subscriber, "subscriber");
-        }
-    }
-
-    public record Unsubscribe(ActorRef<Snapshot> subscriber) implements Command {
-        public Unsubscribe {
-            Objects.requireNonNull(subscriber, "subscriber");
-        }
-    }
-
     public record Status(ActorRef<GameSummary> replyTo) implements Command {
         public Status {
             Objects.requireNonNull(replyTo, "replyTo");
@@ -71,63 +62,34 @@ public final class LifeGame {
     /** Epoch invalidates ticks already scheduled before pause or reset. */
     public record Tick(long epoch) implements Command { }
 
-    /** The owning page has closed; release this actor and its scheduled ticks. */
-    public record Close() implements Command { }
-
-    private record GameState(Board board, Phase phase, long generation, long epoch,
-                             Set<ActorRef<Snapshot>> subscribers) {
-        private GameState {
-            subscribers = Set.copyOf(subscribers);
-        }
-
-        private GameSummary summary(long id) {
-            return new GameSummary(id, "life", phase, generation);
-        }
-
-        private Snapshot snapshot(long id) {
-            return new Snapshot(summary(id), board);
-        }
-    }
-
-    public static ActorDefinition<?, Command> definition(RandomGenerator random) {
+    public static ActorDefinition<State, Command> definition(RandomGenerator random) {
         Objects.requireNonNull(random, "random");
-        return ActorDefinition.<GameState, Command>builder(TYPE)
-                .initialState(_ -> new GameState(Board.empty(), Phase.READY, 0, 0, Set.of()))
+        return ActorDefinition.<State, Command>builder(TYPE)
+                .initialState(id -> new State(
+                        new GameSummary(Long.parseLong(id.key()), "life", Phase.READY, 0),
+                        Board.empty(), 0))
                 .behavior(ActorBehavior.sync((context, state, command) -> {
-                    long id = Long.parseLong(context.id().key());
                     return switch (command) {
-                        case Close _ -> ActorEffect.<GameState>same().passivating();
-                        case Subscribe subscribe -> {
-                            Set<ActorRef<Snapshot>> subscribers = new HashSet<>(state.subscribers());
-                            subscribers.add(subscribe.subscriber());
-                            GameState next = new GameState(state.board(), state.phase(),
-                                    state.generation(), state.epoch(), subscribers);
-                            yield ActorEffect.<GameState>state(next)
-                                    .send(subscribe.subscriber(), next.snapshot(id));
-                        }
-                        case Unsubscribe unsubscribe -> {
-                            Set<ActorRef<Snapshot>> subscribers = new HashSet<>(state.subscribers());
-                            subscribers.remove(unsubscribe.subscriber());
-                            yield ActorEffect.state(new GameState(state.board(), state.phase(),
-                                    state.generation(), state.epoch(), subscribers));
-                        }
-                        case Status status -> ActorEffect.<GameState>same()
-                                .reply(status.replyTo(), state.summary(id));
+                        case Status status -> ActorEffect.<State>same()
+                                .reply(status.replyTo(), state.summary());
                         case ToggleCell toggle -> {
-                            if (state.phase() == Phase.RUNNING || !state.board().contains(toggle.x(), toggle.y())) {
+                            if (state.summary().status() == Phase.RUNNING
+                                    || !state.board().contains(toggle.x(), toggle.y())) {
                                 yield ActorEffect.same();
                             }
-                            yield publish(new GameState(state.board().toggle(toggle.x(), toggle.y()),
-                                    state.phase(), state.generation(), state.epoch(), state.subscribers()), id);
+                            yield ActorEffect.state(new State(state.summary(),
+                                    state.board().toggle(toggle.x(), toggle.y()), state.epoch()));
                         }
-                        case Control control -> control(context.self(), state, control, id, random);
+                        case Control control -> control(context.self(), state, control, random);
                         case Tick tick -> {
-                            if (state.phase() != Phase.RUNNING || tick.epoch() != state.epoch()) {
+                            if (state.summary().status() != Phase.RUNNING
+                                    || tick.epoch() != state.epoch()) {
                                 yield ActorEffect.same();
                             }
-                            GameState next = new GameState(state.board().advance(), state.phase(),
-                                    state.generation() + 1, state.epoch(), state.subscribers());
-                            yield publish(next, id).schedule(context.self(), new Tick(next.epoch()), TICK_INTERVAL);
+                            State next = with(state, state.board().advance(), Phase.RUNNING,
+                                    state.summary().generation() + 1, state.epoch());
+                            yield ActorEffect.state(next).schedule(
+                                    context.self(), new Tick(next.epoch()), TICK_INTERVAL);
                         }
                     };
                 }))
@@ -135,36 +97,32 @@ public final class LifeGame {
                 .build();
     }
 
-    private static ActorEffect<GameState> control(ActorRef<Command> self, GameState state,
-                                                   Control control, long id, RandomGenerator random) {
-        GameState next = switch (control.action()) {
-            case START -> state.phase() == Phase.RUNNING ? state
-                    : new GameState(state.board(), Phase.RUNNING, state.generation(),
-                            state.epoch() + 1, state.subscribers());
-            case PAUSE -> state.phase() != Phase.RUNNING ? state
-                    : new GameState(state.board(), Phase.PAUSED, state.generation(),
-                            state.epoch() + 1, state.subscribers());
-            case RESET -> new GameState(Board.empty(), Phase.READY, 0,
-                    state.epoch() + 1, state.subscribers());
-            case RANDOM -> new GameState(Board.random(random), Phase.READY, 0,
-                    state.epoch() + 1, state.subscribers());
+    private static ActorEffect<State> control(ActorRef<Command> self, State state,
+                                               Control control, RandomGenerator random) {
+        State next = switch (control.action()) {
+            case START -> state.summary().status() == Phase.RUNNING ? state
+                    : with(state, state.board(), Phase.RUNNING,
+                            state.summary().generation(), state.epoch() + 1);
+            case PAUSE -> state.summary().status() != Phase.RUNNING ? state
+                    : with(state, state.board(), Phase.PAUSED,
+                            state.summary().generation(), state.epoch() + 1);
+            case RESET -> with(state, Board.empty(), Phase.READY, 0, state.epoch() + 1);
+            case RANDOM -> with(state, Board.random(random), Phase.READY, 0, state.epoch() + 1);
         };
-        ActorEffect<GameState> effect = next == state ? ActorEffect.same() : publish(next, id);
-        if (next != state && next.phase() == Phase.RUNNING) {
+        ActorEffect<State> effect = next == state ? ActorEffect.same() : ActorEffect.state(next);
+        if (next != state && next.summary().status() == Phase.RUNNING) {
             effect = effect.schedule(self, new Tick(next.epoch()), TICK_INTERVAL);
         }
         if (control.replyTo().isPresent()) {
-            effect = effect.reply(control.replyTo().orElseThrow(), next.summary(id));
+            effect = effect.reply(control.replyTo().orElseThrow(), next.summary());
         }
         return effect;
     }
 
-    private static ActorEffect<GameState> publish(GameState next, long id) {
-        ActorEffect<GameState> effect = ActorEffect.state(next);
-        Snapshot snapshot = next.snapshot(id);
-        for (ActorRef<Snapshot> subscriber : next.subscribers()) {
-            effect = effect.send(subscriber, snapshot);
-        }
-        return effect;
+    private static State with(State state, Board board, Phase phase,
+                              long generation, long epoch) {
+        GameSummary current = state.summary();
+        return new State(new GameSummary(current.id(), current.kind(), phase, generation),
+                board, epoch);
     }
 }

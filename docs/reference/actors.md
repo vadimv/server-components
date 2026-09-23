@@ -1,8 +1,9 @@
-# Local Actors
+# Actors
 
-The local actor runtime provides typed, in-JVM message passing. Its core remains
-independent of HTTP, UI components, streams, and persistence; `http-actor` and
-`actor-stream` are optional adapters over ordinary HTTP and stream contracts.
+The actor modules provide typed, in-JVM message passing with replaceable local
+and page hosts. The core remains independent of HTTP, UI components, streams,
+and persistence; adapters add those capabilities without changing domain
+protocols.
 
 An `ActorType<K, M>` defines a stable logical name, a message class, and a key
 encoder. `ActorId<M>` identifies one keyed instance; `ActorRef<M>` exposes only
@@ -39,7 +40,9 @@ CompletionStage<Integer> count = actors.<CounterMessage, Integer>ask(
         Duration.ofSeconds(2));
 ```
 
-`ActorSystem` implements `ApplicationLifecycle`, so register it as a service in
+`ActorGateway` is the host-neutral ask/reply capability used by HTTP routes.
+`ActorSystem` extends it with keyed reference lookup and application lifecycle.
+Register a local actor system as a service in
 `ApplicationContext` before HTTP producers. The context starts services in
 registration order and stops them in reverse order. With an HTTP application,
 `HttpApplication.withLifecycle(applicationContext, router)` provides that
@@ -129,32 +132,63 @@ An HTTP timeout does not cancel an admitted command. OpenAPI metadata stays on
 the ordinary route definition, so actor-backed routes are documented exactly
 like other routes.
 
-## UI snapshot bridge
+## Page-hosted actor components
 
-`ui-actor` adds `UiActorSink.latest(updater, projector)`, a mount-owned
-`ActorRef<E>` for full snapshots. It enqueues projection through the component's
-`StateUpdater`, keeping actor threads out of rendering. When several snapshots
-arrive before the UI processes them, only the latest pending snapshot is used.
-The sink is unsuitable for deltas or events that must each be observed.
-Close it before sending an unsubscribe command; queued or late events then
-become no-ops. `UiActorBinding` manages this ordering, and the optional
-`UiActors.observe(segment, updater, actor, projector, subscribe, unsubscribe)`
-facade owns an accepted binding on the component mount. A page queue that
-rejects an update closes the sink and reports `STOPPED` to the sender without
-failing the actor. The actor remains
-authoritative, while component state is only its rendered projection.
+`ui-actor` supplies `PageActorRuntime`, a host that runs the shared serialized
+activation engine on a page's event loop. Register it with `ApplicationContext`,
+then use `PageActorDirectory` to select its page identity (numeric keys are
+convenient when routes also need discovery):
 
-`PageActorDirectory` is an optional application-scoped catalog for one actor
-of a chosen type per page. `numbered(...)` supplies numeric IDs for REST
-routes; `forPage(...)` reuses the actor across remounts, and the page scope
-removes its catalog entry and sends a close message on teardown. It is not a
-durable actor store, authorization layer, or delivery guarantee.
+```java
+PageActorRuntime pageActors = PageActorRuntime.builder().build();
+PageActorDirectory<Long, GameCommand> games =
+        PageActorDirectory.numbered(pageActors, GAME_TYPE);
+
+ApplicationContext application = ApplicationContext.builder()
+        .service(ActorGateway.class, pageActors)
+        .build();
+```
+
+An `ActorComponent<S, M>` selects a placement, renders the actor's initial state
+on the first HTTP response, and sends view messages directly to its `ActorRef`:
+
+```java
+final class GameComponent extends ActorComponent<GameState, GameCommand> {
+    protected ActorDefinition<GameState, GameCommand> definition() {
+        return gameDefinition;
+    }
+
+    protected PageActorPlacement<GameCommand> placement(ActorComponentContext context) {
+        return context.in(games);
+    }
+
+    public ComponentView<GameState, GameCommand> componentView() {
+        return commands -> state -> button(
+                text(Integer.toString(state.score())),
+                on("click", _ -> commands.dispatch(new Play())));
+    }
+}
+```
+
+Committed immutable states are attached to rendering by the framework and
+coalesced while a component update is queued. No `Subscribe`, `Unsubscribe`,
+snapshot projection, or mount callback is required in the application protocol.
+Unmounting detaches rendering but retains the activation; `PageScope` closes it
+administratively when the resumable page ends. Closing rejects late messages,
+cancels owned timers, and removes the exact directory entry.
+
+Page actors start with synchronous state initialization for initial rendering,
+but behavior turns are queued to the live page loop. An ask made after HTML
+rendering but before the browser's WebSocket handoff can therefore time out.
+Use `LocalActorSystem` when work must progress independently of a page. A page
+directory is not a durable store or authorization layer.
 
 The [Life example](../../examples/src/main/java/rsp/app/gameoflife/Life.java)
-uses this directory for one actor per logical page session. Two pages have independent boards; a WebSocket reconnect
+uses this directory and `ActorComponent` for one actor per logical page session.
+Two pages have independent boards; a WebSocket reconnect
 keeps the same actor, while page closure removes the catalog entry and
-passivates its actor. HTTP routes expose `READY`/`RUNNING`/`PAUSED` status and
-controls; the live component receives board snapshots. `PAUSED` is a game
+administratively stops its actor. HTTP routes expose `READY`/`RUNNING`/`PAUSED` status and
+controls; the live component renders committed actor state directly. `PAUSED` is a game
 state, not an actor runtime stop. An epoch makes ticks scheduled before
 pause/reset harmless. This catalog is public demo behavior, not an
 authorization model for private games.

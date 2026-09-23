@@ -28,8 +28,12 @@ class LifeSmokeIT {
             assertThat(first.locator(".board > div")).hasCount(Board.WIDTH * Board.HEIGHT);
             assertThat(second.locator(".board > div")).hasCount(Board.WIDTH * Board.HEIGHT);
 
-            first.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON,
-                    new com.microsoft.playwright.Page.GetByRoleOptions().setName("Start")).click();
+            long firstId = Long.parseLong(first.locator(".game > p").first()
+                    .innerText().split(" ")[1]);
+            Object started = first.evaluate("id => fetch('/api/games/' + id + '/start', "
+                    + "{method: 'POST'}).then(response => response.json()).then(body => body.status)",
+                    Long.toString(firstId));
+            assertEquals("RUNNING", started);
             assertThat(first.locator(".game > p").first()).containsText("RUNNING");
             assertThat(second.locator(".game > p").first()).containsText("READY");
             first.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON,
@@ -39,8 +43,6 @@ class LifeSmokeIT {
             assertThat(first.locator(".board > div").first()).hasClass("c1");
             assertThat(second.locator(".board > div").first()).hasClass("c0");
 
-            long firstId = Long.parseLong(first.locator(".game > p").first()
-                    .innerText().split(" ")[1]);
             first.evaluate("() => window.RSP.disconnect()");
             first.waitForFunction("id => fetch('/api/games/' + id).then(response => response.status === 404)",
                     Long.toString(firstId), new Page.WaitForFunctionOptions().setTimeout(5000));

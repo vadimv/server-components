@@ -1,8 +1,8 @@
 package rsp.app.gameoflife;
 
-import rsp.actor.ActorSystem;
-import rsp.actor.runtime.LocalActorSystem;
+import rsp.actor.ActorGateway;
 import rsp.actor.ui.PageActorDirectory;
+import rsp.actor.ui.PageActorRuntime;
 import rsp.application.ApplicationContext;
 import rsp.http.HttpResponse;
 import rsp.http.HttpStatus;
@@ -30,15 +30,14 @@ public final class Life {
     }
 
     static WebServer server(int port, RandomGenerator random) {
-        LocalActorSystem actors = LocalActorSystem.builder()
-                .register(LifeGame.definition(random))
-                .build();
+        var game = LifeGame.definition(random);
+        PageActorRuntime actors = PageActorRuntime.builder().build();
         ApplicationContext application = ApplicationContext.builder()
-                .service(ActorSystem.class, actors)
+                .service(ActorGateway.class, actors)
                 .build();
         PageActorDirectory<Long, LifeGame.Command> games = PageActorDirectory.numbered(
-                actors, LifeGame.TYPE, LifeGame.Close::new);
-        LifeComponent component = new LifeComponent(games);
+                actors, LifeGame.TYPE);
+        LifeComponent component = new LifeComponent(games, game);
         return new WebServer(port)
                 .pageApplication(PageApplication.withLifecycle(application,
                         _ -> HttpResponse.status(HttpStatus.NOT_FOUND).build()))

@@ -1,104 +1,70 @@
 package rsp.app.gameoflife;
 
-import rsp.actor.SendResult;
+import rsp.actor.ActorDefinition;
+import rsp.actor.ui.ActorComponent;
+import rsp.actor.ui.ActorComponentContext;
 import rsp.actor.ui.PageActorDirectory;
-import rsp.actor.ui.UiActors;
-import rsp.component.CommandsEnqueue;
-import rsp.component.ComponentCompositeKey;
-import rsp.component.ComponentSegment;
-import rsp.component.ComponentStateSupplier;
+import rsp.actor.ui.PageActorPlacement;
 import rsp.component.ComponentView;
-import rsp.component.StateUpdater;
-import rsp.component.definitions.Component;
 
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 import static rsp.dsl.Html.*;
 
-/** Shared component definition; each page mount owns one game subscription. */
-final class LifeComponent extends Component<State, LifeComponent.Intent> {
-    sealed interface Intent permits Toggle, Control { }
-    record Toggle(int x, int y) implements Intent { }
-    record Control(LifeGame.Action action) implements Intent { }
-
+/** Shared definition whose page-hosted actor owns the authoritative state. */
+final class LifeComponent extends ActorComponent<LifeGame.State, LifeGame.Command> {
     private final PageActorDirectory<Long, LifeGame.Command> games;
+    private final ActorDefinition<LifeGame.State, LifeGame.Command> game;
 
-    LifeComponent(PageActorDirectory<Long, LifeGame.Command> games) {
-        this.games = games;
+    LifeComponent(PageActorDirectory<Long, LifeGame.Command> games,
+                  ActorDefinition<LifeGame.State, LifeGame.Command> game) {
+        this.games = Objects.requireNonNull(games, "games");
+        this.game = Objects.requireNonNull(game, "game");
     }
 
     @Override
-    public ComponentStateSupplier<State> initStateSupplier() {
-        return (_, _) -> State.loading();
+    protected ActorDefinition<LifeGame.State, LifeGame.Command> definition() {
+        return game;
     }
 
     @Override
-    public ComponentView<State, Intent> componentView() {
-        return intents -> state -> {
-            if (state.snapshot().isEmpty()) {
-                return html(head(title("Conway's Game of Life"),
-                                link(attr("rel", "stylesheet"), attr("href", "/res/style.css"))),
-                        body(div(attr("class", "game"), h1("Game of Life"), p("Connecting to game…"),
-                                when(state.error().isPresent(), () -> p(attr("class", "error"),
-                                        text(state.error().orElseThrow()))))));
-            }
-            LifeGame.Snapshot snapshot = state.snapshot().orElseThrow();
-            Board board = snapshot.board();
-            boolean running = snapshot.summary().status() == LifeGame.Phase.RUNNING;
+    protected PageActorPlacement<LifeGame.Command> placement(
+            ActorComponentContext context) {
+        return context.in(games);
+    }
+
+    @Override
+    public ComponentView<LifeGame.State, LifeGame.Command> componentView() {
+        return commands -> state -> {
+            Board board = state.board();
+            boolean running = state.summary().status() == LifeGame.Phase.RUNNING;
             return html(head(title("Conway's Game of Life"),
                             link(attr("rel", "stylesheet"), attr("href", "/res/style.css"))),
                     body(div(attr("class", "game"),
                             h1("Game of Life"),
-                            p("Game " + snapshot.summary().id() + " · "
-                                    + snapshot.summary().status() + " · generation "
-                                    + snapshot.summary().generation()),
-                            when(state.error().isPresent(), () -> p(attr("class", "error"),
-                                    text(state.error().orElseThrow()))),
+                            p("Game " + state.summary().id() + " · "
+                                    + state.summary().status() + " · generation "
+                                    + state.summary().generation()),
                             div(attr("class", "board"),
                                     of(IntStream.range(0, board.size())
                                             .mapToObj(index -> div(attr("class", "c" + (board.isAlive(index) ? "1" : "0")),
-                                                    when(!running, on("click", _ -> intents.dispatch(
-                                                            new Toggle(Board.x(index), Board.y(index))))))))),
+                                                    when(!running, on("click", _ -> commands.dispatch(
+                                                            new LifeGame.ToggleCell(
+                                                                    Board.x(index), Board.y(index))))))))),
                             div(attr("class", "controls"),
                                     button(attr("type", "button"), when(running, () -> attr("disabled")),
-                                            text("Start"), on("click", _ -> intents.dispatch(
-                                                    new Control(LifeGame.Action.START)))),
+                                            text("Start"), on("click", _ -> commands.dispatch(
+                                                    LifeGame.Control.of(LifeGame.Action.START)))),
                                     button(attr("type", "button"), when(!running, () -> attr("disabled")),
-                                            text("Pause"), on("click", _ -> intents.dispatch(
-                                                    new Control(LifeGame.Action.PAUSE)))),
+                                            text("Pause"), on("click", _ -> commands.dispatch(
+                                                    LifeGame.Control.of(LifeGame.Action.PAUSE)))),
                                     button(attr("type", "button"), when(running, () -> attr("disabled")),
-                                            text("Clear"), on("click", _ -> intents.dispatch(
-                                                    new Control(LifeGame.Action.RESET)))),
+                                            text("Clear"), on("click", _ -> commands.dispatch(
+                                                    LifeGame.Control.of(LifeGame.Action.RESET)))),
                                     button(attr("type", "button"), when(running, () -> attr("disabled")),
-                                            text("Random"), on("click", _ -> intents.dispatch(
-                                                    new Control(LifeGame.Action.RANDOM))))))));
+                                            text("Random"), on("click", _ -> commands.dispatch(
+                                                    LifeGame.Control.of(LifeGame.Action.RANDOM))))))));
         };
-    }
-
-    @Override
-    protected void onIntent(Intent intent, State state, StateUpdater<State> updater) {
-        LifeGame.Command command = switch (intent) {
-            case Toggle toggle -> new LifeGame.ToggleCell(toggle.x(), toggle.y());
-            case Control control -> LifeGame.Control.of(control.action());
-        };
-        SendResult result = state.snapshot()
-                .flatMap(snapshot -> games.find(snapshot.summary().id()))
-                .map(active -> active.ref().tell(command))
-                .orElse(SendResult.STOPPED);
-        if (result != SendResult.ACCEPTED) {
-            updater.applyStateTransformation(current -> current.withError("Game unavailable: " + result));
-        }
-    }
-
-    @Override
-    public void onMounted(ComponentSegment<State> segment, ComponentCompositeKey componentId,
-                          State state, CommandsEnqueue commandsEnqueue, StateUpdater<State> updater) {
-        var game = games.forPage(componentId.sessionId(), segment);
-        SendResult result = UiActors.observe(segment, updater, game.ref(), State::withSnapshot,
-                LifeGame.Subscribe::new, LifeGame.Unsubscribe::new);
-        if (result != SendResult.ACCEPTED) {
-            updater.applyStateTransformation(current -> current.withError(
-                    "Game unavailable: " + result));
-        }
     }
 }

@@ -3,8 +3,8 @@ package rsp.actor.http;
 import rsp.actor.ActorAskTimeoutException;
 import rsp.actor.ActorDeliveryException;
 import rsp.actor.ActorEnvelope;
+import rsp.actor.ActorGateway;
 import rsp.actor.ActorRef;
-import rsp.actor.ActorSystem;
 import rsp.actor.SendResult;
 import rsp.http.HttpRequest;
 import rsp.http.HttpResponse;
@@ -23,14 +23,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-/** Adapts ordinary HTTP routes to local actor ask/reply without owning routing or lifecycle. */
+/** Adapts ordinary HTTP routes to host-neutral actor ask/reply without owning routing or lifecycle. */
 public final class ActorRouteHandler {
     private ActorRouteHandler() {
     }
 
     /** Sends a command and maps its reply to an HTTP response. */
     public static <M, R> RestRouteHandler ask(
-            ActorSystem actors,
+            ActorGateway actors,
             BiFunction<HttpRequest, HttpRouteContext, ActorRef<M>> target,
             Command<M, R> command,
             Duration timeout,
@@ -43,7 +43,7 @@ public final class ActorRouteHandler {
 
     /** Like {@link #ask}, with caller-supplied message identity and correlation metadata. */
     public static <M, R> RestRouteHandler askEnvelope(
-            ActorSystem actors,
+            ActorGateway actors,
             BiFunction<HttpRequest, HttpRouteContext, ActorRef<M>> target,
             EnvelopeCommand<M, R> command,
             Duration timeout,
@@ -60,7 +60,7 @@ public final class ActorRouteHandler {
 
     /** Decodes a JSON request and encodes the actor reply as a 200 JSON response. */
     public static <B, M, R> RestRouteHandler json(
-            ActorSystem actors,
+            ActorGateway actors,
             JsonCodec<B> requestCodec,
             BiFunction<HttpRequest, HttpRouteContext, ActorRef<M>> target,
             JsonCommand<B, M, R> command,
@@ -75,7 +75,7 @@ public final class ActorRouteHandler {
 
     /** JSON ask with caller-supplied delivery metadata, e.g. from an Idempotency-Key header. */
     public static <B, M, R> RestRouteHandler jsonEnvelope(
-            ActorSystem actors,
+            ActorGateway actors,
             JsonCodec<B> requestCodec,
             BiFunction<HttpRequest, HttpRouteContext, ActorRef<M>> target,
             JsonEnvelopeCommand<B, M, R> command,
@@ -94,7 +94,7 @@ public final class ActorRouteHandler {
     }
 
     private static <M, R> CompletionStage<HttpResponse> dispatch(
-            ActorSystem actors, ActorRef<M> target,
+            ActorGateway actors, ActorRef<M> target,
             Function<ActorRef<R>, ActorEnvelope<M>> command,
             Duration timeout, Function<R, HttpResponse> response) {
         return actors.askEnvelope(target, command, timeout).handle((reply, failure) -> {

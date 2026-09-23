@@ -1,11 +1,9 @@
 package rsp.actor.ui;
 
+import rsp.actor.ActorDefinition;
 import rsp.actor.ActorRef;
-import rsp.actor.ActorSystem;
 import rsp.actor.ActorType;
-import rsp.actor.SendResult;
-import rsp.component.ComponentSegment;
-import rsp.component.ContextKey;
+import rsp.component.CommandsEnqueue;
 import rsp.page.PageScope;
 import rsp.page.QualifiedSessionId;
 
@@ -20,14 +18,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 /**
- * Optional application-scoped directory for one actor of a given type per page.
- * Entries are discoverable while their page is alive and removed when it closes.
- * The actor remains owned by the supplied {@link ActorSystem}; the directory
- * requests passivation by sending the supplied close message.
+ * Application-scoped catalog and owner-selection policy for one page-hosted
+ * actor of a chosen type per logical page.
  */
 public final class PageActorDirectory<K, M> {
-    private static final System.Logger logger = System.getLogger(PageActorDirectory.class.getName());
-
     public record Entry<K, M>(K id, ActorRef<M> ref) {
         public Entry {
             Objects.requireNonNull(id, "id");
@@ -35,98 +29,117 @@ public final class PageActorDirectory<K, M> {
         }
     }
 
-    private final ActorSystem actors;
+    private record Binding<K, M>(Entry<K, M> entry,
+                                 PageActorHandle<?, M> handle,
+                                 PageScope scope,
+                                 ActorDefinition<?, M> definition,
+                                 Object generation) {
+    }
+
+    private final PageActorRuntime runtime;
     private final ActorType<K, M> type;
     private final Supplier<K> ids;
-    private final Supplier<M> closeMessage;
-    private final Map<QualifiedSessionId, Entry<K, M>> byPage = new HashMap<>();
-    private final Map<QualifiedSessionId, PageScope> pageScopes = new HashMap<>();
-    private final Map<K, Entry<K, M>> byId = new LinkedHashMap<>();
+    private final Map<QualifiedSessionId, Binding<K, M>> byPage = new HashMap<>();
+    private final Map<K, Binding<K, M>> byId = new LinkedHashMap<>();
 
-    public PageActorDirectory(ActorSystem actors, ActorType<K, M> type,
-                              Supplier<K> ids, Supplier<M> closeMessage) {
-        this.actors = Objects.requireNonNull(actors, "actors");
+    public PageActorDirectory(PageActorRuntime runtime, ActorType<K, M> type,
+                              Supplier<K> ids) {
+        this.runtime = Objects.requireNonNull(runtime, "runtime");
         this.type = Objects.requireNonNull(type, "type");
         this.ids = Objects.requireNonNull(ids, "ids");
-        this.closeMessage = Objects.requireNonNull(closeMessage, "closeMessage");
     }
 
     /** Convenience for numeric REST resource IDs, starting at one. */
-    public static <M> PageActorDirectory<Long, M> numbered(ActorSystem actors,
-                                                            ActorType<Long, M> type,
-                                                            Supplier<M> closeMessage) {
+    public static <M> PageActorDirectory<Long, M> numbered(
+            PageActorRuntime runtime, ActorType<Long, M> type) {
         AtomicLong nextId = new AtomicLong();
-        return new PageActorDirectory<>(actors, type,
+        return new PageActorDirectory<>(runtime, type,
                 () -> nextId.updateAndGet(current -> {
                     if (current == Long.MAX_VALUE) {
                         throw new IllegalStateException("Page actor ID space exhausted");
                     }
                     return current + 1;
-                }), closeMessage);
+                }));
     }
 
-    /** Opens or reuses the actor for a mounted component's page. */
-    public Entry<K, M> forPage(QualifiedSessionId pageId, ComponentSegment<?> segment) {
-        Objects.requireNonNull(segment, "segment");
-        PageScope scope = segment.componentContext()
-                .getRequired(new ContextKey.ClassKey<>(PageScope.class));
-        return forPage(pageId, scope);
-    }
-
-    /** Opens or reuses the actor for a page, registering its close with the page scope. */
-    public synchronized Entry<K, M> forPage(QualifiedSessionId pageId, PageScope scope) {
+    /**
+     * Opens or reuses this page's activation. The page scope owns the
+     * activation; repeated component mounts receive the same handle.
+     */
+    public synchronized <S> PageActorHandle<S, M> activate(
+            QualifiedSessionId pageId,
+            PageScope scope,
+            CommandsEnqueue commands,
+            ActorDefinition<S, M> definition) {
         Objects.requireNonNull(pageId, "pageId");
         Objects.requireNonNull(scope, "scope");
-        Entry<K, M> existing = byPage.get(pageId);
+        Objects.requireNonNull(commands, "commands");
+        Objects.requireNonNull(definition, "definition");
+        if (!type.equals(definition.type())) {
+            throw new IllegalArgumentException("Actor definition type does not match directory");
+        }
+
+        Binding<K, M> existing = byPage.get(pageId);
         if (existing != null) {
-            if (pageScopes.get(pageId) != scope) {
+            if (existing.scope() != scope) {
                 throw new IllegalStateException("Page actor belongs to a different page scope");
             }
-            return existing;
+            if (existing.definition() != definition) {
+                throw new IllegalStateException(
+                        "Page actor was activated with a different definition");
+            }
+            @SuppressWarnings("unchecked")
+            PageActorHandle<S, M> handle = (PageActorHandle<S, M>) existing.handle();
+            return handle;
         }
+
         K id = Objects.requireNonNull(ids.get(), "page actor id");
         if (byId.containsKey(id)) {
             throw new IllegalStateException("Duplicate page actor ID: " + id);
         }
-        Entry<K, M> entry = new Entry<>(id, actors.ref(type, id));
-        byPage.put(pageId, entry);
-        pageScopes.put(pageId, scope);
-        byId.put(id, entry);
-        scope.own(() -> closeIfCurrent(pageId, entry));
-        return entry;
+        Object generation = new Object();
+        PageActorHandle<S, M> handle = runtime.activate(type.id(id), definition,
+                commands, scope, () -> removeIfCurrent(pageId, generation));
+        Entry<K, M> entry = new Entry<>(id, handle.ref());
+        Binding<K, M> binding = new Binding<>(entry, handle, scope, definition, generation);
+        byPage.put(pageId, binding);
+        byId.put(id, binding);
+        return handle;
     }
 
     public synchronized Optional<Entry<K, M>> find(K id) {
-        return Optional.ofNullable(byId.get(Objects.requireNonNull(id, "id")));
+        Binding<K, M> binding = byId.get(Objects.requireNonNull(id, "id"));
+        return binding == null ? Optional.empty() : Optional.of(binding.entry());
     }
 
     /** Snapshot in creation order. */
     public synchronized List<Entry<K, M>> all() {
-        return List.copyOf(new ArrayList<>(byId.values()));
+        ArrayList<Entry<K, M>> entries = new ArrayList<>(byId.size());
+        byId.values().forEach(binding -> entries.add(binding.entry()));
+        return List.copyOf(entries);
     }
 
-    /** Explicitly closes one page actor before its page ends. Idempotent. */
+    /** Explicitly closes one activation before its page ends. Idempotent. */
     public void close(QualifiedSessionId pageId) {
-        closeIfCurrent(Objects.requireNonNull(pageId, "pageId"), null);
+        Objects.requireNonNull(pageId, "pageId");
+        final Binding<K, M> binding;
+        synchronized (this) {
+            binding = byPage.remove(pageId);
+            if (binding != null) {
+                byId.remove(binding.entry().id(), binding);
+            }
+        }
+        if (binding != null) {
+            binding.handle().close();
+        }
     }
 
-    private void closeIfCurrent(QualifiedSessionId pageId, Entry<K, M> expected) {
-        final Entry<K, M> entry;
-        synchronized (this) {
-            Entry<K, M> current = byPage.get(pageId);
-            if (current == null || (expected != null && current != expected)) {
-                return;
-            }
-            entry = current;
-            byPage.remove(pageId);
-            pageScopes.remove(pageId);
-            byId.remove(entry.id());
+    private synchronized void removeIfCurrent(QualifiedSessionId pageId, Object generation) {
+        Binding<K, M> current = byPage.get(pageId);
+        if (current == null || current.generation() != generation) {
+            return;
         }
-        SendResult result = entry.ref().tell(Objects.requireNonNull(closeMessage.get(), "close message"));
-        if (result != SendResult.ACCEPTED) {
-            logger.log(System.Logger.Level.WARNING,
-                    "Page actor close was not admitted [actorType=" + type.name()
-                            + ", reason=" + result + "]");
-        }
+        byPage.remove(pageId);
+        byId.remove(current.entry().id(), current);
     }
 }

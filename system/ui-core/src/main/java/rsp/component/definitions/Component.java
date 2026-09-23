@@ -106,6 +106,19 @@ public abstract class Component<S, I> implements Definition,
     protected void onIntent(final I intent, final S state, final StateUpdater<S> stateUpdater) {
     }
 
+    /**
+     * Creates the controller used by one component segment.
+     * <p>
+     * The default delegates to this reusable component definition. Specialized
+     * components may return a lazy per-segment controller, but must not acquire
+     * resources here because reconciliation can discard the candidate.
+     */
+    protected ComponentRuntime<S, I> createComponentRuntime(
+            final ComponentRuntimeContext context) {
+        Objects.requireNonNull(context, "context");
+        return ComponentRuntime.delegate(initStateSupplier(), this, this);
+    }
+
     @Override
     public final void onIntentDispatched(final I intent,
                                          final S state,
@@ -153,12 +166,17 @@ public abstract class Component<S, I> implements Definition,
         Objects.requireNonNull(treeBuilderFactory);
         Objects.requireNonNull(componentContext);
         Objects.requireNonNull(commandsEnqueue);
-        return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
-                                      initStateSupplier(),
+        final ComponentCompositeKey componentId =
+                new ComponentCompositeKey(sessionId, componentType, componentPath);
+        final ComponentRuntime<S, I> runtime = createComponentRuntime(
+                new ComponentRuntimeContext(componentId, treeBuilderFactory,
+                        componentContext, commandsEnqueue));
+        return new ComponentSegment<>(componentId,
+                                      runtime,
                                       subComponentsContext(),
                                       componentView(),
-                                      this,
-                                      this,
+                                      runtime,
+                                      runtime,
                                       this,
                                       treeBuilderFactory,
                                       componentContext,

@@ -1,8 +1,6 @@
 package rsp.actor.runtime;
 
-import rsp.actor.ActorBehavior;
 import rsp.actor.ActorAskTimeoutException;
-import rsp.actor.ActorContext;
 import rsp.actor.ActorDefinition;
 import rsp.actor.ActorDeliveryException;
 import rsp.actor.ActorEffect;
@@ -14,9 +12,7 @@ import rsp.actor.ProcessingReceipt;
 import rsp.actor.SendResult;
 
 import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,7 +26,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 /** In-JVM, at-most-once actor runtime with bounded keyed mailboxes. */
@@ -40,7 +35,7 @@ public final class LocalActorSystem implements ActorSystem {
     private enum State { NEW, RUNNING, STOPPING, STOPPED }
 
     private final Map<String, ActorDefinition<?, ?>> definitions;
-    private final Map<ActorId<?>, Cell<?, ?>> cells = new ConcurrentHashMap<>();
+    private final Map<ActorId<?>, SerializedActorActivation<?, ?>> cells = new ConcurrentHashMap<>();
     private final Executor executor;
     private final ActorScheduler scheduler;
     private final ExecutorService ownedExecutor;
@@ -51,6 +46,7 @@ public final class LocalActorSystem implements ActorSystem {
     private final java.util.Set<CompletableFuture<?>> asks = ConcurrentHashMap.newKeySet();
     private final AtomicInteger outstanding = new AtomicInteger();
     private final CompletableFuture<Void> drained = new CompletableFuture<>();
+    private final SerializedActorActivation.Host activationHost = new ActivationHost();
     private volatile State state = State.NEW;
 
     private LocalActorSystem(Builder builder) {
@@ -102,12 +98,12 @@ public final class LocalActorSystem implements ActorSystem {
         ActorDefinition<?, ?> definition = definitions.get(id.type().name());
         if (definition == null || !definition.type().equals(id.type())
                 || state == State.STOPPING || state == State.STOPPED) {
-            return new LocalRef<>(id, null);
+            return new UnavailableRef<>(id);
         }
         @SuppressWarnings("unchecked")
-        Cell<?, M> cell = (Cell<?, M>) cells.computeIfAbsent(id,
+        SerializedActorActivation<?, M> cell = (SerializedActorActivation<?, M>) cells.computeIfAbsent(id,
                 ignored -> newCell(id, definition));
-        return new LocalRef<>(id, cell);
+        return cell.ref();
     }
 
     @Override
@@ -203,7 +199,7 @@ public final class LocalActorSystem implements ActorSystem {
 
     private void forceStop(Throwable cause) {
         state = State.STOPPED;
-        cells.values().forEach(cell -> cell.fail(cause));
+        cells.values().forEach(cell -> cell.close(cause));
         drained.completeExceptionally(cause);
     }
 
@@ -223,30 +219,10 @@ public final class LocalActorSystem implements ActorSystem {
         }
     }
 
-    private <M> ProcessingReceipt offer(ActorId<M> id, Cell<?, M> cell,
-                                        ActorEnvelope<M> envelope, boolean internal) {
-        Objects.requireNonNull(envelope, "envelope");
-        if (!id.type().messageClass().isInstance(envelope.message())) {
-            throw new IllegalArgumentException("Message is not a " + id.type().messageClass().getName());
-        }
-        State current = state;
-        if (current != State.RUNNING && !(internal && current == State.STOPPING)) {
-            return rejected(id, current == State.NEW ? SendResult.NOT_STARTED : SendResult.STOPPED);
-        }
-        ActorDefinition<?, ?> definition = definitions.get(id.type().name());
-        if (definition == null || !definition.type().equals(id.type())) {
-            return rejected(id, SendResult.UNKNOWN_ACTOR);
-        }
-        if (cell == null) {
-            return rejected(id, SendResult.UNKNOWN_ACTOR);
-        }
-        return cell.offer(envelope, internal);
-    }
-
-    private <M> Cell<?, M> newCell(ActorId<M> id, ActorDefinition<?, ?> raw) {
+    private <M> SerializedActorActivation<?, M> newCell(ActorId<M> id, ActorDefinition<?, ?> raw) {
         @SuppressWarnings("unchecked")
         ActorDefinition<Object, M> definition = (ActorDefinition<Object, M>) raw;
-        return new Cell<>(id, definition);
+        return new SerializedActorActivation<>(id, definition, activationHost);
     }
 
     private ProcessingReceipt rejected(ActorId<?> id, SendResult result) {
@@ -300,10 +276,12 @@ public final class LocalActorSystem implements ActorSystem {
                                 boolean internal) {
         ActorRef<M> recipient = delivery.recipient();
         SendResult result;
-        if (recipient instanceof LocalActorSystem.LocalRef<?> raw && raw.owner() == this) {
+        SerializedActorActivation<?, ?> raw = recipient.id()
+                .map(cells::get).orElse(null);
+        if (internal && raw != null && raw.ref() == recipient) {
             @SuppressWarnings("unchecked")
-            LocalRef<M> local = (LocalRef<M>) raw;
-            result = local.offer(delivery.envelope(), internal).admission();
+            SerializedActorActivation<?, M> local = (SerializedActorActivation<?, M>) raw;
+            result = local.offerInternal(delivery.envelope()).admission();
         } else {
             result = recipient.tell(delivery.envelope());
         }
@@ -388,31 +366,29 @@ public final class LocalActorSystem implements ActorSystem {
         }
     }
 
-    private final class LocalRef<M> implements ActorRef<M> {
+    private final class UnavailableRef<M> implements ActorRef<M> {
         private final ActorId<M> id;
-        private final Cell<?, M> cell;
 
-        private LocalRef(ActorId<M> id, Cell<?, M> cell) {
+        private UnavailableRef(ActorId<M> id) {
             this.id = id;
-            this.cell = cell;
-        }
-
-        private LocalActorSystem owner() {
-            return LocalActorSystem.this;
         }
 
         @Override
         public SendResult tell(ActorEnvelope<M> envelope) {
-            return offer(envelope, false).admission();
+            return track(envelope).admission();
         }
 
         @Override
         public ProcessingReceipt track(ActorEnvelope<M> envelope) {
-            return offer(envelope, false);
-        }
-
-        private ProcessingReceipt offer(ActorEnvelope<M> envelope, boolean internal) {
-            return LocalActorSystem.this.offer(id, cell, envelope, internal);
+            Objects.requireNonNull(envelope, "envelope");
+            if (!id.type().messageClass().isInstance(envelope.message())) {
+                throw new IllegalArgumentException(
+                        "Message is not a " + id.type().messageClass().getName());
+            }
+            State current = state;
+            SendResult result = current == State.NEW ? SendResult.UNKNOWN_ACTOR
+                    : current == State.RUNNING ? SendResult.UNKNOWN_ACTOR : SendResult.STOPPED;
+            return rejected(id, result);
         }
 
         @Override
@@ -421,196 +397,67 @@ public final class LocalActorSystem implements ActorSystem {
         }
     }
 
-    private final class Cell<S, M> {
-        private final ActorId<M> id;
-        private final ActorDefinition<S, M> definition;
-        private final Deque<Pending<M>> mailbox = new ArrayDeque<>();
-        private S currentState;
-        private boolean initialized;
-        private boolean inFlight;
-        private boolean scheduled;
-        private boolean stopped;
-        private Pending<M> current;
-
-        private Cell(ActorId<M> id, ActorDefinition<S, M> definition) {
-            this.id = id;
-            this.definition = definition;
+    private final class ActivationHost implements SerializedActorActivation.Host {
+        @Override
+        public SendResult admission(ActorId<?> id, boolean internal) {
+            State current = state;
+            if (current != State.RUNNING && !(internal && current == State.STOPPING)) {
+                return current == State.NEW ? SendResult.NOT_STARTED : SendResult.STOPPED;
+            }
+            ActorDefinition<?, ?> definition = definitions.get(id.type().name());
+            return definition != null && definition.type().equals(id.type())
+                    ? SendResult.ACCEPTED : SendResult.UNKNOWN_ACTOR;
         }
 
-        private ProcessingReceipt offer(ActorEnvelope<M> envelope, boolean internal) {
-            CompletableFuture<Void> processed = new CompletableFuture<>();
-            boolean enqueueRunner = false;
-            synchronized (this) {
-                State current = state;
-                if (current != State.RUNNING && !(internal && current == State.STOPPING)) {
-                    return rejected(id, SendResult.STOPPED);
-                }
-                if (stopped) {
-                    return rejected(id, SendResult.STOPPED);
-                }
-                if (mailbox.size() >= definition.mailboxCapacity()) {
-                    return rejected(id, SendResult.MAILBOX_FULL);
-                }
-                outstanding.incrementAndGet();
-                mailbox.addLast(new Pending<>(envelope, processed));
-                if (!inFlight && !scheduled) {
-                    scheduled = true;
-                    enqueueRunner = true;
-                }
-            }
-            if (enqueueRunner) {
-                executeNext();
-            }
-            return new ProcessingReceipt(SendResult.ACCEPTED, processed);
+        @Override
+        public void execute(ActorId<?> id, Runnable task) {
+            executor.execute(task);
         }
 
-        private void executeNext() {
-            try {
-                executor.execute(this::processNext);
-            } catch (Throwable failure) {
-                fail(failure);
-            }
+        @Override
+        public void accepted(ActorId<?> id) {
+            outstanding.incrementAndGet();
         }
 
-        private void processNext() {
-            Pending<M> pending;
-            S snapshot;
-            boolean initialize;
-            synchronized (this) {
-                scheduled = false;
-                if (stopped || inFlight || mailbox.isEmpty()) {
-                    return;
-                }
-                inFlight = true;
-                pending = mailbox.removeFirst();
-                current = pending;
-                snapshot = currentState;
-                initialize = !initialized;
-            }
-            try {
-                if (initialize) {
-                    snapshot = definition.initialState(id);
-                    synchronized (this) {
-                        if (stopped) {
-                            return;
-                        }
-                        currentState = snapshot;
-                        initialized = true;
-                    }
-                    observe(() -> observer.actorActivated(id));
-                }
-                ActorBehavior<S, M> behavior = definition.behavior();
-                CompletionStage<ActorEffect<S>> stage = Objects.requireNonNull(behavior.receive(
-                        new ActorContext<>(id, new LocalRef<>(id, this), pending.envelope()), snapshot,
-                        pending.envelope().message()), "behavior completion stage");
-                stage.whenComplete((effect, failure) -> complete(pending, effect, failure));
-            } catch (Throwable failure) {
-                complete(pending, null, failure);
-            }
-        }
-
-        private void complete(Pending<M> pending, ActorEffect<S> effect, Throwable failure) {
-            if (failure != null || effect == null) {
-                Throwable cause = failure != null ? failure : new NullPointerException("actor effect");
-                fail(cause);
-                return;
-            }
-            synchronized (this) {
-                if (stopped) {
-                    settle(pending, new IllegalStateException("Actor stopped"));
-                    return;
-                }
-                if (effect.stateChanged()) {
-                    currentState = effect.state();
-                }
-                if (effect.stopsActor()) {
-                    stopped = true;
-                }
-            }
-            try {
-                for (ActorEffect.Delivery<?> delivery : effect.deliveries()) {
-                    dispatch(id, delivery);
-                }
-            } catch (Throwable deliveryFailure) {
-                fail(deliveryFailure);
-                return;
-            }
-            if (stopped) {
-                cancelActorTimers(id);
-                failPending(new IllegalStateException("Actor stopped"));
-                if (effect.passivatesActor()) {
-                    cells.remove(id, this);
-                }
-            }
-            observe(() -> observer.messageProcessed(id));
-            settle(pending, null);
-            boolean enqueueRunner;
-            synchronized (this) {
-                current = null;
-                inFlight = false;
-                enqueueRunner = !stopped && !mailbox.isEmpty();
-                if (enqueueRunner) {
-                    scheduled = true;
-                }
-            }
-            if (enqueueRunner) {
-                executeNext();
-            }
-        }
-
-        private void fail(Throwable failure) {
-            List<Pending<M>> rejected;
-            synchronized (this) {
-                if (stopped && mailbox.isEmpty() && current == null) {
-                    return;
-                }
-                stopped = true;
-                rejected = new ArrayList<>(mailbox);
-                mailbox.clear();
-                if (current != null) {
-                    rejected.add(current);
-                    current = null;
-                }
-                inFlight = false;
-                scheduled = false;
-            }
-            logger.log(System.Logger.Level.ERROR,
-                    "Actor failed [actorType=" + id.type().name()
-                            + ", failureType=" + failure.getClass().getName() + "]");
-            observe(() -> observer.actorFailed(id, failure));
-            cancelActorTimers(id);
-            rejected.forEach(pending -> settle(pending, failure));
-        }
-
-        private void failPending(Throwable failure) {
-            List<Pending<M>> rejected;
-            synchronized (this) {
-                rejected = new ArrayList<>(mailbox);
-                mailbox.clear();
-            }
-            for (Pending<M> pending : rejected) {
-                settle(pending, failure);
-            }
-        }
-
-        private void settle(Pending<M> pending, Throwable failure) {
-            if (!pending.settled().compareAndSet(false, true)) {
-                return;
-            }
-            if (failure == null) {
-                pending.processed().complete(null);
-            } else {
-                pending.processed().completeExceptionally(failure);
-            }
+        @Override
+        public void settled(ActorId<?> id) {
             outstanding.decrementAndGet();
             finishDraining();
         }
-    }
 
-    private record Pending<M>(ActorEnvelope<M> envelope, CompletableFuture<Void> processed,
-                              AtomicBoolean settled) {
-        private Pending(ActorEnvelope<M> envelope, CompletableFuture<Void> processed) {
-            this(envelope, processed, new AtomicBoolean());
+        @Override
+        public void dispatch(ActorId<?> sender, ActorEffect.Delivery<?> delivery) {
+            LocalActorSystem.this.dispatch(sender, delivery);
+        }
+
+        @Override
+        public void activated(ActorId<?> id) {
+            observe(() -> observer.actorActivated(id));
+        }
+
+        @Override
+        public void rejected(ActorId<?> id, SendResult reason) {
+            observe(() -> observer.messageRejected(id, reason));
+        }
+
+        @Override
+        public void processed(ActorId<?> id) {
+            observe(() -> observer.messageProcessed(id));
+        }
+
+        @Override
+        public void failed(ActorId<?> id, Throwable failure) {
+            observe(() -> observer.actorFailed(id, failure));
+        }
+
+        @Override
+        public void terminated(ActorId<?> id,
+                               SerializedActorActivation<?, ?> activation,
+                               boolean release) {
+            cancelActorTimers(id);
+            if (release) {
+                cells.remove(id, activation);
+            }
         }
     }
 }

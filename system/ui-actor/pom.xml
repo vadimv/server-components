@@ -12,7 +12,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>actor-api</artifactId>
+            <artifactId>actor-runtime</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

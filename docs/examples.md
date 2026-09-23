@@ -44,9 +44,10 @@ Or from your IDE, by running the `main` method of the entry-point class.
 - Entry point: [Life.java](../examples/src/main/java/rsp/app/gameoflife/Life.java)
 - URL: <http://localhost:8082>
 - Demonstrates: one actor per resumable page session owning an independent board,
-  game status, and self-scheduled ticks. A live component sends commands and
-  receives coalesced snapshots through the optional `ui-actor` facade; page
-  teardown closes its actor. Its generic page-actor directory also supports
+  game status, and self-scheduled ticks. `LifeComponent` extends `ActorComponent`:
+  its view sends domain commands directly and renders committed actor state,
+  without application-level subscription messages or a duplicate component
+  state model. Page teardown closes the activation. Its page-actor directory also supports
   ordinary HTTP routes that discover active numeric game IDs
   (`GET /api/games`), read status (`GET /api/games/{id}`), and start, pause, or
   reset a game with POST routes. CSS is served with `StaticResources`. The

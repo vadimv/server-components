@@ -2,8 +2,8 @@ package rsp.app.gameoflife;
 
 import rsp.actor.ActorAskTimeoutException;
 import rsp.actor.ActorDeliveryException;
+import rsp.actor.ActorGateway;
 import rsp.actor.ActorRef;
-import rsp.actor.ActorSystem;
 import rsp.actor.SendResult;
 import rsp.actor.http.ActorRouteHandler;
 import rsp.actor.ui.PageActorDirectory;
@@ -29,7 +29,7 @@ final class LifeRoutes {
     private LifeRoutes() {
     }
 
-    static HttpRouter router(ActorSystem actors, PageActorDirectory<Long, LifeGame.Command> games) {
+    static HttpRouter router(ActorGateway actors, PageActorDirectory<Long, LifeGame.Command> games) {
         return HttpRouter.builder()
                 .get("/api/games", RestRouteHandler.async((_, _) -> {
                     List<CompletableFuture<Optional<LifeGame.GameSummary>>> summaries = games.all().stream()
@@ -52,7 +52,7 @@ final class LifeRoutes {
     }
 
     private static CompletableFuture<Optional<LifeGame.GameSummary>> summary(
-            ActorSystem actors, PageActorDirectory<Long, LifeGame.Command> games,
+            ActorGateway actors, PageActorDirectory<Long, LifeGame.Command> games,
             PageActorDirectory.Entry<Long, LifeGame.Command> game) {
         return actors.<LifeGame.Command, LifeGame.GameSummary>ask(
                 game.ref(), LifeGame.Status::new, DEADLINE).handle((value, failure) -> {
@@ -81,7 +81,7 @@ final class LifeRoutes {
                 }).toCompletableFuture();
     }
 
-    private static RestRouteHandler control(ActorSystem actors,
+    private static RestRouteHandler control(ActorGateway actors,
                                             PageActorDirectory<Long, LifeGame.Command> games,
                                             LifeGame.Action action) {
         return ActorRouteHandler.<LifeGame.Command, LifeGame.GameSummary>ask(
