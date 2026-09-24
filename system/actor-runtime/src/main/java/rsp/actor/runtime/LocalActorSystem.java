@@ -25,7 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /** In-JVM, at-most-once actor runtime with bounded keyed mailboxes. */
@@ -44,7 +43,10 @@ public final class LocalActorSystem implements ActorSystem {
     private final Duration shutdownTimeout;
     private final List<TimerSlot> timers = new ArrayList<>();
     private final java.util.Set<CompletableFuture<?>> asks = ConcurrentHashMap.newKeySet();
-    private final AtomicInteger outstanding = new AtomicInteger();
+    // Guards admission, outstanding work, and lifecycle transitions. Callbacks,
+    // timer cancellation, and activation access must run outside this lock.
+    private final Object lifecycleLock = new Object();
+    private int outstanding;
     private final CompletableFuture<Void> drained = new CompletableFuture<>();
     private final SerializedActorActivation.Host activationHost = new ActivationHost();
     private volatile State state = State.NEW;
@@ -82,13 +84,15 @@ public final class LocalActorSystem implements ActorSystem {
 
     @Override
     public synchronized void start() {
-        if (state == State.RUNNING) {
-            return;
+        synchronized (lifecycleLock) {
+            if (state == State.RUNNING) {
+                return;
+            }
+            if (state != State.NEW) {
+                throw new IllegalStateException("Actor system cannot be restarted");
+            }
+            state = State.RUNNING;
         }
-        if (state != State.NEW) {
-            throw new IllegalStateException("Actor system cannot be restarted");
-        }
-        state = State.RUNNING;
         observe(observer::systemStarted);
     }
 
@@ -164,15 +168,18 @@ public final class LocalActorSystem implements ActorSystem {
 
     @Override
     public synchronized CompletionStage<Void> drainAndStop() {
-        if (state == State.STOPPED || state == State.STOPPING) {
-            return drained;
+        final boolean neverStarted;
+        synchronized (lifecycleLock) {
+            if (state == State.STOPPED || state == State.STOPPING) {
+                return drained;
+            }
+            neverStarted = state == State.NEW;
+            state = neverStarted ? State.STOPPED : State.STOPPING;
         }
-        if (state == State.NEW) {
-            state = State.STOPPED;
+        if (neverStarted) {
             drained.complete(null);
             return drained;
         }
-        state = State.STOPPING;
         observe(observer::systemStopping);
         synchronized (timers) {
             timers.forEach(TimerSlot::cancel);
@@ -198,16 +205,21 @@ public final class LocalActorSystem implements ActorSystem {
     }
 
     private void forceStop(Throwable cause) {
-        state = State.STOPPED;
+        synchronized (lifecycleLock) {
+            state = State.STOPPED;
+        }
         cells.values().forEach(cell -> cell.close(cause));
         drained.completeExceptionally(cause);
     }
 
     private void finishDraining() {
-        if (state == State.STOPPING && outstanding.get() == 0) {
+        synchronized (lifecycleLock) {
+            if (state != State.STOPPING || outstanding != 0) {
+                return;
+            }
             state = State.STOPPED;
-            drained.complete(null);
         }
+        drained.complete(null);
     }
 
     private void closeOwnedResources() {
@@ -415,13 +427,21 @@ public final class LocalActorSystem implements ActorSystem {
         }
 
         @Override
-        public void accepted(ActorId<?> id) {
-            outstanding.incrementAndGet();
+        public SendResult admit(ActorId<?> id, boolean internal) {
+            synchronized (lifecycleLock) {
+                SendResult result = admission(id, internal);
+                if (result == SendResult.ACCEPTED) {
+                    outstanding++;
+                }
+                return result;
+            }
         }
 
         @Override
         public void settled(ActorId<?> id) {
-            outstanding.decrementAndGet();
+            synchronized (lifecycleLock) {
+                outstanding--;
+            }
             finishDraining();
         }
 

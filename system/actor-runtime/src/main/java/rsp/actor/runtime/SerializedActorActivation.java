@@ -35,11 +35,20 @@ public final class SerializedActorActivation<S, M> {
 
     /** Host operations whose implementations must not call back while holding host locks. */
     public interface Host {
+        /** Preliminary check; does not reserve work or guarantee later admission. */
         SendResult admission(ActorId<?> id, boolean internal);
 
         void execute(ActorId<?> id, Runnable task);
 
-        void accepted(ActorId<?> id);
+        /**
+         * Rechecks admission at mailbox insertion. Hosts that count outstanding
+         * work must atomically reserve it with this check and coordinate both
+         * with shutdown. Each ACCEPTED result is paired with one settled call.
+         * Called while holding the activation lock; must not invoke callbacks.
+         */
+        default SendResult admit(ActorId<?> id, boolean internal) {
+            return admission(id, internal);
+        }
 
         void settled(ActorId<?> id);
 
@@ -178,7 +187,10 @@ public final class SerializedActorActivation<S, M> {
             if (mailbox.size() >= definition.mailboxCapacity()) {
                 return rejected(SendResult.MAILBOX_FULL);
             }
-            host.accepted(id);
+            SendResult admission = Objects.requireNonNull(host.admit(id, internal), "host admission");
+            if (admission != SendResult.ACCEPTED) {
+                return rejected(admission);
+            }
             mailbox.addLast(new Pending<>(envelope, processed));
             if (!inFlight && !scheduled) {
                 scheduled = true;

@@ -1,6 +1,8 @@
 package rsp.actor.testkit;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import rsp.application.ApplicationContext;
 import rsp.actor.ActorBehavior;
 import rsp.actor.ActorDefinition;
@@ -19,11 +21,14 @@ import rsp.actor.runtime.ActorSystemObserver;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -199,6 +204,121 @@ class LocalActorSystemTests {
         kit.runAll();
         assertEquals(List.of(7), events.messages());
         assertTrue(stopping.isDone());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void rejectsOfferWaitingForActivationWhenShutdownCompletes(boolean ownedExecutor) throws Exception {
+        ActorTestKit kit = new ActorTestKit();
+        AtomicInteger processed = new AtomicInteger();
+        LocalActorSystem.Builder builder = LocalActorSystem.builder()
+                .scheduler(kit.scheduler())
+                .register(ActorDefinition.<Integer, Integer>builder(COUNTER)
+                        .initialState(_ -> 0)
+                        .behavior(ActorBehavior.sync((_, state, message) -> {
+                            processed.incrementAndGet();
+                            return ActorEffect.state(state + message);
+                        })).build());
+        if (!ownedExecutor) {
+            builder.executor(kit.executor());
+        }
+        LocalActorSystem system = builder.build();
+        system.start();
+        ActorRef<Integer> actor = system.ref(COUNTER, "racing");
+        CompletableFuture<ProcessingReceipt> offered = new CompletableFuture<>();
+        Thread sender = Thread.ofPlatform().daemon().unstarted(() -> {
+            try {
+                offered.complete(actor.track(1));
+            } catch (Throwable failure) {
+                offered.completeExceptionally(failure);
+            }
+        });
+        try {
+            // Hold the actual mailbox lock to reproduce the gap between the old
+            // host admission check and registration of outstanding work.
+            var cellsField = LocalActorSystem.class.getDeclaredField("cells");
+            cellsField.setAccessible(true);
+            Object activation = ((Map<?, ?>) cellsField.get(system)).get(actor.id().orElseThrow());
+            synchronized (activation) {
+                sender.start();
+                awaitBlocked(sender);
+                system.drainAndStop().toCompletableFuture().get(5, TimeUnit.SECONDS);
+            }
+
+            ProcessingReceipt receipt = offered.get(5, TimeUnit.SECONDS);
+            assertEquals(SendResult.STOPPED, receipt.admission());
+            ActorDeliveryException failure = assertInstanceOf(ActorDeliveryException.class,
+                    assertThrows(CompletionException.class,
+                            () -> receipt.processed().toCompletableFuture().join()).getCause());
+            assertEquals(SendResult.STOPPED, failure.result());
+            kit.runAll();
+            assertEquals(0, processed.get());
+        } finally {
+            sender.join(5_000);
+            kit.runAll();
+            system.stop();
+        }
+    }
+
+    @Test
+    void drainWaitsForAnAdmittedMessageWhoseExecutorSubmissionIsPaused() throws Exception {
+        ActorTestKit kit = new ActorTestKit();
+        CountDownLatch submitting = new CountDownLatch(1);
+        CountDownLatch resumeSubmission = new CountDownLatch(1);
+        AtomicInteger processed = new AtomicInteger();
+        LocalActorSystem system = LocalActorSystem.builder()
+                .scheduler(kit.scheduler())
+                .executor(task -> {
+                    submitting.countDown();
+                    try {
+                        if (!resumeSubmission.await(5, TimeUnit.SECONDS)) {
+                            throw new IllegalStateException("Executor submission was not resumed");
+                        }
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(interrupted);
+                    }
+                    kit.executor().execute(task);
+                })
+                .register(ActorDefinition.<Integer, Integer>builder(COUNTER)
+                        .initialState(_ -> 0)
+                        .behavior(ActorBehavior.sync((_, state, message) -> {
+                            processed.incrementAndGet();
+                            return ActorEffect.state(state + message);
+                        })).build())
+                .build();
+        system.start();
+        ActorRef<Integer> actor = system.ref(COUNTER, "admitted");
+        CompletableFuture<ProcessingReceipt> offered = new CompletableFuture<>();
+        Thread sender = Thread.ofPlatform().daemon().start(() -> {
+            try {
+                offered.complete(actor.track(1));
+            } catch (Throwable failure) {
+                offered.completeExceptionally(failure);
+            }
+        });
+        try {
+            assertTrue(submitting.await(5, TimeUnit.SECONDS));
+            var drained = system.drainAndStop().toCompletableFuture();
+            assertFalse(drained.isDone());
+            assertEquals(SendResult.STOPPED, actor.tell(2));
+
+            resumeSubmission.countDown();
+            ProcessingReceipt receipt = offered.get(5, TimeUnit.SECONDS);
+            assertEquals(SendResult.ACCEPTED, receipt.admission());
+            assertFalse(receipt.processed().toCompletableFuture().isDone());
+            assertFalse(drained.isDone());
+
+            kit.runAll();
+            receipt.processed().toCompletableFuture().get(5, TimeUnit.SECONDS);
+            drained.get(5, TimeUnit.SECONDS);
+            assertEquals(1, processed.get());
+        } finally {
+            resumeSubmission.countDown();
+            sender.join(5_000);
+            kit.runAll();
+            system.stop();
+        }
     }
 
     @Test
@@ -504,6 +624,14 @@ class LocalActorSystemTests {
     }
 
     private record Ask(boolean replyNow, ActorRef<String> replyTo) { }
+
+    private static void awaitBlocked(Thread thread) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (thread.getState() != Thread.State.BLOCKED && System.nanoTime() < deadline) {
+            Thread.sleep(1);
+        }
+        assertEquals(Thread.State.BLOCKED, thread.getState(), "Sender must reach the activation lock");
+    }
 
     @SuppressWarnings("unchecked")
     private static <M> ActorRef<M>[] refHolder() {

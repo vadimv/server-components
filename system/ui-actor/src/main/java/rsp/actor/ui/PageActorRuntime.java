@@ -320,10 +320,6 @@ public final class PageActorRuntime implements ActorGateway, ApplicationLifecycl
         }
 
         @Override
-        public void accepted(ActorId<?> id) {
-        }
-
-        @Override
         public void settled(ActorId<?> id) {
         }
 
