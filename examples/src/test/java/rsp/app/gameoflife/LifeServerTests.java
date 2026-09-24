@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Random;
 import java.util.regex.Pattern;
 
@@ -32,6 +33,25 @@ class LifeServerTests {
             long firstId = gameId(page.body());
             long secondId = gameId(secondPage.body());
             assertNotEquals(firstId, secondId);
+        }
+    }
+
+    @Test
+    void abandonedHtmlRequestDoesNotMakeCatalogUnavailable() throws Exception {
+        try (var server = Life.server(0, new Random(42));
+             var client = HttpClient.newHttpClient()) {
+            server.start();
+            String base = "http://127.0.0.1:" + server.port();
+
+            HttpResponse<String> page = client.send(HttpRequest.newBuilder(URI.create(base + "/"))
+                    .timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, page.statusCode());
+            assertTrue(gameId(page.body()) > 0);
+            // An HTTP-only client never connects the page's WebSocket.
+            HttpResponse<String> catalog = client.send(HttpRequest.newBuilder(URI.create(base + "/api/games"))
+                    .timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, catalog.statusCode());
+            assertEquals("[]", catalog.body());
         }
     }
 

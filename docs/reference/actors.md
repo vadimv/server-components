@@ -197,8 +197,13 @@ uses this directory and `ActorComponent` for one actor per logical page session.
 Two pages have independent boards; a WebSocket reconnect
 keeps the same actor, while page closure removes the catalog entry and
 administratively stops its actor. HTTP routes expose `READY`/`RUNNING`/`PAUSED` status and
-controls; the live component renders committed actor state directly. `PAUSED` is a game
-state, not an actor runtime stop. An epoch makes ticks scheduled before
+controls; the live component renders committed actor state directly. The catalog
+returns the games that reply within the two-second per-game deadline, omitting
+unavailable games and pages closed during the request. An HTML-only client that
+never connects its WebSocket therefore cannot fail the whole listing. Games
+omitted for a timeout or full mailbox remain eligible for later listings;
+individual-game routes still report availability errors and timeouts. `PAUSED`
+is a game state, not an actor runtime stop. An epoch makes ticks scheduled before
 pause/reset harmless. This catalog is public demo behavior, not an
 authorization model for private games.
 

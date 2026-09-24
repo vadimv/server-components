@@ -7,7 +7,6 @@ import rsp.actor.ActorRef;
 import rsp.actor.SendResult;
 import rsp.actor.http.ActorRouteHandler;
 import rsp.actor.ui.PageActorDirectory;
-import rsp.http.HttpStatus;
 import rsp.http.json.JsonHttp;
 import rsp.http.rest.RestException;
 import rsp.http.rest.RestRouteHandler;
@@ -59,23 +58,20 @@ final class LifeRoutes {
                     if (failure == null) {
                         return Optional.of(value);
                     }
-                    Throwable cause = failure instanceof CompletionException completion
-                            ? completion.getCause() : failure;
-                    if (cause instanceof ActorDeliveryException rejected
-                            && rejected.result() == SendResult.STOPPED
-                            && games.find(game.id()).isEmpty()) {
+                    // Closing a page can fail an admitted ask with its closure reason.
+                    if (games.find(game.id()).isEmpty()) {
                         return Optional.<LifeGame.GameSummary>empty();
                     }
-                    if (cause instanceof ActorDeliveryException rejected
+                    Throwable cause = failure instanceof CompletionException completion
+                            ? completion.getCause() : failure;
+                    // A rendered page may never connect its WebSocket and run its actor.
+                    // Keep the catalog available even when one game cannot answer.
+                    if (cause instanceof ActorAskTimeoutException
+                            || cause instanceof ActorDeliveryException rejected
                             && (rejected.result() == SendResult.STOPPED
                             || rejected.result() == SendResult.MAILBOX_FULL
                             || rejected.result() == SendResult.NOT_STARTED)) {
-                        throw new RestException(HttpStatus.SERVICE_UNAVAILABLE, "actor_unavailable",
-                                "The game is temporarily unavailable", rejected);
-                    }
-                    if (cause instanceof ActorAskTimeoutException timeout) {
-                        throw new RestException(HttpStatus.GATEWAY_TIMEOUT, "actor_timeout",
-                                "The game did not respond in time", timeout);
+                        return Optional.<LifeGame.GameSummary>empty();
                     }
                     throw new CompletionException(cause);
                 }).toCompletableFuture();

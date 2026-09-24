@@ -33,6 +33,7 @@ import rsp.util.json.JsonDataType;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -141,6 +142,75 @@ class LifeGameTests {
     }
 
     @Test
+    void catalogOmitsUnconnectedPageAndIncludesItAfterItsLoopStarts() {
+        try (PageFixture fixture = new PageFixture(); PageScope pendingScope = new PageScope()) {
+            fixture.activate();
+            TestCommands pendingCommands = new TestCommands();
+            fixture.games.activate(new QualifiedSessionId("device", "pending"),
+                    pendingScope, pendingCommands, fixture.definition);
+            var router = LifeRoutes.router(fixture.runtime, fixture.games);
+
+            var catalog = router.handle(request(HttpMethod.GET, "/api/games")).toCompletableFuture();
+            fixture.commands.drain();
+            assertFalse(catalog.isDone());
+            fixture.kit.advance(Duration.ofSeconds(2));
+            assertCatalog(catalog.join(), 1L);
+            assertTrue(fixture.games.find(2L).isPresent(),
+                    "a catalog timeout must not remove a page that can still connect");
+
+            var status = router.handle(request(HttpMethod.GET, "/api/games/2")).toCompletableFuture();
+            fixture.kit.advance(Duration.ofSeconds(2));
+            assertEquals(HttpStatus.GATEWAY_TIMEOUT, status.join().status());
+
+            // WebSocket handoff starts processing the previously queued status requests.
+            pendingCommands.drain();
+            var connected = router.handle(request(HttpMethod.GET, "/api/games")).toCompletableFuture();
+            fixture.commands.drain();
+            pendingCommands.drain();
+            assertCatalog(connected.join(), 1L, 2L);
+        }
+    }
+
+    @Test
+    void catalogOmitsFullMailboxWhileIndividualGameReturnsUnavailable() {
+        try (PageFixture fixture = new PageFixture(); PageScope healthyScope = new PageScope()) {
+            var blocked = fixture.activate();
+            for (int index = 0; index < fixture.definition.mailboxCapacity(); index++) {
+                assertEquals(SendResult.ACCEPTED,
+                        blocked.ref().tell(new LifeGame.ToggleCell(0, 0)));
+            }
+            TestCommands healthyCommands = new TestCommands();
+            fixture.games.activate(new QualifiedSessionId("device", "healthy"),
+                    healthyScope, healthyCommands, fixture.definition);
+            var router = LifeRoutes.router(fixture.runtime, fixture.games);
+
+            var catalog = router.handle(request(HttpMethod.GET, "/api/games")).toCompletableFuture();
+            healthyCommands.drain();
+            assertCatalog(catalog.join(), 2L);
+            assertEquals(HttpStatus.SERVICE_UNAVAILABLE, router.handle(request(
+                    HttpMethod.GET, "/api/games/1")).toCompletableFuture().join().status());
+        }
+    }
+
+    @Test
+    void catalogOmitsPageClosedWhileStatusIsQueued() {
+        try (PageFixture fixture = new PageFixture(); PageScope healthyScope = new PageScope()) {
+            fixture.activate();
+            TestCommands healthyCommands = new TestCommands();
+            fixture.games.activate(new QualifiedSessionId("device", "healthy"),
+                    healthyScope, healthyCommands, fixture.definition);
+            var router = LifeRoutes.router(fixture.runtime, fixture.games);
+
+            var catalog = router.handle(request(HttpMethod.GET, "/api/games")).toCompletableFuture();
+            fixture.scope.close();
+            healthyCommands.drain();
+            assertCatalog(catalog.join(), 2L);
+            assertEquals(HttpStatus.NOT_FOUND, router.handle(request(
+                    HttpMethod.GET, "/api/games/1")).toCompletableFuture().join().status());
+        }
+    }
+
+    @Test
     void actorComponentRendersInitialStateDispatchesCommandsAndOnlyDetachesOnUnmount() {
         try (PageFixture fixture = new PageFixture()) {
             LifeComponent component = new LifeComponent(fixture.games, fixture.definition);
@@ -215,6 +285,13 @@ class LifeGameTests {
         } finally {
             runtime.stop();
         }
+    }
+
+    private static void assertCatalog(HttpResponse response, Long... ids) {
+        assertEquals(HttpStatus.OK, response.status());
+        JsonDataType.Array games = (JsonDataType.Array) Json.parse(read(response));
+        assertEquals(List.of(ids), java.util.Arrays.stream(games.elements())
+                .map(game -> Json.requireObject(game).requiredNumber("id").asLong()).toList());
     }
 
     private static EventContext event(NodeId nodeId) {
