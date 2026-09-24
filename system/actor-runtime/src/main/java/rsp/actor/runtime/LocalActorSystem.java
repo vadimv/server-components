@@ -54,7 +54,7 @@ public final class LocalActorSystem implements ActorSystem {
     private LocalActorSystem(Builder builder) {
         definitions = Map.copyOf(builder.definitions);
         ownedExecutor = builder.executor == null ? Executors.newVirtualThreadPerTaskExecutor() : null;
-        executor = builder.executor == null ? ownedExecutor : builder.executor;
+        executor = builder.executor == null ? ownedExecutor : new TrampolineExecutor(builder.executor);
         ownedScheduler = builder.scheduler == null ? newScheduler() : null;
         scheduler = builder.scheduler == null
                 ? (delay, task) -> {

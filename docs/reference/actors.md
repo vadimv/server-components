@@ -66,6 +66,12 @@ Local references bind a cell when obtained; actor state still initializes on
 the first admitted message. Avoid obtaining references for unbounded unused
 keys, and passivate short-lived actors when their owners close.
 
+A custom local executor may run tasks inline, including `Runnable::run`.
+Reentrant turns and completions drain iteratively on the executing thread, so
+long self-message and actor-to-actor chains do not grow the call stack. Each task
+still passes through the configured executor; queued executors retain their
+scheduling behavior.
+
 ## Delivery contract
 
 `tell` returns a `SendResult` for admission. `ACCEPTED` means the message entered

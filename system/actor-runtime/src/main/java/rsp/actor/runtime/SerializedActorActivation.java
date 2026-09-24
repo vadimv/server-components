@@ -211,7 +211,13 @@ public final class SerializedActorActivation<S, M> {
 
     private void execute(Runnable task) {
         try {
-            host.execute(id, task);
+            host.execute(id, () -> {
+                try {
+                    task.run();
+                } catch (Throwable failure) {
+                    fail(failure, false, true);
+                }
+            });
         } catch (Throwable failure) {
             fail(failure, false, true);
         }
