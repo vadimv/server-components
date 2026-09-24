@@ -100,8 +100,9 @@ public final class LocalActorSystem implements ActorSystem {
     public <M> ActorRef<M> ref(ActorId<M> id) {
         Objects.requireNonNull(id, "id");
         ActorDefinition<?, ?> definition = definitions.get(id.type().name());
+        // Keep lookup available while draining; delivery admission rejects external sends.
         if (definition == null || !definition.type().equals(id.type())
-                || state == State.STOPPING || state == State.STOPPED) {
+                || state == State.STOPPED) {
             return new UnavailableRef<>(id);
         }
         @SuppressWarnings("unchecked")

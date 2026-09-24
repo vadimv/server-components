@@ -49,8 +49,9 @@ registration order and stops them in reverse order. With an HTTP application,
 ownership to the server. The router does not implicitly start the actor system.
 Stop the system after producers have stopped.
 `drainAndStop()` rejects new external messages while draining already admitted
-work and immediate actor-to-actor messages. It cancels delayed messages; `stop()`
-also applies a bounded shutdown timeout.
+work and immediate actor-to-actor messages, including destinations first resolved
+while draining. Reference lookup remains available for existing and new keys.
+It cancels delayed messages; `stop()` also applies a bounded shutdown timeout.
 Stopping one actor cancels timers scheduled by that actor. An actor can return
 `effect.passivating()` to stop and release its local cell after accepted work
 settles. Existing references remain bound to the stopped incarnation and reject

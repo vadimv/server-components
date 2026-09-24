@@ -208,6 +208,68 @@ class LocalActorSystemTests {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
+    void resolvesInternalDestinationsDuringDrainWhileRejectingExternalSends(boolean existingDestination) {
+        ActorTestKit kit = new ActorTestKit();
+        ActorProbe<Integer> events = kit.probe();
+        AtomicReference<LocalActorSystem> runtime = new AtomicReference<>();
+        AtomicReference<ActorRef<Integer>> destination = new AtomicReference<>();
+        CompletableFuture<ActorEffect<Integer>> destinationEffect = new CompletableFuture<>();
+        LocalActorSystem system = kit.register(ActorDefinition.<Integer, Integer>builder(COUNTER)
+                .initialState(_ -> 0)
+                .behavior((context, _, message) -> {
+                    if (context.id().key().equals("source")) {
+                        ActorRef<Integer> resolved = runtime.get().ref(COUNTER, "destination");
+                        destination.set(resolved);
+                        return CompletableFuture.completedFuture(ActorEffect.<Integer>same()
+                                .send(resolved, message));
+                    }
+                    events.tell(message);
+                    return destinationEffect;
+                }).build()).start();
+        runtime.set(system);
+        ActorRef<Integer> previous = existingDestination ? system.ref(COUNTER, "destination") : null;
+        try {
+            ProcessingReceipt source = system.ref(COUNTER, "source").track(7);
+            var drained = system.drainAndStop().toCompletableFuture();
+            assertFalse(drained.isDone());
+
+            // Run the source behavior so it resolves the destination during
+            // draining, before its outbound effect is applied.
+            assertTrue(kit.executor().runNext());
+            ActorRef<Integer> resolved = destination.get();
+            assertNotNull(resolved);
+            assertEquals(SendResult.STOPPED, resolved.tell(8));
+            ProcessingReceipt rejected = resolved.track(9);
+            assertEquals(SendResult.STOPPED, rejected.admission());
+            ActorDeliveryException failure = assertInstanceOf(ActorDeliveryException.class,
+                    assertThrows(CompletionException.class,
+                            () -> rejected.processed().toCompletableFuture().join()).getCause());
+            assertEquals(SendResult.STOPPED, failure.result());
+
+            kit.runAll();
+            assertEquals(List.of(7), events.messages());
+            assertTrue(source.processed().toCompletableFuture().isDone());
+            source.processed().toCompletableFuture().join();
+            assertFalse(drained.isDone(), "Drain must wait for the newly resolved destination");
+            if (existingDestination) {
+                assertSame(previous, resolved);
+            }
+
+            destinationEffect.complete(ActorEffect.state(7));
+            kit.runAll();
+            assertTrue(drained.isDone());
+            drained.join();
+            assertEquals(SendResult.STOPPED, system.ref(COUNTER, "destination").tell(10));
+            assertEquals(List.of(7), events.messages());
+        } finally {
+            destinationEffect.complete(ActorEffect.same());
+            kit.runAll();
+            system.stop();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
     void rejectsOfferWaitingForActivationWhenShutdownCompletes(boolean ownedExecutor) throws Exception {
         ActorTestKit kit = new ActorTestKit();
         AtomicInteger processed = new AtomicInteger();
