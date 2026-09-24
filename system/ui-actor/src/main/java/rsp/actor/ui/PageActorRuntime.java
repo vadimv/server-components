@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
@@ -95,10 +96,12 @@ public final class PageActorRuntime implements ActorGateway, ApplicationLifecycl
         }
         closing.forEach(activation -> activation.close(
                 new ActorDeliveryException(SendResult.STOPPED)));
+        final List<TimerSlot> cancelling;
         synchronized (timers) {
-            timers.forEach(TimerSlot::cancel);
+            cancelling = List.copyOf(timers);
             timers.clear();
         }
+        cancelling.forEach(TimerSlot::cancel);
         asks.forEach(ask -> ask.completeExceptionally(
                 new ActorDeliveryException(SendResult.STOPPED)));
         if (ownedScheduler != null) {
@@ -209,30 +212,40 @@ public final class PageActorRuntime implements ActorGateway, ApplicationLifecycl
                 CompletableFuture.failedFuture(new ActorDeliveryException(result)));
     }
 
-    private void dispatch(ActorId<?> sender, ActorEffect.Delivery<?> delivery) {
+    private void dispatch(PageHost owner, ActorId<?> sender, ActorEffect.Delivery<?> delivery) {
         if (delivery.delay().isZero()) {
+            synchronized (timers) {
+                if (state != State.RUNNING || owner.closed) {
+                    return;
+                }
+            }
             sendEffect(sender, delivery, true);
             return;
         }
+        final TimerSlot slot;
         synchronized (timers) {
-            if (state != State.RUNNING) {
+            if (state != State.RUNNING || owner.closed) {
                 return;
             }
-            TimerSlot slot = new TimerSlot(sender);
+            slot = new TimerSlot(owner);
             timers.add(slot);
-            try {
-                slot.cancellation = scheduler.schedule(delivery.delay(), () -> {
-                    synchronized (timers) {
-                        timers.remove(slot);
+        }
+        try {
+            slot.setCancellation(scheduler.schedule(delivery.delay(), () -> {
+                synchronized (timers) {
+                    // Claim this delivery only while its activation still owns it.
+                    // Closure cannot recall a send that has already been claimed.
+                    if (!timers.remove(slot) || owner.closed || state != State.RUNNING) {
+                        return;
                     }
-                    if (state == State.RUNNING) {
-                        sendEffect(sender, delivery, false);
-                    }
-                });
-            } catch (Throwable failure) {
+                }
+                sendEffect(sender, delivery, false);
+            }));
+        } catch (Throwable failure) {
+            synchronized (timers) {
                 timers.remove(slot);
-                throw failure;
             }
+            throw failure;
         }
     }
 
@@ -254,16 +267,19 @@ public final class PageActorRuntime implements ActorGateway, ApplicationLifecycl
         }
     }
 
-    private void cancelTimers(ActorId<?> id) {
+    private void cancelTimers(PageHost owner) {
+        final List<TimerSlot> cancelling = new ArrayList<>();
         synchronized (timers) {
+            owner.closed = true;
             timers.removeIf(timer -> {
-                if (!timer.owner.equals(id)) {
+                if (timer.owner != owner) {
                     return false;
                 }
-                timer.cancel();
+                cancelling.add(timer);
                 return true;
             });
         }
+        cancelling.forEach(TimerSlot::cancel);
     }
 
     private static void requirePositive(Duration duration, String name) {
@@ -302,6 +318,8 @@ public final class PageActorRuntime implements ActorGateway, ApplicationLifecycl
     private final class PageHost implements SerializedActorActivation.Host {
         private final CommandsEnqueue commands;
         private final Runnable onTerminated;
+        // Guarded by timers, along with this activation's timer registrations.
+        private boolean closed;
 
         private PageHost(CommandsEnqueue commands, Runnable onTerminated) {
             this.commands = commands;
@@ -325,7 +343,7 @@ public final class PageActorRuntime implements ActorGateway, ApplicationLifecycl
 
         @Override
         public void dispatch(ActorId<?> sender, ActorEffect.Delivery<?> delivery) {
-            PageActorRuntime.this.dispatch(sender, delivery);
+            PageActorRuntime.this.dispatch(this, sender, delivery);
         }
 
         @Override
@@ -352,24 +370,34 @@ public final class PageActorRuntime implements ActorGateway, ApplicationLifecycl
         public void terminated(ActorId<?> id,
                                SerializedActorActivation<?, ?> activation,
                                boolean release) {
-            cancelTimers(id);
+            cancelTimers(this);
             activations.remove(id, activation);
             observe(onTerminated);
         }
     }
 
     private static final class TimerSlot implements ActorScheduler.Cancellation {
-        private final ActorId<?> owner;
-        private ActorScheduler.Cancellation cancellation;
+        private static final ActorScheduler.Cancellation CANCELLED = () -> { };
+        private final PageHost owner;
+        private final AtomicReference<ActorScheduler.Cancellation> cancellation = new AtomicReference<>();
 
-        private TimerSlot(ActorId<?> owner) {
+        private TimerSlot(PageHost owner) {
             this.owner = owner;
+        }
+
+        private void setCancellation(ActorScheduler.Cancellation handle) {
+            Objects.requireNonNull(handle, "timer cancellation");
+            // Closure may win before schedule() returns its cancellation handle.
+            if (!cancellation.compareAndSet(null, handle)) {
+                handle.cancel();
+            }
         }
 
         @Override
         public void cancel() {
-            if (cancellation != null) {
-                cancellation.cancel();
+            ActorScheduler.Cancellation handle = cancellation.getAndSet(CANCELLED);
+            if (handle != null && handle != CANCELLED) {
+                handle.cancel();
             }
         }
     }

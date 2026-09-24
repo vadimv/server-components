@@ -176,7 +176,9 @@ coalesced while a component update is queued. No `Subscribe`, `Unsubscribe`,
 snapshot projection, or mount callback is required in the application protocol.
 Unmounting detaches rendering but retains the activation; `PageScope` closes it
 administratively when the resumable page ends. Closing rejects late messages,
-cancels owned timers, and removes the exact directory entry.
+cancels owned timers, and removes the exact directory entry. Timer registration
+is tied to the owning activation, including when closure races with an effect
+or scheduler callback. Deliveries that have already begun may finish.
 
 Page actors start with synchronous state initialization for initial rendering,
 but behavior turns are queued to the live page loop. An ask made after HTML

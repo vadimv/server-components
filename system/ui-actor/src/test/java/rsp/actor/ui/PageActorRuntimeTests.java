@@ -3,6 +3,8 @@ package rsp.actor.ui;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import rsp.actor.ActorBehavior;
 import rsp.actor.ActorDefinition;
 import rsp.actor.ActorEffect;
@@ -22,6 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -149,6 +154,136 @@ class PageActorRuntimeTests {
     }
 
     @Test
+    void closingPageFromReplyCancelsTimersAndSuppressesRemainingEffects() {
+        var directory = PageActorDirectory.numbered(runtime, TYPE);
+        try (PageScope recipientScope = new PageScope()) {
+            var recipient = directory.activate(new QualifiedSessionId("device", "recipient"),
+                    recipientScope, commands, countingDefinition(8));
+            ActorDefinition<Integer, Message> definition = ActorDefinition.<Integer, Message>builder(TYPE)
+                    .initialState(_ -> 0)
+                    .behavior(ActorBehavior.sync((_, _, message) -> ActorEffect.<Integer>same()
+                            .schedule(recipient.ref(), new Add(1), Duration.ofSeconds(1))
+                            .reply(((Read) message).replyTo(), 42)
+                            .schedule(recipient.ref(), new Add(2), Duration.ofSeconds(1))
+                            .send(recipient.ref(), new Add(3))))
+                    .build();
+            var sender = directory.activate(PAGE, scope, commands, definition);
+            var answer = runtime.<Message, Integer>ask(sender.ref(), Read::new, Duration.ofSeconds(2));
+            var closed = answer.thenRun(scope::close);
+
+            commands.drain();
+            closed.toCompletableFuture().join();
+            assertEquals(42, answer.toCompletableFuture().join());
+            assertEquals(SendResult.STOPPED, sender.ref().tell(new Add(1)));
+            assertEquals(1, directory.all().size());
+            assertEquals(0, scheduler.pendingCount());
+            scheduler.runAll();
+            commands.drain();
+            assertEquals(0, recipient.state());
+
+            // Closing one owner must leave other actors' timers usable.
+            recipient.ref().tell(new StartDelayed(7));
+            commands.drain();
+            assertEquals(1, scheduler.pendingCount());
+            scheduler.runAll();
+            commands.drain();
+            assertEquals(7, recipient.state());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void closeDuringTimerRegistrationCancelsHandleWhenItArrives(boolean concurrentClose) throws Exception {
+        var handle = PageActorDirectory.numbered(runtime, TYPE)
+                .activate(PAGE, scope, commands, countingDefinition(8));
+        var receipt = handle.ref().track(new StartDelayed(7));
+        if (!concurrentClose) {
+            scheduler.beforeReturn = scope::close;
+            commands.drain();
+        } else {
+            CountDownLatch registering = new CountDownLatch(1);
+            CountDownLatch resumeRegistration = new CountDownLatch(1);
+            scheduler.beforeReturn = () -> {
+                registering.countDown();
+                try {
+                    if (!resumeRegistration.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("Timer registration was not resumed");
+                    }
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(interrupted);
+                }
+            };
+            try (var workers = Executors.newVirtualThreadPerTaskExecutor()) {
+                var processing = workers.submit(commands::drain);
+                try {
+                    assertTrue(registering.await(5, TimeUnit.SECONDS));
+                    // Closure must finish even before schedule() returns its handle.
+                    workers.submit(scope::close).get(5, TimeUnit.SECONDS);
+                } finally {
+                    resumeRegistration.countDown();
+                    processing.get(5, TimeUnit.SECONDS);
+                }
+            }
+        }
+        assertTrue(receipt.processed().toCompletableFuture().isCompletedExceptionally());
+        assertEquals(0, scheduler.pendingCount());
+        scheduler.runAll();
+        commands.drain();
+        assertEquals(0, handle.state());
+        assertEquals(SendResult.STOPPED, handle.ref().tell(new Add(1)));
+    }
+
+    @Test
+    void cancelledCallbackCannotDeliverAfterTheOwnerIdIsReused() {
+        var directory = new PageActorDirectory<>(runtime, TYPE, () -> 1L);
+        try (PageScope recipientScope = new PageScope(); PageScope replacementScope = new PageScope()) {
+            var recipient = runtime.activate(TYPE.id(2L), countingDefinition(8),
+                    commands, recipientScope, () -> { });
+            ActorDefinition<Integer, Message> definition = ActorDefinition.<Integer, Message>builder(TYPE)
+                    .initialState(_ -> 0)
+                    .behavior(ActorBehavior.sync((_, _, message) -> ActorEffect.<Integer>same()
+                            .schedule(recipient.ref(), message, Duration.ofSeconds(1))))
+                    .build();
+            var original = directory.activate(PAGE, scope, commands, definition);
+            original.ref().tell(new Add(7));
+            commands.drain();
+            Runnable alreadyQueuedCallback = scheduler.pending.getFirst().task;
+
+            scope.close();
+            var replacement = directory.activate(PAGE, replacementScope, commands, definition);
+            assertEquals(original.id(), replacement.id());
+            replacement.ref().tell(new Add(3));
+            commands.drain();
+            assertEquals(1, scheduler.pendingCount());
+
+            // A scheduler may already have queued the callback when cancelled.
+            alreadyQueuedCallback.run();
+            scheduler.runAll();
+            commands.drain();
+            assertEquals(3, recipient.state());
+        }
+    }
+
+    @Test
+    void stoppingEffectStillRepliesBeforeCancellingItsTimers() {
+        ActorDefinition<Integer, Message> definition = ActorDefinition.<Integer, Message>builder(TYPE)
+                .initialState(_ -> 0)
+                .behavior(ActorBehavior.sync((context, _, message) -> ActorEffect.<Integer>same()
+                        .reply(((Read) message).replyTo(), 42)
+                        .schedule(context.self(), new Add(1), Duration.ofSeconds(1))
+                        .stopping()))
+                .build();
+        var directory = PageActorDirectory.numbered(runtime, TYPE);
+        var handle = directory.activate(PAGE, scope, commands, definition);
+        var answer = runtime.<Message, Integer>ask(handle.ref(), Read::new, Duration.ofSeconds(2));
+        commands.drain();
+        assertEquals(42, answer.toCompletableFuture().join());
+        assertEquals(0, scheduler.pendingCount());
+        assertTrue(directory.all().isEmpty());
+    }
+
+    @Test
     void mailboxCapacityRejectsOnlyWaitingMessages() {
         CompletableFuture<ActorEffect<Integer>> pending = new CompletableFuture<>();
         ActorDefinition<Integer, Message> definition = ActorDefinition.<Integer, Message>builder(TYPE)
@@ -213,11 +348,13 @@ class PageActorRuntimeTests {
 
     private static final class ManualScheduler implements ActorScheduler {
         private final List<Scheduled> pending = new ArrayList<>();
+        private Runnable beforeReturn = () -> { };
 
         @Override
         public Cancellation schedule(Duration delay, Runnable task) {
             Scheduled scheduled = new Scheduled(task);
             pending.add(scheduled);
+            beforeReturn.run();
             return scheduled;
         }
 
