@@ -51,7 +51,14 @@ public final class PageHttpHandler implements HttpApplication {
                            final PageApplication pageApplication,
                            final int heartBeatIntervalMs,
                            final Metrics metrics) {
-        this(pagesStorage, pageApplication, heartBeatIntervalMs, metrics, pagesStorage::put);
+        this(pagesStorage, pageApplication, heartBeatIntervalMs, metrics, (id, page) -> {
+            try {
+                pagesStorage.put(id, page);
+            } catch (RuntimeException | Error failure) {
+                page.close();
+                throw failure;
+            }
+        });
     }
 
     PageHttpHandler(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
@@ -148,8 +155,9 @@ public final class PageHttpHandler implements HttpApplication {
                 final HttpResponse built = response.build();
                 final RenderedPage pageSnapshot = new RenderedPage(pageBuilder, commandsEnqueue, pageScope);
                 if (render.live()) {
-                    registerPage.accept(pageId, pageSnapshot);
+                    // Registration consumes ownership even if startup fails.
                     handedOff = true;
+                    registerPage.accept(pageId, pageSnapshot);
                 } else {
                     handedOff = true;
                     pageSnapshot.close();

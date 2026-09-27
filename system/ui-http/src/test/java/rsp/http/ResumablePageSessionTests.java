@@ -5,6 +5,7 @@ import rsp.component.ComponentContext;
 import rsp.dom.NodeId;
 import rsp.page.EventLoop;
 import rsp.page.PageBuilder;
+import rsp.page.PageScope;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RedirectableEventsConsumer;
 import rsp.page.RenderedPage;
@@ -19,6 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 class ResumablePageSessionTests {
     private static final QualifiedSessionId SESSION_ID = new QualifiedSessionId("device", "session");
@@ -231,27 +235,128 @@ class ResumablePageSessionTests {
         assertEquals(List.of("[18,2]"), resumedTransport.messages);
     }
 
+    @Test
+    void firstAttachmentReplaysOutputProducedBeforeAnyConnection() {
+        Fixture fixture = new Fixture(CONFIG);
+        fixture.commands.offer(new RemoteCommand.PushHistory("/before-connect"));
+        fixture.eventLoop.runOneStep();
+        FakeTransport transport = new FakeTransport();
+        assertTrue(fixture.session.attach(transport, 0).accepted());
+        assertEquals(List.of("[20,1,[[0,0],[6,4,\"/before-connect\"]]]", "[18,2]"), transport.messages);
+        assertEquals(1, fixture.eventLoop.starts);
+    }
+
+    @Test
+    void firstAttachmentCancelsExpiryEvenIfItsCallbackHasAlreadyBeenDispatched() {
+        Fixture fixture = new Fixture(CONFIG);
+        Runnable staleExpiry = fixture.scheduler.pending.runnable;
+        assertTrue(fixture.session.attach(new FakeTransport(), 0).accepted());
+        staleExpiry.run();
+        assertFalse(fixture.session.isClosed());
+        assertEquals(0, fixture.closedCount.get());
+    }
+
+    @Test
+    void neverAttachedSessionExpiresAndCannotBeAttachedOrStartedAgain() {
+        Fixture fixture = new Fixture(CONFIG);
+        fixture.scheduler.runPending();
+        fixture.eventLoop.runOneStep();
+        fixture.session.start();
+        assertTrue(fixture.session.isClosed());
+        assertFalse(fixture.session.attach(new FakeTransport(), 0).accepted());
+        assertTrue(fixture.eventLoop.stopped);
+        assertEquals(1, fixture.eventLoop.starts);
+        assertEquals(1, fixture.closedCount.get());
+        assertEquals(1, fixture.scopeClosed.get());
+    }
+
+    @Test
+    void closingBeforeStartupReleasesThePageWithoutStartingItsLoop() {
+        Fixture fixture = new Fixture(CONFIG, false);
+        fixture.session.close("server-stopping");
+        fixture.session.start();
+        fixture.session.close("again");
+        assertEquals(0, fixture.eventLoop.starts);
+        assertEquals(1, fixture.closedCount.get());
+        assertEquals(1, fixture.scopeClosed.get());
+        assertFalse(fixture.session.attach(new FakeTransport(), 0).accepted());
+    }
+
+    @Test
+    void initialOutputOverflowClosesWithoutStartingTheLoop() {
+        Fixture fixture = new Fixture(new LocalSessionResumeConfig(Duration.ofSeconds(60), 1, 1), false);
+        fixture.session.start();
+        assertTrue(fixture.session.isClosed());
+        assertEquals(0, fixture.eventLoop.starts);
+        assertEquals(1, fixture.scopeClosed.get());
+        assertEquals(1, fixture.closedCount.get());
+        assertTrue(fixture.scheduler.pending.cancelled);
+    }
+
+    @Test
+    void schedulerFailureClosesThePageWithoutStartingItsLoop() {
+        Fixture fixture = new Fixture(CONFIG, false);
+        fixture.scheduler.failure = new IllegalStateException("scheduler unavailable");
+        assertSame(fixture.scheduler.failure, assertThrows(IllegalStateException.class, fixture.session::start));
+        assertEquals(0, fixture.eventLoop.starts);
+        assertEquals(1, fixture.scopeClosed.get());
+        assertEquals(1, fixture.closedCount.get());
+    }
+
+    @Test
+    void expiryDuringSchedulingCancelsTheReturnedHandleAndPreventsStartup() {
+        Fixture fixture = new Fixture(CONFIG, false);
+        fixture.scheduler.expireImmediately = true;
+        fixture.session.start();
+        assertEquals(0, fixture.eventLoop.starts);
+        assertEquals(1, fixture.scopeClosed.get());
+        assertEquals(1, fixture.closedCount.get());
+        assertTrue(fixture.scheduler.pending.cancelled);
+    }
+
+    @Test
+    void attachmentRacingAheadOfStartupDoesNotStartAnExpiryTimer() {
+        Fixture fixture = new Fixture(CONFIG, false);
+        assertTrue(fixture.session.attach(new FakeTransport(), 0).accepted());
+        fixture.session.start();
+        fixture.eventLoop.runOneStep();
+        assertFalse(fixture.session.isClosed());
+        assertEquals(1, fixture.eventLoop.starts);
+        assertNull(fixture.scheduler.pending);
+    }
+
     private static final class Fixture {
         private final ManualEventLoop eventLoop = new ManualEventLoop();
         private final ManualExpiryScheduler scheduler = new ManualExpiryScheduler();
         private final AtomicInteger closedCount = new AtomicInteger();
+        private final AtomicInteger scopeClosed = new AtomicInteger();
         private final RedirectableEventsConsumer commands = new RedirectableEventsConsumer();
         private final ResumablePageSession session;
 
         private Fixture(final LocalSessionResumeConfig config) {
+            this(config, true);
+        }
+
+        private Fixture(final LocalSessionResumeConfig config, boolean start) {
+            PageScope scope = new PageScope();
+            scope.own(scopeClosed::incrementAndGet);
             final PageBuilder pageBuilder = new PageBuilder(SESSION_ID,
                                                             java.util.Optional.of(new PageBuilder.LiveBootstrap(
                                                                     "/* test config */", "/client.js")),
                                                             new ComponentContext(),
                                                             commands);
             session = new ResumablePageSession(SESSION_ID,
-                                               new RenderedPage(pageBuilder, commands, new rsp.page.PageScope()),
+                                               new RenderedPage(pageBuilder, commands, scope),
                                                eventLoop,
                                                config,
                                                scheduler,
+                                               _ -> { },
                                                _ -> closedCount.incrementAndGet());
-            // Process InitSessionCommand; its initial empty ListenEvent is handled synchronously.
-            eventLoop.runOneStep();
+            if (start) {
+                session.start();
+                // Process InitSessionCommand; its empty ListenEvent is handled synchronously.
+                eventLoop.runOneStep();
+            }
         }
     }
 
@@ -287,10 +392,18 @@ class ResumablePageSessionTests {
 
     private static final class ManualExpiryScheduler implements ResumablePageSession.ExpiryScheduler {
         private ScheduledTask pending;
+        private RuntimeException failure;
+        private boolean expireImmediately;
 
         @Override
         public ResumablePageSession.ExpiryTask schedule(final Runnable task, final Duration delay) {
+            if (failure != null) {
+                throw failure;
+            }
             pending = new ScheduledTask(task);
+            if (expireImmediately) {
+                task.run();
+            }
             return pending;
         }
 
@@ -319,9 +432,11 @@ class ResumablePageSessionTests {
     private static final class ManualEventLoop implements EventLoop {
         private Runnable step;
         private boolean stopped;
+        private int starts;
 
         @Override
         public void start(final Runnable logic) {
+            starts++;
             step = logic;
         }
 

@@ -12,6 +12,8 @@ import rsp.component.ComponentView;
 import rsp.component.ContextKey;
 import rsp.component.StateUpdater;
 import rsp.page.PageScope;
+import rsp.page.EventLoop;
+import rsp.metrics.Metrics;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.url.Path;
@@ -99,7 +101,35 @@ class PageHttpHandlerTests {
         assertTrue(pending.isEmpty());
     }
 
+    @Test
+    void startupFailureClosesTransferredPageWithoutUnmountingItTwice() {
+        AtomicInteger closed = new AtomicInteger();
+        AtomicInteger unmounted = new AtomicInteger();
+        Map<QualifiedSessionId, RenderedPage> pending = new ConcurrentHashMap<>();
+        LocalSessionRegistry registry = new LocalSessionRegistry(pending, () -> new EventLoop() {
+            public void start(Runnable logic) { throw new IllegalStateException("cannot start"); }
+            public void stop() { }
+        }, LocalSessionResumeConfig.defaults());
+        PageHttpHandler handler = new PageHttpHandler(pending,
+                _ -> PageResult.live(scopedPage(closed, false, unmounted)),
+                10_000, Metrics.noop(), registry::register);
+        try {
+            assertTrue(handler.handle(request("/")).isCompletedExceptionally());
+            assertEquals(1, closed.get());
+            assertEquals(1, unmounted.get());
+            assertEquals(0, registry.size());
+            assertTrue(pending.isEmpty());
+        } finally {
+            registry.closeAll();
+        }
+    }
+
     private static Component<?, ?> scopedPage(AtomicInteger closed, boolean failOnMount) {
+        return scopedPage(closed, failOnMount, new AtomicInteger());
+    }
+
+    private static Component<?, ?> scopedPage(AtomicInteger closed, boolean failOnMount,
+                                               AtomicInteger unmounted) {
         return new Component<Integer, String>() {
             @Override
             public ComponentStateSupplier<Integer> initStateSupplier() {
@@ -109,6 +139,11 @@ class PageHttpHandlerTests {
             @Override
             public ComponentView<Integer, String> componentView() {
                 return _ -> _ -> html(head(title("scoped")), body());
+            }
+
+            @Override
+            public void onUnmounted(ComponentCompositeKey id, Integer state) {
+                unmounted.incrementAndGet();
             }
 
             @Override

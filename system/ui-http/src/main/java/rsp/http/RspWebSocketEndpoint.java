@@ -104,7 +104,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
 
         @Override
         public void onOpen() {
-            pageSession = liveSessions.findOrCreate(sessionId).orElse(null);
+            pageSession = liveSessions.find(sessionId).orElse(null);
             if (pageSession == null) {
                 logger.log(WARNING, () -> "Local page session not found; client reload required");
                 sendControl(RspTransportProtocol.resumeRejected("session-not-found"));

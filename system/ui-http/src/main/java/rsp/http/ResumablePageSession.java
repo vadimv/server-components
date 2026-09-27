@@ -4,6 +4,7 @@ import rsp.page.EventLoop;
 import rsp.page.LivePageSession;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
+import rsp.page.events.GenericTaskEvent;
 import rsp.page.events.InitSessionCommand;
 import rsp.page.events.ShutdownSessionCommand;
 import rsp.server.RemoteOut;
@@ -41,7 +42,11 @@ final class ResumablePageSession {
     private final QualifiedSessionId sessionId;
     private final LocalSessionResumeConfig config;
     private final ExpiryScheduler expiryScheduler;
+    private final Consumer<ResumablePageSession> onAttached;
     private final Consumer<ResumablePageSession> onClosed;
+    private final RenderedPage renderedPage;
+    private final EventLoop eventLoop;
+    private final RemoteOut remoteOut;
     private final LivePageSession livePage;
     private final RemotePageMessageDecoder decoder;
     private final Deque<SequencedFrame> unacknowledgedFrames = new ArrayDeque<>();
@@ -55,30 +60,68 @@ final class ResumablePageSession {
     private long lastDiscardedSequence;
     private long bufferedBytes;
     private boolean closed;
+    private boolean started;
 
     ResumablePageSession(final QualifiedSessionId sessionId,
                          final RenderedPage renderedPage,
                          final EventLoop eventLoop,
                          final LocalSessionResumeConfig config,
                          final ExpiryScheduler expiryScheduler,
+                         final Consumer<ResumablePageSession> onAttached,
                          final Consumer<ResumablePageSession> onClosed) {
         this.sessionId = Objects.requireNonNull(sessionId);
-        Objects.requireNonNull(renderedPage);
+        this.renderedPage = Objects.requireNonNull(renderedPage);
+        this.eventLoop = Objects.requireNonNull(eventLoop);
         this.config = Objects.requireNonNull(config);
         this.expiryScheduler = Objects.requireNonNull(expiryScheduler);
+        this.onAttached = Objects.requireNonNull(onAttached);
         this.onClosed = Objects.requireNonNull(onClosed);
 
-        final RemoteOut remoteOut = RemotePageMessageEncoder.batched(this::publish);
-        this.livePage = new LivePageSession(Objects.requireNonNull(eventLoop));
+        this.remoteOut = RemotePageMessageEncoder.batched(this::publish);
+        this.livePage = new LivePageSession(eventLoop);
         this.decoder = new RemotePageMessageDecoder(JsonUtils.createParser(), livePage.eventsConsumer());
-        livePage.eventsConsumer().accept(new InitSessionCommand(renderedPage.pageBuilder(),
-                                                                renderedPage.commandsEnqueue(),
-                                                                remoteOut,
-                                                                renderedPage.scope()));
-        remoteOut.setRenderNum(0);
-        livePage.start();
-        scheduleExpiry();
-        logger.log(DEBUG, () -> "Local live page created");
+        livePage.eventsConsumer().accept(new GenericTaskEvent(() -> {
+            synchronized (this) {
+                // If EventLoop.start failed after launching a thread, that thread
+                // must not initialize a page already released by failed startup.
+                if (started) {
+                    livePage.accept(new InitSessionCommand(renderedPage.pageBuilder(),
+                            renderedPage.commandsEnqueue(), remoteOut, renderedPage.scope()));
+                }
+            }
+        }));
+    }
+
+    /** Starts once, after registry ownership is published and initial rendering is complete. */
+    synchronized void start() {
+        if (closed || started) {
+            return;
+        }
+        try {
+            if (attachment == null) {
+                scheduleExpiryLocked();
+            }
+            remoteOut.setRenderNum(0);
+            if (closed) {
+                return;
+            }
+            started = true;
+            livePage.start();
+        } catch (RuntimeException | Error failure) {
+            started = false;
+            try {
+                eventLoop.stop();
+            } catch (RuntimeException | Error cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            try {
+                close("startup-failed");
+            } catch (RuntimeException | Error cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            throw failure;
+        }
+        logger.log(DEBUG, () -> "Local live page started");
     }
 
     AttachResult attach(final Transport transport, final long lastAppliedSequence) {
@@ -121,6 +164,7 @@ final class ResumablePageSession {
         if (previous != null) {
             previous.transport().close(CLOSE_REPLACED, "Connection replaced by resume");
         }
+        onAttached.accept(this);
         logger.log(DEBUG, () -> "Local live page attached");
         return AttachResult.accepted(new AttachmentHandle(current.generation()));
     }
@@ -318,16 +362,16 @@ final class ResumablePageSession {
         return handle != null && attachment != null && attachment.generation() == handle.generation();
     }
 
-    private void scheduleExpiry() {
-        synchronized (this) {
-            scheduleExpiryLocked();
-        }
-    }
-
     private void scheduleExpiryLocked() {
         cancelExpiryLocked();
         final long scheduledGeneration = expiryGeneration;
-        expiryTask = expiryScheduler.schedule(() -> expire(scheduledGeneration), config.gracePeriod());
+        final ExpiryTask scheduled = expiryScheduler.schedule(
+                () -> expire(scheduledGeneration), config.gracePeriod());
+        if (closed || scheduledGeneration != expiryGeneration) {
+            scheduled.cancel();
+        } else {
+            expiryTask = scheduled;
+        }
     }
 
     private void cancelExpiryLocked() {
@@ -355,7 +399,7 @@ final class ResumablePageSession {
         }
         closed = true;
         cancelExpiryLocked();
-        final Termination result = new Termination(attachment);
+        final Termination result = new Termination(attachment, started);
         attachment = null;
         unacknowledgedFrames.clear();
         bufferedBytes = 0;
@@ -369,8 +413,15 @@ final class ResumablePageSession {
         if (termination.attachment() != null) {
             termination.attachment().transport().close(closeCode, reason);
         }
-        livePage.eventsConsumer().accept(new ShutdownSessionCommand());
-        onClosed.accept(this);
+        try {
+            if (termination.started()) {
+                livePage.eventsConsumer().accept(new ShutdownSessionCommand());
+            } else {
+                renderedPage.close();
+            }
+        } finally {
+            onClosed.accept(this);
+        }
         logger.log(DEBUG, () -> "Local live page closed");
     }
 
@@ -420,6 +471,6 @@ final class ResumablePageSession {
                                   int encodedBytes) {
     }
 
-    private record Termination(Attachment attachment) {
+    private record Termination(Attachment attachment, boolean started) {
     }
 }

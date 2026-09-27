@@ -223,6 +223,10 @@ a read-only local JMX mirror; see [runtime metrics and local JMX](../guides/runt
 
 ## Local Session Resume
 
+A live page's event loop starts after successful initial HTML rendering, before
+its first WebSocket attachment. Commands can execute while output is buffered;
+the first connection attaches to that running session. Session metrics count
+these unattached pages, and `WebServer.pagesStorage` indexes them until attachment.
 A live page is retained in the server process when its WebSocket disconnects.
 The bundled browser client reconnects with the same device and session IDs,
 reports the last server message it applied, and receives any later messages in
@@ -247,8 +251,9 @@ var server = new WebServer(8080)
         .metrics(Metrics.noop());
 ```
 
-Expiry is measured from a confirmed detachment. Failed reconnect attempts do
-not extend it; a completed resume cancels it. While connected, the journal is a
+Before the first attachment, expiry is measured from session startup. After a
+confirmed detachment, a new grace period begins. Lookup and failed reconnect
+attempts do not extend it; a completed attachment cancels it. While connected, the journal is a
 sliding window: reaching a bound discards its oldest delivered copies without
 interrupting the page. Resume remains possible when the browser reports that it
 already applied that discarded prefix. A detached journal overflow, explicit

@@ -14,6 +14,47 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /** Optional browser check for the actor-to-component event bridge. */
 class LifeSmokeIT {
     @Test
+    void delayedFirstConnectionReplaysChangesToTheSameGame() {
+        try (var server = Life.server(0, new Random(42));
+             Playwright playwright = Playwright.create();
+             Browser browser = playwright.chromium().launch();
+             BrowserContext context = browser.newContext()) {
+            server.start();
+            // Delay the client's DOMContentLoaded initializer while allowing HTML
+            // rendering and HTTP requests to finish normally.
+            context.addInitScript("""
+                    const add = document.addEventListener;
+                    document.addEventListener = function(type, listener, options) {
+                      if (type === 'DOMContentLoaded') {
+                        window.startRsp = () => listener.call(document, new Event(type));
+                        document.addEventListener = add;
+                      } else {
+                        return add.call(this, type, listener, options);
+                      }
+                    };
+                    """);
+            Page page = context.newPage();
+            assertEquals(200, page.navigate("http://127.0.0.1:" + server.port() + "/").status());
+            String id = page.locator(".game > p").first().innerText().split(" ")[1];
+            assertEquals("RUNNING", page.evaluate("""
+                    id => fetch('/api/games/' + id + '/start', {method: 'POST'})
+                      .then(response => response.json()).then(body => body.status)
+                    """, id));
+            assertEquals("PAUSED", page.evaluate("""
+                    id => fetch('/api/games/' + id + '/pause', {method: 'POST'})
+                      .then(response => response.json()).then(body => body.status)
+                    """, id));
+            assertThat(page.locator(".game > p").first()).containsText("Game " + id + " · READY");
+
+            page.evaluate("() => window.startRsp()");
+            assertThat(page.locator(".game > p").first()).containsText("Game " + id + " · PAUSED");
+            page.locator(".board > div").first().click();
+            assertThat(page.locator(".board > div").first()).hasClass("c1");
+            assertEquals(id, page.locator(".game > p").first().innerText().split(" ")[1]);
+        }
+    }
+
+    @Test
     void twoPagesHaveIndependentGamesAndControls() {
         try (var server = Life.server(0, new Random(42));
              Playwright playwright = Playwright.create();

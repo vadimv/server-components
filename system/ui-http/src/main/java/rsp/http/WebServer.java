@@ -34,7 +34,10 @@ public class WebServer implements ApplicationLifecycle {
     static final int WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS = SocketWebServer.WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS;
     static final String WEB_SOCKET_SERVER_STOP_REASON = "Server stopping";
 
-    /** Rendered pages waiting for their first WebSocket session to bind. */
+    /**
+     * Index of live pages awaiting their first WebSocket attachment.
+     * Their event loops are already running; the session registry owns their lifetime.
+     */
     public final Map<QualifiedSessionId, RenderedPage> pagesStorage = new ConcurrentHashMap<>();
 
     private final int requestedPort;

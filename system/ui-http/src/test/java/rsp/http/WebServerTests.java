@@ -418,6 +418,8 @@ class WebServerTests {
                 .metrics(metrics));
         try {
             client.send(get(server, "/gauges"), BodyHandlers.ofString());
+            assertEquals(1, metrics.value(MetricNames.PAGE_SESSIONS_ACTIVE));
+            assertEquals(0, metrics.value(MetricNames.WEB_SOCKET_CONNECTIONS_ACTIVE));
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             final CompletableFuture<String> firstText = new CompletableFuture<>();
             final WebSocket webSocket = client.newWebSocketBuilder()
@@ -576,6 +578,7 @@ class WebServerTests {
         try {
             client.send(get(server, "/resume"), BodyHandlers.ofString());
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
+            assertEquals(1, server.liveSessionCount());
 
             try (Socket firstSocket = new Socket("localhost", server.port())) {
                 writeHandshake(firstSocket,

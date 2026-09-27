@@ -186,11 +186,18 @@ cancels owned timers, and removes the exact directory entry. Timer registration
 is tied to the owning activation, including when closure races with an effect
 or scheduler callback. Deliveries that have already begun may finish.
 
-Page actors start with synchronous state initialization for initial rendering,
-but behavior turns are queued to the live page loop. An ask made after HTML
-rendering but before the browser's WebSocket handoff can therefore time out.
-Use `LocalActorSystem` when work must progress independently of a page. A page
-directory is not a durable store or authorization layer.
+Page actors initialize their state synchronously for initial rendering. After
+the HTML snapshot is complete, registration starts the page event loop. Queued
+behavior, asynchronous completions, and timers can progress before the first
+WebSocket attachment. Actor turns and UI updates share that loop; the same
+activation engine also runs standalone actors under `LocalActorSystem`.
+
+The first WebSocket attaches to the running session and replays buffered output.
+Unattached sessions have the same expiry and output bounds as disconnected
+sessions: expiry or buffer overflow closes the page scope and its actors.
+Browser-dependent operations, such as JavaScript evaluation, still require a
+connected browser. Use `LocalActorSystem` for work whose lifetime extends beyond
+a page. A page directory is not a durable store or authorization layer.
 
 The [Life example](../../examples/src/main/java/rsp/app/gameoflife/Life.java)
 uses this directory and `ActorComponent` for one actor per logical page session.
@@ -199,8 +206,8 @@ keeps the same actor, while page closure removes the catalog entry and
 administratively stops its actor. HTTP routes expose `READY`/`RUNNING`/`PAUSED` status and
 controls; the live component renders committed actor state directly. The catalog
 returns the games that reply within the two-second per-game deadline, omitting
-unavailable games and pages closed during the request. An HTML-only client that
-never connects its WebSocket therefore cannot fail the whole listing. Games
+unavailable games and pages closed during the request. An HTTP-only client can
+list and control its game before connecting a WebSocket. Games
 omitted for a timeout or full mailbox remain eligible for later listings;
 individual-game routes still report availability errors and timeouts. `PAUSED`
 is a game state, not an actor runtime stop. An epoch makes ticks scheduled before

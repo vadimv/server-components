@@ -29,7 +29,6 @@ final class LocalSessionRegistry {
     private final LocalSessionResumeConfig config;
     private final Metrics metrics;
     private final Map<QualifiedSessionId, ResumablePageSession> liveSessions = new HashMap<>();
-    private final Map<QualifiedSessionId, ResumablePageSession.ExpiryTask> pendingExpiry = new HashMap<>();
 
     private ScheduledExecutorService expiryExecutor;
     private boolean accepting = true;
@@ -50,63 +49,67 @@ final class LocalSessionRegistry {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    /** Retains a rendered page only for the bounded initial WebSocket connection window. */
+    /** Takes ownership of a successfully rendered live page and starts its event loop. */
     void register(final QualifiedSessionId sessionId, final RenderedPage page) {
         Objects.requireNonNull(sessionId);
         Objects.requireNonNull(page);
-        boolean accepted;
-        synchronized (lock) {
-            accepted = accepting;
-            if (accepted) {
-                RenderedPage previous = renderedPages.putIfAbsent(sessionId, page);
-                if (previous != null) {
-                    throw new IllegalStateException("Duplicate page session: " + sessionId);
-                }
-                try {
-                    pendingExpiry.put(sessionId, schedule(() -> expirePending(sessionId, page),
-                            config.gracePeriod()));
-                } catch (RuntimeException failure) {
-                    renderedPages.remove(sessionId, page);
-                    throw failure;
+        final ResumablePageSession created;
+        try {
+            created = new ResumablePageSession(sessionId, page, eventLoopSupplier.get(),
+                    config, this::schedule,
+                    attached -> attached(sessionId, attached),
+                    closed -> remove(sessionId, closed));
+        } catch (RuntimeException | Error failure) {
+            closePending(page);
+            throw failure;
+        }
+
+        try {
+            final boolean accepted;
+            synchronized (lock) {
+                accepted = accepting;
+                if (accepted) {
+                    if (liveSessions.containsKey(sessionId)
+                            || renderedPages.putIfAbsent(sessionId, page) != null) {
+                        throw new IllegalStateException("Duplicate page session: " + sessionId);
+                    }
+                    liveSessions.put(sessionId, created);
+                    updateSessionGauge();
                 }
             }
-        }
-        if (!accepted) {
-            page.close();
+            // Publish ownership before startup can execute callbacks. Closing may
+            // win this race; a closed session's start is a no-op.
+            if (accepted) {
+                created.start();
+            } else {
+                created.close("server-stopping");
+            }
+        } catch (RuntimeException | Error failure) {
+            try {
+                created.close("startup-failed");
+            } catch (RuntimeException | Error cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            throw failure;
         }
     }
 
-    Optional<ResumablePageSession> findOrCreate(final QualifiedSessionId sessionId) {
+    Optional<ResumablePageSession> find(final QualifiedSessionId sessionId) {
         Objects.requireNonNull(sessionId);
+        final ResumablePageSession session;
         synchronized (lock) {
-            if (!accepting) {
-                return Optional.empty();
-            }
-            final ResumablePageSession existing = liveSessions.get(sessionId);
-            if (existing != null && !existing.isClosed()) {
-                return Optional.of(existing);
-            }
+            session = accepting ? liveSessions.get(sessionId) : null;
+        }
+        // Never acquire the session monitor under the registry lock: startup
+        // and transport callbacks can remove a session from this registry.
+        return session == null || session.isClosed() ? Optional.empty() : Optional.of(session);
+    }
 
-            final RenderedPage renderedPage = renderedPages.remove(sessionId);
-            if (renderedPage == null) {
-                return Optional.empty();
+    private void attached(final QualifiedSessionId sessionId, final ResumablePageSession session) {
+        synchronized (lock) {
+            if (liveSessions.get(sessionId) == session) {
+                renderedPages.remove(sessionId);
             }
-            final ResumablePageSession.ExpiryTask pendingTask = pendingExpiry.remove(sessionId);
-            if (pendingTask != null) {
-                pendingTask.cancel();
-            }
-            final ResumablePageSession created;
-            try {
-                created = new ResumablePageSession(sessionId,
-                        renderedPage, eventLoopSupplier.get(), config, this::schedule,
-                        closed -> remove(sessionId, closed));
-            } catch (RuntimeException | Error failure) {
-                closePending(renderedPage);
-                throw failure;
-            }
-            liveSessions.put(sessionId, created);
-            updateSessionGauge();
-            return Optional.of(created);
         }
     }
 
@@ -125,17 +128,12 @@ final class LocalSessionRegistry {
 
     void closeAll() {
         final ArrayList<ResumablePageSession> sessions;
-        final ArrayList<RenderedPage> pending;
         final ScheduledExecutorService executor;
         synchronized (lock) {
             accepting = false;
             sessions = new ArrayList<>(liveSessions.values());
-            pending = new ArrayList<>(renderedPages.values());
             renderedPages.clear();
-            pendingExpiry.values().forEach(ResumablePageSession.ExpiryTask::cancel);
-            pendingExpiry.clear();
         }
-        pending.forEach(LocalSessionRegistry::closePending);
         sessions.forEach(session -> session.close("server-stopping"));
         synchronized (schedulerLock) {
             executor = expiryExecutor;
@@ -160,19 +158,6 @@ final class LocalSessionRegistry {
         }
     }
 
-    private void expirePending(final QualifiedSessionId sessionId, final RenderedPage page) {
-        final boolean removed;
-        synchronized (lock) {
-            removed = renderedPages.remove(sessionId, page);
-            if (removed) {
-                pendingExpiry.remove(sessionId);
-            }
-        }
-        if (removed) {
-            closePending(page);
-        }
-    }
-
     private static void closePending(final RenderedPage page) {
         try {
             page.close();
@@ -184,6 +169,7 @@ final class LocalSessionRegistry {
     private void remove(final QualifiedSessionId sessionId, final ResumablePageSession session) {
         synchronized (lock) {
             if (liveSessions.remove(sessionId, session)) {
+                renderedPages.remove(sessionId);
                 updateSessionGauge();
             }
         }

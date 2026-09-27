@@ -4,9 +4,10 @@ import java.time.Duration;
 import java.util.Objects;
 
 /**
- * Bounds for retaining a live page while its browser WebSocket is detached.
+ * Bounds for retaining a running live page before its first WebSocket attachment
+ * and while its browser WebSocket is detached.
  *
- * @param gracePeriod how long a detached page remains resumable
+ * @param gracePeriod how long an unattached page remains available
  * @param maxBufferedMessages maximum number of unacknowledged server messages retained per page
  * @param maxBufferedBytes maximum encoded size of unacknowledged server messages retained per page
  */
