@@ -78,6 +78,15 @@ public final class SerializedActorActivation<S, M> {
     private final Deque<Pending<M>> mailbox = new ArrayDeque<>();
     private final List<Consumer<S>> stateObservers = new ArrayList<>();
 
+    private final List<Consumer<ActorSnapshot<S>>> snapshotObservers = new ArrayList<>();
+    private final ActorView<S, M> view = new ActorView<>() {
+        @Override public ActorRef<M> ref() { return ref; }
+        @Override public ActorSnapshot<S> snapshot() { return currentSnapshot(); }
+        @Override public AutoCloseable observeSnapshots(Consumer<ActorSnapshot<S>> observer) {
+            return SerializedActorActivation.this.observeSnapshots(observer);
+        }
+    };
+    private ActorSnapshot<S> snapshot;
     private S currentState;
     private boolean initialized;
     private boolean inFlight;
@@ -118,6 +127,7 @@ public final class SerializedActorActivation<S, M> {
             initializedState = definition.initialState(id);
             currentState = initializedState;
             initialized = true;
+            snapshot = new ActorSnapshot<>(0, currentState, ActorSnapshot.Status.ACTIVE);
         }
         observe(() -> host.activated(id));
         return initializedState;
@@ -128,6 +138,34 @@ public final class SerializedActorActivation<S, M> {
             throw new IllegalStateException("Actor is not initialized: " + id);
         }
         return currentState;
+    }
+
+    public ActorView<S, M> view() {
+        return view;
+    }
+
+    private synchronized ActorSnapshot<S> currentSnapshot() {
+        if (!initialized) {
+            throw new IllegalStateException("Actor is not initialized: " + id);
+        }
+        return snapshot;
+    }
+
+    private AutoCloseable observeSnapshots(Consumer<ActorSnapshot<S>> observer) {
+        Objects.requireNonNull(observer, "observer");
+        final ActorSnapshot<S> initial;
+        synchronized (this) {
+            initial = currentSnapshot();
+            if (initial.active()) {
+                snapshotObservers.add(observer);
+            }
+        }
+        notifyObserver(observer, initial);
+        return () -> {
+            synchronized (SerializedActorActivation.this) {
+                snapshotObservers.removeIf(candidate -> candidate == observer);
+            }
+        };
     }
 
     /**
@@ -259,6 +297,8 @@ public final class SerializedActorActivation<S, M> {
 
         final List<Consumer<S>> observers;
         final S committed;
+        final ActorSnapshot<S> published;
+        final List<Consumer<ActorSnapshot<S>>> snapshotListeners;
         final boolean stopping;
         final boolean release;
         synchronized (this) {
@@ -273,6 +313,15 @@ public final class SerializedActorActivation<S, M> {
             } else {
                 observers = List.of();
                 committed = null;
+            }
+            if (effect.stateChanged()) {
+                snapshot = new ActorSnapshot<>(snapshot.revision() + 1, currentState,
+                        ActorSnapshot.Status.ACTIVE);
+                published = snapshot;
+                snapshotListeners = List.copyOf(snapshotObservers);
+            } else {
+                published = null;
+                snapshotListeners = List.of();
             }
             stopping = effect.stopsActor();
             release = effect.passivatesActor();
@@ -294,8 +343,12 @@ public final class SerializedActorActivation<S, M> {
             notifyObserver(observer, committed);
         }
 
+        for (Consumer<ActorSnapshot<S>> observer : snapshotListeners) {
+            notifyObserver(observer, published);
+        }
+
         if (stopping) {
-            terminate(release);
+            terminate(release, ActorSnapshot.Status.STOPPED);
             failPending(new IllegalStateException("Actor stopped"));
         }
         observe(() -> host.processed(id));
@@ -321,7 +374,9 @@ public final class SerializedActorActivation<S, M> {
         Objects.requireNonNull(failure, "failure");
         final List<Pending<M>> rejected;
         synchronized (this) {
-            if (stopped && mailbox.isEmpty() && current == null) {
+            // A terminal observer may release its owner before the stopping turn's
+            // receipt settles. Administrative closure must preserve that success.
+            if (!reportFailure && terminated || stopped && mailbox.isEmpty() && current == null) {
                 return;
             }
             stopped = true;
@@ -341,7 +396,7 @@ public final class SerializedActorActivation<S, M> {
                             + ", failureType=" + failure.getClass().getName() + "]");
             observe(() -> host.failed(id, failure));
         }
-        terminate(release);
+        terminate(release, reportFailure ? ActorSnapshot.Status.FAILED : ActorSnapshot.Status.STOPPED);
         rejected.forEach(pending -> settle(pending, failure));
     }
 
@@ -354,15 +409,26 @@ public final class SerializedActorActivation<S, M> {
         rejected.forEach(pending -> settle(pending, failure));
     }
 
-    private void terminate(boolean release) {
+    private void terminate(boolean release, ActorSnapshot.Status status) {
+        final List<Consumer<ActorSnapshot<S>>> listeners;
+        final ActorSnapshot<S> terminal;
         synchronized (this) {
             if (terminated) {
                 return;
             }
             terminated = true;
             stateObservers.clear();
+            if (initialized) {
+                snapshot = new ActorSnapshot<>(snapshot.revision() + 1, currentState, status);
+            }
+            terminal = snapshot;
+            listeners = List.copyOf(snapshotObservers);
+            snapshotObservers.clear();
         }
         host.terminated(id, this, release);
+        for (Consumer<ActorSnapshot<S>> listener : listeners) {
+            notifyObserver(listener, terminal);
+        }
     }
 
     private void settle(Pending<M> pending, Throwable failure) {

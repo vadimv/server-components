@@ -13,6 +13,7 @@ public record HttpStatus(int code, String reasonPhrase) {
     public static final HttpStatus FORBIDDEN = new HttpStatus(403, "Forbidden");
     public static final HttpStatus NOT_FOUND = new HttpStatus(404, "Not Found");
     public static final HttpStatus METHOD_NOT_ALLOWED = new HttpStatus(405, "Method Not Allowed");
+    public static final HttpStatus NOT_ACCEPTABLE = new HttpStatus(406, "Not Acceptable");
     public static final HttpStatus REQUEST_TIMEOUT = new HttpStatus(408, "Request Timeout");
     public static final HttpStatus CONFLICT = new HttpStatus(409, "Conflict");
     public static final HttpStatus PAYLOAD_TOO_LARGE = new HttpStatus(413, "Payload Too Large");
@@ -46,6 +47,7 @@ public record HttpStatus(int code, String reasonPhrase) {
             case 403 -> FORBIDDEN;
             case 404 -> NOT_FOUND;
             case 405 -> METHOD_NOT_ALLOWED;
+            case 406 -> NOT_ACCEPTABLE;
             case 408 -> REQUEST_TIMEOUT;
             case 409 -> CONFLICT;
             case 413 -> PAYLOAD_TOO_LARGE;

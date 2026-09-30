@@ -4,13 +4,13 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.Executor;
 
-/** Prevents inline executors from recursively running actor turns and completions. */
-final class TrampolineExecutor implements Executor {
+/** Runs reentrant tasks iteratively while retaining the delegate executor's scheduling. */
+public final class TrampolineExecutor implements Executor {
     private final Executor delegate;
     private final ThreadLocal<Deque<Runnable>> running = new ThreadLocal<>();
 
-    TrampolineExecutor(Executor delegate) {
-        this.delegate = delegate;
+    public TrampolineExecutor(Executor delegate) {
+        this.delegate = java.util.Objects.requireNonNull(delegate, "delegate");
     }
 
     @Override

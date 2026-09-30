@@ -2,6 +2,10 @@ package rsp.actor.ui;
 
 import rsp.actor.ActorDefinition;
 import rsp.actor.SendResult;
+import rsp.actor.runtime.ActorSnapshot;
+import rsp.actor.runtime.ActorView;
+import rsp.component.ComponentView;
+import rsp.page.events.GenericTaskEvent;
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentContext;
@@ -14,17 +18,15 @@ import rsp.component.Subscriber;
 import rsp.component.definitions.Component;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 /**
  * Optional component base whose authoritative state and intent processing are
- * provided by a page-hosted actor.
+ * provided by a page-owned or application-owned actor.
  * <p>
- * The actor is activated lazily for the first render, survives component
- * unmounts for the lifetime of the page, and exposes committed immutable state
- * to the mounted segment without domain subscription messages.
+ * Bindings resolve on the first real render. A page binding lazily activates an
+ * actor owned by its page scope; an existing-view binding borrows an application
+ * actor. Unmounting releases rendering resources without closing either actor.
+ * Committed immutable snapshots require no domain subscription messages.
  */
 public abstract class ActorComponent<S, M> extends Component<S, M> {
     protected ActorComponent() {
@@ -34,9 +36,30 @@ public abstract class ActorComponent<S, M> extends Component<S, M> {
         super(componentType);
     }
 
-    protected abstract ActorDefinition<S, M> definition();
+    /** Override this for an existing application-owned actor, or use the page placement bridge. */
+    protected ActorBinding<S, M> binding(ActorComponentContext context) {
+        return _ -> Objects.requireNonNull(placement(context), "actor placement")
+                .activate(Objects.requireNonNull(definition(), "actor definition")).view();
+    }
 
-    protected abstract PageActorPlacement<M> placement(ActorComponentContext context);
+    /** Compatibility path for page-owned components. */
+    protected ActorDefinition<S, M> definition() {
+        throw new UnsupportedOperationException("Override binding() or definition() and placement()");
+    }
+
+    /** Compatibility path for page-owned components. */
+    protected PageActorPlacement<M> placement(ActorComponentContext context) {
+        throw new UnsupportedOperationException("Override binding() or definition() and placement()");
+    }
+
+    protected ActorRenderPolicy renderPolicy() {
+        return ActorRenderPolicy.immediate();
+    }
+
+    /** Override to render lifecycle metadata alongside domain state. */
+    protected ComponentView<ActorSnapshot<S>, M> snapshotView() {
+        return commands -> snapshot -> componentView().resolve(commands).apply(snapshot.state());
+    }
 
     /** Called when a view-dispatched message cannot enter the actor mailbox. */
     protected void onMessageRejected(M message, SendResult result) {
@@ -63,25 +86,26 @@ public abstract class ActorComponent<S, M> extends Component<S, M> {
         return new ActorRuntime(context);
     }
 
-    private PageActorHandle<S, M> activation(ComponentCompositeKey componentId,
-                                              ComponentContext componentContext,
-                                              CommandsEnqueue commandsEnqueue) {
+    private ActorView<S, M> activation(ComponentCompositeKey componentId,
+                                        ComponentContext componentContext,
+                                        CommandsEnqueue commandsEnqueue) {
         ActorComponentContext context = new ActorComponentContext(
                 componentId, componentContext, commandsEnqueue);
-        PageActorPlacement<M> selected = Objects.requireNonNull(
-                placement(context), "actor placement");
-        return selected.activate(Objects.requireNonNull(definition(), "actor definition"));
+        return Objects.requireNonNull(Objects.requireNonNull(binding(context), "actor binding")
+                .resolve(context), "actor view");
     }
 
     private final class ActorRuntime implements ComponentRuntime<S, M> {
         private final ComponentRuntimeContext context;
-        private PageActorHandle<S, M> activation;
+        private ActorView<S, M> activation;
+        private ActorSnapshot<S> rendered;
+        private boolean updateAllowed;
 
         private ActorRuntime(ComponentRuntimeContext context) {
             this.context = context;
         }
 
-        private PageActorHandle<S, M> activation() {
+        private ActorView<S, M> activation() {
             if (activation == null) {
                 activation = ActorComponent.this.activation(context.componentId(),
                         context.componentContext(), context.commandsEnqueue());
@@ -91,13 +115,21 @@ public abstract class ActorComponent<S, M> extends Component<S, M> {
 
         @Override
         public S getState(ComponentCompositeKey key, ComponentContext componentContext) {
-            return activation().state();
+            rendered = activation().snapshot();
+            return rendered.state();
+        }
+
+        @Override
+        public ComponentView<S, M> adaptView(ComponentView<S, M> view) {
+            return commands -> state -> snapshotView().resolve(commands).apply(
+                    new ActorSnapshot<>(rendered.revision(), state, rendered.status()));
         }
 
         @Override
         public void onIntentDispatched(M message, S state, StateUpdater<S> stateUpdater) {
             Objects.requireNonNull(message, "message");
-            SendResult result = activation().ref().tell(message);
+            SendResult result = activation().snapshot().active()
+                    ? activation().ref().tell(message) : SendResult.STOPPED;
             if (result != SendResult.ACCEPTED) {
                 onMessageRejected(message, result);
             }
@@ -110,7 +142,8 @@ public abstract class ActorComponent<S, M> extends Component<S, M> {
 
         @Override
         public boolean onBeforeUpdated(S newState, CommandsEnqueue commandsEnqueue) {
-            return ActorComponent.this.onBeforeUpdated(newState, commandsEnqueue);
+            updateAllowed = ActorComponent.this.onBeforeUpdated(newState, commandsEnqueue);
+            return updateAllowed;
         }
 
         @Override
@@ -133,9 +166,23 @@ public abstract class ActorComponent<S, M> extends Component<S, M> {
                               S state,
                               CommandsEnqueue commandsEnqueue,
                               StateUpdater<S> stateUpdater) {
-            LatestStateAttachment<S> attachment =
-                    new LatestStateAttachment<>(stateUpdater, state);
-            AutoCloseable observation = activation().observeState(attachment);
+            LatestSnapshotAttachment<S> attachment = new LatestSnapshotAttachment<>(
+                    rendered, renderPolicy(), task -> commandsEnqueue.offer(new GenericTaskEvent(task)),
+                    snapshot -> {
+                        ActorSnapshot<S> previous = rendered;
+                        rendered = snapshot;
+                        updateAllowed = false;
+                        try {
+                            segment.setState(snapshot.state());
+                            if (!updateAllowed) rendered = previous;
+                        } catch (RuntimeException | Error failure) {
+                            rendered = previous;
+                            throw failure;
+                        }
+                    });
+            // Own before subscribing: subscription immediately calls back, and mounting can fail.
+            segment.own(attachment);
+            AutoCloseable observation = activation().observeSnapshots(attachment);
             segment.own(() -> {
                 attachment.close();
                 observation.close();
@@ -166,58 +213,4 @@ public abstract class ActorComponent<S, M> extends Component<S, M> {
         }
     }
 
-    /** Coalesces immutable snapshots while one component update is queued. */
-    private static final class LatestStateAttachment<S>
-            implements Consumer<S>, AutoCloseable {
-        private final StateUpdater<S> updater;
-        private final AtomicReference<S> latest = new AtomicReference<>();
-        private final AtomicBoolean queued = new AtomicBoolean();
-        private final AtomicBoolean first = new AtomicBoolean(true);
-        private final AtomicBoolean closed = new AtomicBoolean();
-        private final S mountedState;
-
-        private LatestStateAttachment(StateUpdater<S> updater, S mountedState) {
-            this.updater = updater;
-            this.mountedState = mountedState;
-        }
-
-        @Override
-        public void accept(S snapshot) {
-            Objects.requireNonNull(snapshot, "actor state");
-            if (first.compareAndSet(true, false) && Objects.equals(mountedState, snapshot)) {
-                return;
-            }
-            if (closed.get()) {
-                return;
-            }
-            latest.set(snapshot);
-            enqueue();
-        }
-
-        private void enqueue() {
-            if (closed.get() || !queued.compareAndSet(false, true)) {
-                return;
-            }
-            try {
-                updater.applyStateTransformation(current -> {
-                    S snapshot = latest.getAndSet(null);
-                    queued.set(false);
-                    if (!closed.get() && latest.get() != null) {
-                        enqueue();
-                    }
-                    return closed.get() || snapshot == null ? current : snapshot;
-                });
-            } catch (RuntimeException | Error failure) {
-                queued.set(false);
-                latest.set(null);
-                throw failure;
-            }
-        }
-
-        @Override
-        public void close() {
-            closed.set(true);
-            latest.set(null);
-        }
-    }
 }

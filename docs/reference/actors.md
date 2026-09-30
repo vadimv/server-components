@@ -87,9 +87,10 @@ rejections. A failed behavior stops that actor key and fails its pending tracked
 deliveries; other keys continue. An ask timeout does not cancel its command, and
 unanswered asks fail when the system stops. Avoid blocking a behavior while
 waiting for another actor; send a message and handle its later reply instead.
-Ordinary stopped and failed actor keys remain in memory. Only explicit
-passivation releases a key; bounded actor-count policies and durable state are
-still application concerns.
+Ordinary message-only stopped and failed actor keys remain in memory until
+passivation or runtime shutdown. Application-owned activations also release their
+keys on closure or termination. Actor-count limits and durable state remain
+application concerns.
 
 `MessageId` and `ActorEnvelope` carry stable message identity and optional
 correlation/causation IDs for future durable or remote adapters. They do **not**
@@ -213,6 +214,107 @@ individual-game routes still report availability errors and timeouts. `PAUSED`
 is a game state, not an actor runtime stop. An epoch makes ticks scheduled before
 pause/reset harmless. This catalog is public demo behavior, not an
 authorization model for private games.
+
+Application-owned simulations use the same activation engine with explicit
+ownership and a non-owning view:
+
+```java
+OwnedActor<GameState, GameCommand> owner = actors.createOwned(GAME_TYPE.id(id), gameDefinition);
+ActorView<GameState, GameCommand> view = owner.view();
+ActorSnapshot<GameState> current = view.snapshot();
+AutoCloseable observation = view.observeSnapshots(snapshot -> enqueueLatest(snapshot));
+observation.close(); // Detach this observer only.
+owner.close();       // Terminate and release this exact activation.
+```
+
+`createOwned` requires the exact registered definition, eagerly initializes state,
+and rejects an occupied ID. Closing fails pending deliveries, cancels timers, and
+releases the activation. An old handle or timer cannot affect a new activation at
+the same ID. Every view stays bound to its original activation. Runtime shutdown
+publishes terminal snapshots for retained views too.
+
+`ActorSnapshot` includes state, revision, and ACTIVE/STOPPED/FAILED runtime status.
+State must be immutable. Registration and initial snapshot capture are atomic
+with respect to commits, but callbacks execute outside activation locks and can
+arrive out of order. Consumers retain the highest revision for that activation.
+Callbacks must be fast and nonblocking. Their exceptions do not fail the actor.
+A late observer receives the final snapshot of a terminated view without being
+retained. Closing an observation cannot recall a callback already executing.
+
+The same `ActorComponent` can select either ownership mode:
+
+```java
+protected ActorBinding<GameState, GameCommand> binding(ActorComponentContext context) {
+    return ActorBinding.existing(view); // Or ActorBinding.page(games, gameDefinition).
+}
+
+protected ActorRenderPolicy renderPolicy() {
+    return ActorRenderPolicy.throttled(Duration.ofMillis(50), applicationRenderScheduler);
+}
+```
+
+`ActorRenderScheduler` is an application lifecycle resource shared by components.
+The default component policy has no minimum interval. A configured interval caps
+render frequency independently of actor speed. The adapter retains one pending
+snapshot and one timer or queued update. It chooses the newest revision when the
+page task runs, holds its scheduling guard through rendering, and eventually
+renders a final pending snapshot even if the producer stops. No idle polling or
+thread per view is needed. Override `snapshotView()` to display runtime lifecycle
+status; the usual `componentView()` remains sufficient for domain state alone.
+
+Snapshot coalescing precedes DOM diffing. Generated patches retain their ordered
+transport/replay semantics. Slow or disconnected viewers still have bounded
+transport buffers; expiry or overflow closes their pages without closing an
+application-owned simulation. Snapshot delivery skips intermediate states, so
+facts that must remain visible should be retained in domain state. Snapshot
+notification cost still grows with actor updates and the number of attached
+viewers; this policy bounds pending rendering, not the actor's computation.
+
+The Life example supports both modes. `/` and `/api/games` retain their page-owned
+behavior. `Simulations` is a Java application service over `LocalActorSystem`;
+REST calls that service, and another facade can call it without creating a page.
+Its numeric ID supplier must issue unique positive IDs; the example shares one
+monotonic allocator with page games. Creation reserves capacity, initializes and
+starts the game, and publishes it after START's processing receipt succeeds.
+The service uses an injected scheduler for the creation deadline; failed creation
+releases its slot. The example limits shared games to 128 by default and renders either
+mode at most once every 50 ms. The default Life tick remains 150 ms.
+
+| Method and path | Result |
+| --- | --- |
+| `POST /games/shared` | Start a simulation; `201` JSON with ID, summary, URL, and a Location header |
+| `GET /games/shared` | Shared simulation summaries |
+| `GET /games/shared/{id}` with `Accept: text/html` | A page attached to the existing simulation |
+| Same GET with `Accept: application/json` | Committed state including revision and board live-cell coordinates |
+| `POST /games/shared/{id}/start`, `/pause`, `/reset` | Process a control and return its resulting summary |
+| `DELETE /games/shared/{id}` | Close and remove the simulation; `204` |
+
+Absent Accept or equal acceptable preferences select HTML on the item route.
+Unsupported representations return `406`; negotiated responses include
+`Vary: Accept`. JSON requests create no page sessions. Unknown IDs return `404`
+without creating actors, including repeated deletion. Capacity exhaustion returns
+`503`. Closing every browser leaves shared games running; deleting one leaves
+its final board visible in attached pages with controls disabled.
+
+For example, with Life running on port 8082:
+
+```bash
+curl -i -X POST http://localhost:8082/games/shared
+# Open the returned /games/shared/N URL in two browsers.
+curl -H 'Accept: application/json' http://localhost:8082/games/shared/N
+curl -X POST http://localhost:8082/games/shared/N/pause
+curl -X POST http://localhost:8082/games/shared/N/start
+# Close both browsers, then reopen the same URL to see current state.
+curl -X DELETE http://localhost:8082/games/shared/N
+```
+
+The equivalent Java entry point is `simulations.create()`, returning a
+`CompletionStage<Simulations.Simulation>` with the ID and actor view. Register the
+page runtime, local runtime, render scheduler, and simulation service under
+distinct application-context keys. Stop the service before its runtimes.
+Simulation lifetime is process-local; this example adds neither persistence nor
+a broker connector. As with page games, the example routes are public and numeric
+IDs are locators, not authorization capabilities.
 
 ## Testing
 

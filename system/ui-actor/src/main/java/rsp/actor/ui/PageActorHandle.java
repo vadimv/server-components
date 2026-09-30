@@ -3,6 +3,7 @@ package rsp.actor.ui;
 import rsp.actor.ActorId;
 import rsp.actor.ActorRef;
 import rsp.actor.runtime.SerializedActorActivation;
+import rsp.actor.runtime.ActorView;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -31,6 +32,11 @@ public final class PageActorHandle<S, M> implements AutoCloseable {
     /** Host-level state observation, used by rendering adapters rather than domain protocols. */
     public AutoCloseable observeState(Consumer<S> observer) {
         return activation.observeState(observer);
+    }
+
+    /** Attachment capability without administrative ownership. */
+    public ActorView<S, M> view() {
+        return activation.view();
     }
 
     @Override

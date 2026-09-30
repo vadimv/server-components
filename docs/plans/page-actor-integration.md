@@ -55,3 +55,15 @@ Session construction is separate from startup. The registry publishes ownership
 before starting execution, and closes rejected or failed registrations exactly
 once. `pagesStorage` remains an index of pages awaiting their first attachment;
 the registry owns all running sessions. Session metrics include unattached pages.
+
+Application-owned actors now expose the same typed, revisioned `ActorView` through
+`LocalActorSystem.createOwned`. `ActorBinding.page` and `ActorBinding.existing`
+share the component adapter; only the owner closes an activation. Shared Life
+simulations are created through a Java service or `POST /games/shared` and viewed
+or inspected at `/games/shared/{id}`, with Accept selecting HTML or JSON.
+
+Both Life modes use a 50 ms render interval. Each mounted attachment keeps one
+pending snapshot and one timer/queued render, coalescing before DOM diffing.
+Revision checks prevent initial-observation races from regressing displayed state.
+Terminal snapshots let shared pages disable their controls after deletion.
+See the [actor reference](../reference/actors.md) for APIs, routes, and examples.

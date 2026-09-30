@@ -23,8 +23,10 @@ public final class Board {
     public static Board random(RandomGenerator random) {
         Objects.requireNonNull(random, "random");
         boolean[] cells = new boolean[LENGTH];
-        for (int index = 0; index < cells.length; index++) {
-            cells[index] = random.nextFloat() < RANDOM_FILL_RATIO;
+        synchronized (random) {
+            for (int index = 0; index < cells.length; index++) {
+                cells[index] = random.nextFloat() < RANDOM_FILL_RATIO;
+            }
         }
         return new Board(cells);
     }

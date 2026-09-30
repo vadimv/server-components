@@ -13,6 +13,11 @@ public interface ComponentRuntime<S, I> extends ComponentStateSupplier<S>,
                                                  ComponentIntentHandler<S, I>,
                                                  ComponentCallbacks<S> {
 
+    /** Adapts a definition's view using this segment's runtime metadata. No resources are acquired here. */
+    default ComponentView<S, I> adaptView(ComponentView<S, I> view) {
+        return Objects.requireNonNull(view, "view");
+    }
+
     /** Adapts the traditional component callbacks into a per-segment runtime. */
     static <S, I> ComponentRuntime<S, I> delegate(
             ComponentStateSupplier<S> stateSupplier,

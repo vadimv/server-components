@@ -64,7 +64,7 @@ final class LifeRoutes {
                     }
                     Throwable cause = failure instanceof CompletionException completion
                             ? completion.getCause() : failure;
-                    // A rendered page may never connect its WebSocket and run its actor.
+                    // A busy or closing game must not make the entire catalog unavailable.
                     // Keep the catalog available even when one game cannot answer.
                     if (cause instanceof ActorAskTimeoutException
                             || cause instanceof ActorDeliveryException rejected

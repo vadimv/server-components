@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.random.RandomGenerator;
 
-/** One in-memory Game of Life actor per page session, with a UI-independent message protocol. */
+/** In-memory Life behavior shared by page-owned and application-owned actors. */
 public final class LifeGame {
     public static final ActorType<Long, Command> TYPE =
             ActorType.named("life-game", Command.class, String::valueOf);

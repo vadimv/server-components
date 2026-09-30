@@ -7,6 +7,9 @@ import com.microsoft.playwright.Playwright;
 import org.junit.jupiter.api.Test;
 
 import java.util.Random;
+import rsp.util.json.Json;
+import rsp.util.json.JsonDataType;
+import com.microsoft.playwright.options.RequestOptions;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -90,4 +93,116 @@ class LifeSmokeIT {
             assertThat(second.locator(".game > p").first()).containsText("READY");
         }
     }
+
+    @Test
+    void sharedViewersControlOneSimulationAndItSurvivesAllViewersClosing() {
+        try (var server = Life.server(0, new Random(42));
+             Playwright playwright = Playwright.create();
+             Browser browser = playwright.chromium().launch();
+             BrowserContext context = browser.newContext()) {
+            server.start();
+            String base = "http://127.0.0.1:" + server.port();
+            var created = context.request().post(base + "/games/shared");
+            assertEquals(201, created.status());
+            String url = base + Json.requireObject(Json.parse(created.text())).requiredString("url");
+            var first = context.newPage();
+            var second = context.newPage();
+            assertEquals(200, first.navigate(url).status());
+            assertEquals(200, second.navigate(url).status());
+            first.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON,
+                    new Page.GetByRoleOptions().setName("Pause")).click();
+            assertThat(first.locator(".game > p")).containsText("PAUSED");
+            assertThat(second.locator(".game > p")).containsText("PAUSED");
+            first.locator(".board > div").first().click();
+            assertThat(first.locator(".board > div").first()).hasClass("c1");
+            assertThat(second.locator(".board > div").first()).hasClass("c1");
+            var paused = sharedSnapshot(context, url);
+            long generation = paused.requiredNumber("generation").asLong();
+            assertEquals(1, paused.requiredObject("board").requiredArray("liveCells").elements().length);
+
+            first.evaluate("() => window.RSP.disconnect()");
+            first.close();
+            assertEquals(200, context.request().post(url + "/start").status());
+            assertThat(second.locator(".game > p")).containsText("RUNNING");
+            second.evaluate("() => window.RSP.disconnect()");
+            second.close();
+            generation = sharedSnapshot(context, url).requiredNumber("generation").asLong();
+            // The poll uses the HTTP facade with no page attached.
+            com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat(context.request().get(url,
+                    RequestOptions.create().setHeader("Accept", "application/json"))).isOK();
+            long deadline = System.nanoTime() + java.time.Duration.ofSeconds(5).toNanos();
+            while (sharedSnapshot(context, url).requiredNumber("generation").asLong() <= generation
+                    && System.nanoTime() < deadline) {
+                Thread.onSpinWait();
+            }
+            org.junit.jupiter.api.Assertions.assertTrue(sharedSnapshot(context, url).requiredNumber("generation").asLong() > generation);
+            var later = context.newPage();
+            assertEquals(200, later.navigate(url).status());
+            assertThat(later.locator(".game > p")).containsText("RUNNING");
+        }
+    }
+
+    @Test
+    void deletingSharedSimulationKeepsFinalBoardAndDisablesAttachedControls() {
+        try (var server = Life.server(0, new Random(42));
+             Playwright playwright = Playwright.create();
+             Browser browser = playwright.chromium().launch();
+             BrowserContext context = browser.newContext()) {
+            server.start();
+            String base = "http://127.0.0.1:" + server.port();
+            String url = base + Json.requireObject(Json.parse(context.request().post(base + "/games/shared").text())).requiredString("url");
+            context.request().post(url + "/pause");
+            var first = context.newPage();
+            var second = context.newPage();
+            first.navigate(url);
+            second.navigate(url);
+            first.locator(".board > div").first().click();
+            assertThat(second.locator(".board > div").first()).hasClass("c1");
+            assertEquals(204, context.request().delete(url).status());
+            for (Page page : new Page[]{first, second}) {
+                assertThat(page.locator(".game > p")).containsText("STOPPED");
+                assertThat(page.locator(".controls button:disabled")).hasCount(4);
+                assertThat(page.locator(".board > div").first()).hasClass("c1");
+            }
+            assertEquals(404, context.request().get(url, RequestOptions.create().setHeader("Accept", "application/json")).status());
+            assertEquals(404, context.request().post(url + "/start").status());
+        }
+    }
+
+    @Test
+    void sharedPageReplaysChangesMadeBeforeItsFirstWebSocketConnection() {
+        try (var server = Life.server(0, new Random(42));
+             Playwright playwright = Playwright.create();
+             Browser browser = playwright.chromium().launch();
+             BrowserContext context = browser.newContext()) {
+            server.start();
+            String base = "http://127.0.0.1:" + server.port();
+            String url = base + Json.requireObject(Json.parse(context.request().post(base + "/games/shared").text())).requiredString("url");
+            context.request().post(url + "/pause");
+            context.addInitScript("""
+                    const add = document.addEventListener;
+                    document.addEventListener = function(type, listener, options) {
+                      if (type === 'DOMContentLoaded') {
+                        window.startRsp = () => listener.call(document, new Event(type));
+                        document.addEventListener = add;
+                      } else {
+                        return add.call(this, type, listener, options);
+                      }
+                    };
+                    """);
+            var page = context.newPage();
+            page.navigate(url);
+            assertThat(page.locator(".game > p")).containsText("PAUSED");
+            assertEquals(200, context.request().post(url + "/reset").status());
+            page.evaluate("() => window.startRsp()");
+            assertThat(page.locator(".game > p")).containsText("READY");
+        }
+    }
+
+    private static JsonDataType.Object sharedSnapshot(BrowserContext context, String url) {
+        var response = context.request().get(url, RequestOptions.create().setHeader("Accept", "application/json"));
+        assertEquals(200, response.status());
+        return Json.requireObject(Json.parse(response.text()));
+    }
+
 }

@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** In-JVM, at-most-once actor runtime with bounded keyed mailboxes. */
 public final class LocalActorSystem implements ActorSystem {
@@ -48,7 +49,6 @@ public final class LocalActorSystem implements ActorSystem {
     private final Object lifecycleLock = new Object();
     private int outstanding;
     private final CompletableFuture<Void> drained = new CompletableFuture<>();
-    private final SerializedActorActivation.Host activationHost = new ActivationHost();
     private volatile State state = State.NEW;
 
     private LocalActorSystem(Builder builder) {
@@ -105,10 +105,55 @@ public final class LocalActorSystem implements ActorSystem {
                 || state == State.STOPPED) {
             return new UnavailableRef<>(id);
         }
-        @SuppressWarnings("unchecked")
-        SerializedActorActivation<?, M> cell = (SerializedActorActivation<?, M>) cells.computeIfAbsent(id,
-                ignored -> newCell(id, definition));
-        return cell.ref();
+        synchronized (lifecycleLock) {
+            if (state == State.STOPPED) {
+                return new UnavailableRef<>(id);
+            }
+            @SuppressWarnings("unchecked")
+            SerializedActorActivation<?, M> cell = (SerializedActorActivation<?, M>) cells.computeIfAbsent(id,
+                    ignored -> newCell(id, definition));
+            return cell.ref();
+        }
+    }
+
+    /**
+     * Creates and eagerly initializes an application-owned activation. The exact
+     * definition must be registered, and this ID must not already be in use.
+     * Initialization is reserved work, coordinated with runtime shutdown.
+     */
+    public <S, M> OwnedActor<S, M> createOwned(ActorId<M> id, ActorDefinition<S, M> definition) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(definition, "definition");
+        if (definitions.get(id.type().name()) != definition || !id.type().equals(definition.type())) {
+            throw new IllegalArgumentException("The exact actor definition must be registered");
+        }
+        SerializedActorActivation<S, M> cell = new SerializedActorActivation<>(
+                id, definition, new ActivationHost(true));
+        synchronized (lifecycleLock) {
+            if (state != State.RUNNING) {
+                throw new ActorDeliveryException(state == State.NEW
+                        ? SendResult.NOT_STARTED : SendResult.STOPPED);
+            }
+            if (cells.putIfAbsent(id, cell) != null) {
+                throw new IllegalStateException("Actor ID is already active: " + id);
+            }
+            outstanding++;
+        }
+        try {
+            cell.initialize();
+            if (state != State.RUNNING) {
+                throw new ActorDeliveryException(SendResult.STOPPED);
+            }
+            return new OwnedActor<>(cell);
+        } catch (RuntimeException | Error failure) {
+            cell.close(failure);
+            throw failure;
+        } finally {
+            synchronized (lifecycleLock) {
+                outstanding--;
+            }
+            finishDraining();
+        }
     }
 
     @Override
@@ -182,10 +227,12 @@ public final class LocalActorSystem implements ActorSystem {
             return drained;
         }
         observe(observer::systemStopping);
+        final List<TimerSlot> cancelling;
         synchronized (timers) {
-            timers.forEach(TimerSlot::cancel);
+            cancelling = List.copyOf(timers);
             timers.clear();
         }
+        cancelling.forEach(TimerSlot::cancel);
         finishDraining();
         return drained;
     }
@@ -220,6 +267,8 @@ public final class LocalActorSystem implements ActorSystem {
             }
             state = State.STOPPED;
         }
+        cells.values().forEach(cell -> cell.close(new ActorDeliveryException(SendResult.STOPPED)));
+        cells.clear();
         drained.complete(null);
     }
 
@@ -235,7 +284,7 @@ public final class LocalActorSystem implements ActorSystem {
     private <M> SerializedActorActivation<?, M> newCell(ActorId<M> id, ActorDefinition<?, ?> raw) {
         @SuppressWarnings("unchecked")
         ActorDefinition<Object, M> definition = (ActorDefinition<Object, M>) raw;
-        return new SerializedActorActivation<>(id, definition, activationHost);
+        return new SerializedActorActivation<>(id, definition, new ActivationHost(false));
     }
 
     private ProcessingReceipt rejected(ActorId<?> id, SendResult result) {
@@ -258,30 +307,39 @@ public final class LocalActorSystem implements ActorSystem {
         }
     }
 
-    private <M> void dispatch(ActorId<?> sender, ActorEffect.Delivery<M> delivery) {
+    private <M> void dispatch(ActivationHost owner, ActorId<?> sender, ActorEffect.Delivery<M> delivery) {
         if (delivery.delay().isZero()) {
+            synchronized (timers) {
+                if (owner.closed || state == State.STOPPED) {
+                    return;
+                }
+            }
             sendEffect(sender, delivery, true);
             return;
         }
+        final TimerSlot slot;
         synchronized (timers) {
-            if (state != State.RUNNING) {
+            if (state != State.RUNNING || owner.closed) {
                 return;
             }
-            TimerSlot slot = new TimerSlot(sender);
+            slot = new TimerSlot(owner);
             timers.add(slot);
-            try {
-                slot.cancellation = scheduler.schedule(delivery.delay(), () -> {
-                    synchronized (timers) {
-                        timers.remove(slot);
+        }
+        try {
+            slot.setCancellation(scheduler.schedule(delivery.delay(), () -> {
+                synchronized (timers) {
+                    // Closure cannot recall an outbound send already claimed here.
+                    if (!timers.remove(slot) || owner.closed || state != State.RUNNING) {
+                        return;
                     }
-                    if (state == State.RUNNING) {
-                        sendEffect(sender, delivery, false);
-                    }
-                });
-            } catch (Throwable failure) {
+                }
+                sendEffect(sender, delivery, false);
+            }));
+        } catch (Throwable failure) {
+            synchronized (timers) {
                 timers.remove(slot);
-                throw failure;
             }
+            throw failure;
         }
     }
 
@@ -307,29 +365,43 @@ public final class LocalActorSystem implements ActorSystem {
     }
 
     private static final class TimerSlot implements ActorScheduler.Cancellation {
-        private final ActorId<?> owner;
-        private ActorScheduler.Cancellation cancellation;
+        private static final ActorScheduler.Cancellation CANCELLED = () -> { };
+        private final ActivationHost owner;
+        private final AtomicReference<ActorScheduler.Cancellation> cancellation = new AtomicReference<>();
 
-        private TimerSlot(ActorId<?> owner) {
+        private TimerSlot(ActivationHost owner) {
             this.owner = owner;
+        }
+
+        private void setCancellation(ActorScheduler.Cancellation handle) {
+            Objects.requireNonNull(handle, "timer cancellation");
+            if (!cancellation.compareAndSet(null, handle)) {
+                handle.cancel();
+            }
         }
 
         @Override
         public void cancel() {
-            cancellation.cancel();
+            ActorScheduler.Cancellation handle = cancellation.getAndSet(CANCELLED);
+            if (handle != null && handle != CANCELLED) {
+                handle.cancel();
+            }
         }
     }
 
-    private void cancelActorTimers(ActorId<?> id) {
+    private void cancelActorTimers(ActivationHost owner) {
+        final List<TimerSlot> cancelling = new ArrayList<>();
         synchronized (timers) {
+            owner.closed = true;
             timers.removeIf(timer -> {
-                if (!timer.owner.equals(id)) {
+                if (timer.owner != owner) {
                     return false;
                 }
-                timer.cancel();
+                cancelling.add(timer);
                 return true;
             });
         }
+        cancelling.forEach(TimerSlot::cancel);
     }
 
     private static void requirePositive(Duration duration, String name) {
@@ -411,6 +483,14 @@ public final class LocalActorSystem implements ActorSystem {
     }
 
     private final class ActivationHost implements SerializedActorActivation.Host {
+        private final boolean owned;
+        // Guarded by timers; ownership is per activation, never just its public ID.
+        private boolean closed;
+
+        private ActivationHost(boolean owned) {
+            this.owned = owned;
+        }
+
         @Override
         public SendResult admission(ActorId<?> id, boolean internal) {
             State current = state;
@@ -448,7 +528,7 @@ public final class LocalActorSystem implements ActorSystem {
 
         @Override
         public void dispatch(ActorId<?> sender, ActorEffect.Delivery<?> delivery) {
-            LocalActorSystem.this.dispatch(sender, delivery);
+            LocalActorSystem.this.dispatch(this, sender, delivery);
         }
 
         @Override
@@ -475,8 +555,8 @@ public final class LocalActorSystem implements ActorSystem {
         public void terminated(ActorId<?> id,
                                SerializedActorActivation<?, ?> activation,
                                boolean release) {
-            cancelActorTimers(id);
-            if (release) {
+            cancelActorTimers(this);
+            if (release || owned) {
                 cells.remove(id, activation);
             }
         }
